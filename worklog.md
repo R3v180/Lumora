@@ -224,3 +224,38 @@ Stage Summary:
 - 5 new social achievements seeded
 - 30+ new i18n strings in es/en
 - Phase 4 complete - Ready for Phase 5
+
+---
+Task ID: 5
+Agent: Super Z (Main)
+Task: Phase 5 - Tienda, Eventos y Progresión
+
+Work Log:
+- Created /api/shop GET route: list active shop items grouped by category
+- Created /api/shop POST route: purchase items with transaction (lumens deduction, reward processing for lumens/energy/spirits/decorations/passes)
+- Created /api/blessings GET route: 7-day blessing cycle, streak tracking, 20h cooldown, can-claim detection
+- Created /api/blessings POST route: claim daily blessing with rewards (lumens + energy), streak reset if >48h gap
+- Created /api/events GET route: active + upcoming world events, auto-generates Awakening Hour (noon-2pm), Stellar Eclipse (8pm-10pm), Lumora Festival (weekends)
+- Created /api/achievements GET route: all achievements with player progress, grouped by category
+- Created /api/daily GET route: today's daily challenges with progress, auto-generates 4 challenges if missing
+- Created /api/daily POST route: claim completed challenge rewards (lumens, energy, XP)
+- Built ShopPanel component: category tabs, item grid with pricing, purchase confirmation dialog, success/failure result popup, lumens balance display
+- Built BlessingWidget component: 7-day schedule visualization, streak counter, claim button, animated claim result popup with mega blessing on day 7
+- Built EventWidget component (inline on home page): shows active event with countdown, upcoming events, or no-event state
+- Rewrote Shop page: full ShopPanel integration
+- Updated Home page: added BlessingWidget, replaced static event widget with live EventWidget using /api/events
+- Updated i18n (es/en) with 8 new shop strings (confirmPurchase, cost, purchaseSuccess, purchaseFailed, etc.)
+- Created test users: viajero@lumora.dream (Lumora123) and admin@lumora.dream (Admin123) with spirits, friendship, and onboarding completed
+- Created TEST-USERS.md at project root with formatted test credentials
+- Build passes with no errors, all routes rendering 200 OK
+
+Stage Summary:
+- Complete shop system: browse by category, purchase with Lumens, reward processing
+- Daily blessings: 7-day cycle with streak tracking, lumens + energy rewards
+- World events: auto-generated Awakening Hour, Stellar Eclipse, Lumora Festival with multipliers
+- Achievements API: full progress tracking by category
+- Daily challenges: auto-generated 4 challenges per day with claim rewards
+- Shop page fully functional with purchase flow
+- Home page enhanced with live events and daily blessings
+- Test users documented in TEST-USERS.md
+- Phase 5 complete - Ready for Phase 6

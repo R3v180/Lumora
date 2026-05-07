@@ -144,7 +144,13 @@
     "boosts": "Boosts",
     "buy": "Buy",
     "owned": "Owned",
-    "free": "Free"
+    "free": "Free",
+    "confirmPurchase": "Confirm Purchase",
+    "cost": "Cost",
+    "purchaseSuccess": "Purchase Successful!",
+    "purchaseFailed": "Purchase Failed",
+    "close": "Close",
+    "insufficientLumens": "Insufficient Lumens"
   },
   "events": {
     "awakening": "Awakening Hour",

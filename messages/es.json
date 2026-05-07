@@ -144,7 +144,13 @@
     "boosts": "Impulsos",
     "buy": "Comprar",
     "owned": "Adquirido",
-    "free": "Gratis"
+    "free": "Gratis",
+    "confirmPurchase": "Confirmar Compra",
+    "cost": "Coste",
+    "purchaseSuccess": "¡Compra Exitosa!",
+    "purchaseFailed": "Error en la Compra",
+    "close": "Cerrar",
+    "insufficientLumens": "Lumens insuficientes"
   },
   "events": {
     "awakening": "Hora del Despertar",
