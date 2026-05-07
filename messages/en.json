@@ -79,6 +79,9 @@
     "rarity": "Rarity",
     "rename": "Rename Sanctuary",
     "noSpiritsToPlace": "No spirits to place. Spin to get more!",
+    "maxSpiritsReached": "Sanctuary full! Level up to place more spirits.",
+    "spiritsPlaced": "Spirits placed: {current} / {max}",
+    "upgradeToPlace": "You need level {level} for more slots",
     "maxOffline": "Max 8h offline",
     "terrain": {
       "grass": "Grass",

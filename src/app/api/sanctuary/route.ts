@@ -119,6 +119,8 @@ export async function GET() {
       })),
       totalSpirits: player.spirits.length,
       sanctuaryLevel: player.sanctuaryLevel,
+      maxPlacedSpirits: player.sanctuaryLevel * 3 + 2,
+      currentPlacedCount: sanctuary.decorations.filter(d => d.type === 'spirit').length,
     });
   } catch (error) {
     console.error('Sanctuary fetch error:', error);
@@ -245,6 +247,22 @@ export async function POST(request: NextRequest) {
       if (existingPlacement) {
         return NextResponse.json(
           { error: 'Este espíritu ya está colocado' },
+          { status: 400 }
+        );
+      }
+
+      // Calculate max placed spirits based on sanctuary level
+      // Formula: level * 3 + 2 (gives 5 at lv1, 8 at lv2, 11 at lv3, etc.)
+      const maxPlacedSpirits = player.sanctuaryLevel * 3 + 2;
+
+      // Count currently placed spirits
+      const currentPlacedCount = await db.sanctuaryDecoration.count({
+        where: { sanctuaryId: player.sanctuary.id, type: 'spirit' },
+      });
+
+      if (currentPlacedCount >= maxPlacedSpirits) {
+        return NextResponse.json(
+          { error: 'sanctuary_full', message: `Máximo ${maxPlacedSpirits} espíritus colocados (Nivel ${player.sanctuaryLevel})` },
           { status: 400 }
         );
       }

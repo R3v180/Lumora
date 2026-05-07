@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toast } from 'sonner';
 
 interface FriendData {
   friendshipId: string;
@@ -43,10 +44,12 @@ export function FriendsPanel() {
   const [searchResults, setSearchResults] = useState<SearchPlayerData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPending, setShowPending] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
   const fetchFriends = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/friends');
       if (res.ok) {
@@ -55,8 +58,10 @@ export function FriendsPanel() {
         setPendingSent(data.pendingSent);
         setPendingReceived(data.pendingReceived);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch friends:', err);
+      setError('Error al cargar amigos');
+      toast.error('Error al cargar amigos');
     } finally {
       setIsLoading(false);
     }
@@ -76,8 +81,9 @@ export function FriendsPanel() {
         const data = await res.json();
         setSearchResults(data.results);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to search players:', err);
+      toast.error('Error al buscar jugadores');
     } finally {
       setIsSearching(false);
     }
@@ -102,8 +108,9 @@ export function FriendsPanel() {
         );
         fetchFriends();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to send friend request:', err);
+      toast.error('Error al enviar solicitud');
     }
   };
 
@@ -118,8 +125,9 @@ export function FriendsPanel() {
       if (res.ok) {
         fetchFriends();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to accept friend request:', err);
+      toast.error('Error al aceptar solicitud');
     }
   };
 
@@ -134,8 +142,9 @@ export function FriendsPanel() {
       if (res.ok) {
         fetchFriends();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to reject friend request:', err);
+      toast.error('Error al rechazar solicitud');
     }
   };
 
@@ -150,8 +159,9 @@ export function FriendsPanel() {
       if (res.ok) {
         fetchFriends();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to remove friend:', err);
+      toast.error('Error al eliminar amigo');
     }
   };
 
@@ -192,6 +202,16 @@ export function FriendsPanel() {
           <Search className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Error display */}
+      {error && (
+        <div className="text-destructive text-sm text-center py-4">
+          {error}
+          <Button variant="link" onClick={() => { setIsLoading(true); fetchFriends(); }} className="text-destructive ml-2">
+            Reintentar
+          </Button>
+        </div>
+      )}
 
       {/* Search Results */}
       <AnimatePresence>

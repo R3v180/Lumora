@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthProvider } from '@/components/layout/AuthProvider';
 import { ServiceWorkerRegistrar } from '@/components/layout/ServiceWorkerRegistrar';
+import { Toaster } from '@/components/ui/sonner';
 
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -49,6 +50,7 @@ export default async function LocaleLayout({
             <NextIntlClientProvider messages={messages}>
               <ServiceWorkerRegistrar />
               <AppShell>{children}</AppShell>
+              <Toaster />
             </NextIntlClientProvider>
           </AuthProvider>
         </ThemeProvider>

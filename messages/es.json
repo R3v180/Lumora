@@ -79,6 +79,9 @@
     "rarity": "Rareza",
     "rename": "Renombrar Santuario",
     "noSpiritsToPlace": "No tienes espíritus para colocar. ¡Gira para conseguir más!",
+    "maxSpiritsReached": "¡Santuario lleno! Sube de nivel para colocar más espíritus.",
+    "spiritsPlaced": "Espíritus colocados: {current} / {max}",
+    "upgradeToPlace": "Necesitas nivel {level} para más espacios",
     "maxOffline": "Máximo 8h offline",
     "terrain": {
       "grass": "Pradera",

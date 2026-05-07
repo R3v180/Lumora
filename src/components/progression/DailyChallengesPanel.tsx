@@ -5,9 +5,11 @@ import { useTranslations, useLocale } from 'next-intl';
 import { motion } from 'framer-motion';
 import { Sparkles, Check, Zap, Star, Clock, RotateCcw, Swords, Handshake, Combine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useGameStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface ChallengeData {
   id: string;
@@ -87,19 +89,23 @@ export function DailyChallengesPanel() {
   const locale = useLocale();
   const [data, setData] = useState<DailyResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
   const timeLeft = useCountdownToMidnight();
 
   const fetchChallenges = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/daily');
       if (res.ok) {
         const d = await res.json();
         setData(d);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch daily challenges:', err);
+      setError('Error al cargar desafíos');
+      toast.error('Error al cargar desafíos');
     } finally {
       setIsLoading(false);
     }
@@ -120,9 +126,11 @@ export function DailyChallengesPanel() {
       if (res.ok) {
         setClaimedIds((prev) => new Set(prev).add(challengeId));
         fetchChallenges();
+        useGameStore.getState().triggerRefresh();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to claim daily challenge:', err);
+      toast.error('Error al reclamar desafío');
     } finally {
       setClaimingId(null);
     }
@@ -149,6 +157,25 @@ export function DailyChallengesPanel() {
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-20 w-full rounded-xl" />
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/5 to-lumora-gold/5 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-lumora-purple" />
+            <span className="text-sm font-fantasy font-bold text-lumora-purple">{t('title')}</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-center py-6">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" onClick={() => { setIsLoading(true); fetchChallenges(); }} className="rounded-xl">
+            Reintentar
+          </Button>
         </div>
       </div>
     );

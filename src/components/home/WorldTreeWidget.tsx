@@ -17,6 +17,8 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import { usePlayer } from '@/hooks/usePlayer';
+import { toast } from 'sonner';
+import { useGameStore } from '@/lib/store';
 
 type ElementKey = 'fire' | 'water' | 'dream' | 'nature' | 'star';
 
@@ -171,6 +173,7 @@ export function WorldTreeWidget() {
   const { player } = usePlayer();
   const [treeData, setTreeData] = useState<WorldTreeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showContributeDialog, setShowContributeDialog] = useState(false);
   const [selectedElement, setSelectedElement] = useState<ElementKey>('fire');
   const [contributeAmount, setContributeAmount] = useState<number>(100);
@@ -183,14 +186,17 @@ export function WorldTreeWidget() {
   } | null>(null);
 
   const fetchTreeData = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/world-tree');
       if (res.ok) {
         const data = await res.json();
         setTreeData(data);
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('Failed to fetch world tree:', err);
+      setError('Error al cargar Árbol del Mundo');
+      toast.error('Error al cargar Árbol del Mundo');
     } finally {
       setIsLoading(false);
     }
@@ -225,6 +231,7 @@ export function WorldTreeWidget() {
           amount: contributeAmount,
         });
         fetchTreeData();
+        useGameStore.getState().triggerRefresh();
       } else {
         const data = await res.json();
         setContributeResult({
@@ -233,12 +240,14 @@ export function WorldTreeWidget() {
           amount: contributeAmount,
         });
       }
-    } catch {
+    } catch (err) {
+      console.error('Failed to contribute to world tree:', err);
       setContributeResult({
         success: false,
         element: selectedElement,
         amount: contributeAmount,
       });
+      toast.error('Error al contribuir');
     } finally {
       setIsContributing(false);
     }
@@ -283,6 +292,18 @@ export function WorldTreeWidget() {
     if (level >= 6) return 'from-lumora-gold/15 via-lumora-purple/15 to-lumora-emerald/15';
     return 'from-lumora-purple/10 via-lumora-gold/10 to-lumora-blue/10';
   };
+
+  if (error) {
+    return (
+      <div className="relative z-10 flex flex-col items-center mb-8">
+        <TreePine className="h-16 w-16 text-lumora-emerald/30 mb-4" />
+        <p className="text-sm text-destructive mb-2">{error}</p>
+        <Button variant="outline" onClick={() => { setIsLoading(true); fetchTreeData(); }} className="rounded-xl">
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading || !treeData) {
     return (

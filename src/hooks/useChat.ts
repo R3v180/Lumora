@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 
 export interface ChatMessage {
   id: string;
@@ -30,7 +31,7 @@ interface UseChatReturn {
   error: string | null;
 }
 
-const POLL_INTERVAL = 3000;
+const POLL_INTERVAL = 5000;
 
 export function useChat({ channel, guildId }: UseChatOptions): UseChatReturn {
   const { data: session } = useSession();
@@ -60,6 +61,8 @@ export function useChat({ channel, guildId }: UseChatOptions): UseChatReturn {
       }
     } catch (err) {
       console.error('Chat fetch error:', err);
+      setError('Error al cargar mensajes');
+      toast.error('Error al cargar mensajes');
     }
     return null;
   }, [channel]);
@@ -145,6 +148,7 @@ export function useChat({ channel, guildId }: UseChatOptions): UseChatReturn {
       });
     } catch (err) {
       setError('Error de conexión');
+      toast.error('Error de conexión');
       console.error('Chat send error:', err);
     } finally {
       setSending(false);

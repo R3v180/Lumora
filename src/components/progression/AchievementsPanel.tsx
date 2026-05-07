@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { useGameStore } from '@/lib/store';
 
 interface AchievementData {
   id: string;
@@ -70,18 +72,22 @@ export function AchievementsPanel() {
   const locale = useLocale();
   const [data, setData] = useState<AchievementsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
 
   const fetchAchievements = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/achievements');
       if (res.ok) {
         const d = await res.json();
         setData(d);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch achievements:', err);
+      setError('Error al cargar logros');
+      toast.error('Error al cargar logros');
     } finally {
       setIsLoading(false);
     }
@@ -102,9 +108,11 @@ export function AchievementsPanel() {
       if (res.ok) {
         setClaimedIds((prev) => new Set(prev).add(achievementId));
         fetchAchievements();
+        useGameStore.getState().triggerRefresh();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to claim achievement:', err);
+      toast.error('Error al reclamar logro');
     } finally {
       setClaimingId(null);
     }
@@ -131,6 +139,18 @@ export function AchievementsPanel() {
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-28 w-full rounded-xl" />
         ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center py-12">
+        <Trophy className="h-12 w-12 text-lumora-gold/20 mb-4" />
+        <p className="text-sm text-destructive mb-2">{error}</p>
+        <Button variant="outline" onClick={() => { setIsLoading(true); fetchAchievements(); }} className="rounded-xl">
+          Reintentar
+        </Button>
       </div>
     );
   }

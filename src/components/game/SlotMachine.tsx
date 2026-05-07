@@ -6,8 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
 import { useRouter } from '@/i18n/navigation';
 import { BonusGame } from '@/components/game/BonusGame';
+import { useGameStore } from '@/lib/store';
 
 interface GridSymbol {
   id: string;
@@ -115,7 +117,10 @@ export function SlotMachine() {
           setEnergy(data.energy);
           setMaxEnergy(data.maxEnergy);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Failed to fetch player data:', err);
+        toast.error('Error al cargar datos del jugador');
+      }
     };
     if (session?.user) fetchPlayer();
   }, [session]);
@@ -186,6 +191,7 @@ export function SlotMachine() {
         setMaxEnergy(spinResult.player.maxEnergy);
         setSpinCount(prev => prev + 1);
         setIsSpinning(false);
+        useGameStore.getState().triggerRefresh();
 
         // Check for bonus trigger FIRST (takes priority over other overlays)
         if (spinResult.bonusTriggered) {
@@ -211,6 +217,7 @@ export function SlotMachine() {
 
     } catch (err) {
       setError('Error de conexión');
+      toast.error('Error de conexión');
       clearInterval(spinInterval);
       setIsSpinning(false);
       setAutoSpin(false);
@@ -258,6 +265,7 @@ export function SlotMachine() {
       setEnergy(bonusResults.player.energy);
       setMaxEnergy(bonusResults.player.maxEnergy);
     }
+    useGameStore.getState().triggerRefresh();
   };
 
   // Render a single reel cell

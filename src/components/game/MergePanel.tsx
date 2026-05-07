@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ELEMENT_EMOJIS } from '@/game/engine/symbols';
+import { useGameStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 interface PlayerSpirit {
   id: string;
@@ -115,7 +117,10 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
           return RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity);
         }));
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to fetch spirits:', err);
+      toast.error('Error al cargar espíritus');
+    }
   }, []);
 
   useEffect(() => {
@@ -139,13 +144,17 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
 
       if (res.ok) {
         setMergeSuccess(true);
+        useGameStore.getState().triggerRefresh();
         setTimeout(() => {
           setMergeSuccess(false);
           setSelectedGroup(null);
           fetchSpirits();
         }, 2000);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to merge spirits:', err);
+      toast.error('Error al fusionar espíritus');
+    }
     setIsMerging(false);
   };
 

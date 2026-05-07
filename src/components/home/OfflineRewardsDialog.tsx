@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Zap, Gift, Coins } from 'lucide-react';
 import { useGameStore } from '@/lib/store';
 import { usePlayer } from '@/hooks/usePlayer';
+import { toast } from 'sonner';
 
 interface LumoraGift {
   type: 'spirit' | 'lumens';
@@ -270,6 +271,7 @@ export function OfflineRewardsDialog() {
         }
       } catch (err) {
         console.error('Failed to fetch offline rewards:', err);
+        toast.error('Error al cargar recompensas offline');
       } finally {
         setIsLoading(false);
       }
@@ -298,6 +300,7 @@ export function OfflineRewardsDialog() {
 
         // Refetch player data
         refetch();
+        useGameStore.getState().triggerRefresh();
 
         // Close dialog after a satisfying delay
         setTimeout(() => {
@@ -306,6 +309,7 @@ export function OfflineRewardsDialog() {
       }
     } catch (err) {
       console.error('Failed to claim offline rewards:', err);
+      toast.error('Error al reclamar recompensas');
     } finally {
       setIsClaiming(false);
     }

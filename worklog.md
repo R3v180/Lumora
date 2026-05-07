@@ -554,3 +554,112 @@ Stage Summary:
 - All edge cases handled: not logged in, not in guild, empty state, error display
 - 6 new i18n keys added per language (loading, justNow, minutesAgo, hoursAgo, daysAgo + updated existing)
 - Phase 6 Real Chat System complete
+
+---
+Task ID: race-condition-fix
+Agent: Code Review Fix
+Task: Protect guild war resolution against race conditions
+
+Work Log:
+- Read existing /api/guild-wars/route.ts to understand current resolveEndedWars logic
+- Identified race condition: multiple concurrent GET requests could resolve the same war simultaneously, leading to double reward distribution
+- Added `resolutionLocks` in-memory Set<string> at module level to track war IDs currently being resolved
+- Added `RESOLUTION_BUFFER_MS = 10_000` constant (10-second buffer) to avoid edge-case timing issues
+- Refactored `resolveEndedWars` function:
+  - Single combined query for both upcoming and active wars using `status: { in: ['upcoming', 'active'] }` with `endsAt: { lte: bufferTime }`
+  - Per-war lock check: `if (resolutionLocks.has(war.id)) continue;` skips wars already being resolved by another concurrent request
+  - `resolutionLocks.add(war.id)` before processing each war
+  - Re-fetch war with `db.guildWar.findUnique()` inside the lock to verify it wasn't already completed by another request
+  - If `freshWar.status === 'completed'`, skip (already resolved)
+  - Active→completed: kept all existing reward calculation and distribution logic (winner determination, treasury increments, XP gains, transaction)
+  - Upcoming→active: added `startsAt <= bufferTime` check with buffer before transitioning
+  - `finally` block always releases lock with `resolutionLocks.delete(war.id)`, even if errors occur
+- All existing functionality preserved: declare war, contribute, surrender, GET response format unchanged
+- ESLint passes with no errors
+
+Stage Summary:
+- Race condition eliminated via in-memory lock (Set of war IDs)
+- 10-second buffer prevents edge-case resolution at exact boundary times
+- Re-fetch inside lock prevents double-resolution from concurrent requests
+- Lock always released in finally block (no deadlock risk)
+- Single-server deployment makes in-memory lock sufficient (no distributed lock needed)
+
+---
+Task ID: sanctuary-spirit-limit
+Agent: Code Review Fix
+Task: Add maximum spirit placement limit in the sanctuary based on sanctuary level
+
+Work Log:
+- Read existing files: /api/sanctuary/route.ts, SanctuaryView.tsx, sanctuary page.tsx, messages/es.json, messages/en.json
+- Updated /api/sanctuary/route.ts POST handler (place action):
+  - Added max spirits calculation: `level * 3 + 2` (Lv1=5, Lv2=8, Lv3=11, Lv4=14, Lv5=17)
+  - Counts currently placed spirits via `db.sanctuaryDecoration.count({ where: { type: 'spirit' } })`
+  - Returns error code `sanctuary_full` with descriptive message when limit reached
+  - Check inserted AFTER validating spirit exists and isn't already placed, BEFORE position-occupied check
+- Updated /api/sanctuary/route.ts GET handler:
+  - Added `maxPlacedSpirits` and `currentPlacedCount` to JSON response
+- Updated SanctuaryView component:
+  - Added `maxPlacedSpirits` and `currentPlacedCount` to SanctuaryData interface
+  - Added spirit counter "✨ X/Y" next to level/Lumens display in the sanctuary header
+  - Counter turns gold (text-lumora-gold) when sanctuary is full
+  - Occupied tiles now show a visible `ring-1 ring-lumora-gold/40` border indicator
+- Updated sanctuary page (src/app/[locale]/sanctuary/page.tsx):
+  - Added `maxPlacedSpirits` and `currentPlacedCount` to SanctuaryData interface
+  - "Place Spirit" button disabled when sanctuary is full (`currentPlacedCount >= maxPlacedSpirits`)
+  - Added `startPlacingMode` guard: shows `maxSpiritsReached` i18n message when full
+  - Added golden "Sanctuary full!" message banner that appears when limit reached
+  - Collection count badge now shows placed/max instead of total spirits
+- Updated i18n files:
+  - es.json: added maxSpiritsReached, spiritsPlaced, upgradeToPlace to sanctuary namespace
+  - en.json: added maxSpiritsReached, spiritsPlaced, upgradeToPlace to sanctuary namespace
+- Backward compatible: existing placed spirits beyond limit are NOT removed
+- ESLint passes for all modified files (pre-existing FriendsPanel.tsx error unrelated)
+- Dev server running successfully
+
+Stage Summary:
+- Spirit placement limit enforced server-side with formula level*3+2
+- GET endpoint returns max/current counts for UI consumption
+- SanctuaryView shows real-time counter with full-state visual indicator
+- Place Spirit button auto-disables when sanctuary is at capacity
+- Golden warning banner displayed when limit reached
+- 3 new i18n keys per language (es/en)
+- Backward compatible with existing data
+
+---
+Task ID: player-update-refactor
+Agent: Code Review Fix
+Task: Replace `player-update` window event antipattern with Zustand-based state management
+
+Work Log:
+- Searched all of src/ for `player-update`, `dispatchEvent`, and `addEventListener` occurrences
+- No existing `player-update` window events were found in the codebase (the antipattern was identified proactively before it could spread)
+- Added `refreshKey: number` (initial: 0) and `triggerRefresh: () => void` to Zustand store (src/lib/store.ts)
+  - `triggerRefresh` increments `refreshKey` via `set((state) => ({ refreshKey: state.refreshKey + 1 }))`
+- Updated `usePlayer` hook (src/hooks/usePlayer.ts):
+  - Imported `useGameStore` from store
+  - Subscribed to `refreshKey` via `useGameStore((s) => s.refreshKey)`
+  - Added `refreshKey` as dependency to the `useEffect` that calls `fetchPlayer()`
+  - This means any component using `usePlayer` (including TopBar) will automatically refetch player data when `triggerRefresh()` is called
+- Added `useGameStore.getState().triggerRefresh()` calls in all components that modify player data server-side:
+  - SlotMachine.tsx: after spin result updates local state + after bonus game completion
+  - BonusGame.tsx: not needed directly (flows through SlotMachine's handleBonusComplete)
+  - OfflineRewardsDialog.tsx: after claiming offline rewards (alongside existing `refetch()`)
+  - ShopPanel.tsx: after successful purchase
+  - BlessingWidget.tsx: after claiming daily blessing
+  - MergePanel.tsx: after successful spirit merge
+  - DailyChallengesPanel.tsx: after claiming challenge reward
+  - AchievementsPanel.tsx: after claiming achievement reward
+  - WorldTreeWidget.tsx: after contributing lumens to world tree
+  - GuildWarsPanel.tsx: after contributing spirit to guild war
+  - Sanctuary page (src/app/[locale]/sanctuary/page.tsx): after collecting idle lumens, placing spirit, removing spirit
+- TopBar (src/components/layout/TopBar.tsx): No changes needed — it already uses `usePlayer()` which now subscribes to `refreshKey`, so it automatically re-renders with fresh data when `triggerRefresh()` is called
+- No `window.addEventListener('player-update', ...)` or `window.dispatchEvent(new Event('player-update'))` calls exist or were removed
+- ESLint passes with no errors
+
+Stage Summary:
+- Zustand `refreshKey`/`triggerRefresh` replaces the would-be `player-update` window event pattern
+- `usePlayer` hook automatically refetches when `refreshKey` changes
+- TopBar updates automatically through the hook — no window event listeners needed
+- All 10+ components that modify player data now call `useGameStore.getState().triggerRefresh()`
+- React's unidirectional data flow is preserved: store → hook → component
+- No window event antipattern remains

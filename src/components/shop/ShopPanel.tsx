@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface ShopItem {
   id: string;
@@ -55,12 +56,14 @@ export function ShopPanel() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [lumens, setLumens] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [purchaseDialog, setPurchaseDialog] = useState<ShopItem | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
 
   const fetchShop = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/shop');
       if (res.ok) {
@@ -70,8 +73,10 @@ export function ShopPanel() {
           setActiveCategory(data.categories[0].key);
         }
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch shop:', err);
+      setError('Error al cargar la tienda');
+      toast.error('Error al cargar la tienda');
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +89,9 @@ export function ShopPanel() {
         const data = await res.json();
         setLumens(data.lumens);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch lumens:', err);
+      toast.error('Error al cargar Lumens');
     }
   }, []);
 
@@ -113,9 +119,11 @@ export function ShopPanel() {
         setPurchaseResult({ error: data.error });
         setShowResult(true);
       }
-    } catch {
+    } catch (err) {
+      console.error('Purchase failed:', err);
       setPurchaseResult({ error: 'Error de conexión' });
       setShowResult(true);
+      toast.error('Error de conexión');
     } finally {
       setIsPurchasing(false);
       setPurchaseDialog(null);
@@ -123,6 +131,18 @@ export function ShopPanel() {
   };
 
   const activeItems = categories.find((c) => c.key === activeCategory)?.items || [];
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center py-12">
+        <ShoppingBag className="h-12 w-12 text-lumora-gold/20 mb-4" />
+        <p className="text-sm text-destructive mb-2">{error}</p>
+        <Button variant="outline" onClick={() => { setIsLoading(true); fetchShop(); fetchLumens(); }} className="rounded-xl">
+          Reintentar
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

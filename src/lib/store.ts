@@ -37,6 +37,9 @@ export interface PlayerState {
   // Offline rewards
   offlineRewardsClaimed: boolean;
 
+  // Refresh signal for cross-component player data updates
+  refreshKey: number;
+
   // Actions
   setDisplayName: (name: string) => void;
   addLumens: (amount: number) => void;
@@ -49,6 +52,7 @@ export interface PlayerState {
   addExperience: (amount: number) => void;
   contributeToElement: (element: string, amount: number) => void;
   setOfflineRewardsClaimed: () => void;
+  triggerRefresh: () => void;
 }
 
 export const useGameStore = create<PlayerState>((set, get) => ({
@@ -74,6 +78,7 @@ export const useGameStore = create<PlayerState>((set, get) => ({
   globalStar: 0,
 
   offlineRewardsClaimed: false,
+  refreshKey: 0,
 
   // Actions
   setDisplayName: (name) => set({ displayName: name }),
@@ -129,4 +134,7 @@ export const useGameStore = create<PlayerState>((set, get) => ({
     }),
 
   setOfflineRewardsClaimed: () => set({ offlineRewardsClaimed: true }),
+
+  triggerRefresh: () =>
+    set((state) => ({ refreshKey: state.refreshKey + 1 })),
 }));

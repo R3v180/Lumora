@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Sparkles, Zap, Flame, Star, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { useGameStore } from '@/lib/store';
 
 interface BlessingData {
   day: number;
@@ -27,16 +29,20 @@ export function BlessingWidget() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimResult, setClaimResult] = useState<any>(null);
   const [showClaim, setShowClaim] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBlessing = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/blessings');
       if (res.ok) {
         const d = await res.json();
         setData(d);
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to fetch blessing:', err);
+      setError('Error al cargar bendiciones');
+      toast.error('Error al cargar bendiciones');
     }
   }, []);
 
@@ -53,13 +59,32 @@ export function BlessingWidget() {
         setClaimResult(result);
         setShowClaim(true);
         fetchBlessing();
+        useGameStore.getState().triggerRefresh();
       }
-    } catch {
-      // silently fail
+    } catch (err) {
+      console.error('Failed to claim blessing:', err);
+      toast.error('Error al reclamar bendición');
     } finally {
       setIsClaiming(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-lumora-gold/20 bg-gradient-to-br from-lumora-gold/5 to-lumora-purple/5 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Gift className="h-4 w-4 text-lumora-gold" />
+          <span className="text-sm font-fantasy font-bold text-lumora-gold">{t('title')}</span>
+        </div>
+        <div className="flex flex-col items-center py-4">
+          <p className="text-sm text-destructive mb-2">{error}</p>
+          <Button variant="outline" onClick={() => fetchBlessing()} className="rounded-xl">
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!data) return null;
 

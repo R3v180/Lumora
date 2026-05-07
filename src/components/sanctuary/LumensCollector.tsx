@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, Clock, Sparkles, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // === TYPES ===
 interface LumensCollectorProps {
@@ -39,7 +40,10 @@ export function LumensCollector({
           setJustCollected(null);
         }, 2000);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to collect lumens:', err);
+      toast.error('Error al recolectar Lumens');
+    }
     setIsCollecting(false);
   };
 

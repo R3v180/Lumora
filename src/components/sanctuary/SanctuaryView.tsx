@@ -61,6 +61,8 @@ interface SanctuaryData {
   unplacedSpirits: UnplacedSpirit[];
   totalSpirits: number;
   sanctuaryLevel: number;
+  maxPlacedSpirits: number;
+  currentPlacedCount: number;
 }
 
 interface SanctuaryViewProps {
@@ -192,7 +194,7 @@ export function SanctuaryView({
           ${terrainClass}
           ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-105 z-10' : ''}
           ${isSelected && !isHovered ? 'ring-1 ring-lumora-gold/30' : ''}
-          ${isOccupied ? 'z-5' : ''}
+          ${isOccupied ? 'z-5 ring-1 ring-lumora-gold/40' : ''}
           ${terrain === 'water' ? 'cursor-not-allowed opacity-60' : ''}
         `}
         onMouseEnter={() => setHoveredTile({ x, y })}
@@ -288,14 +290,24 @@ export function SanctuaryView({
           ))}
         </div>
 
-        {/* Sanctuary name */}
+        {/* Sanctuary name & spirit counter */}
         <div className="text-center mb-2">
           <h2 className="text-sm font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
             {sanctuary?.name || 'Mi Santuario'}
           </h2>
-          <p className="text-[10px] text-muted-foreground">
-            Nivel {sanctuary?.sanctuaryLevel || 1} · {sanctuary?.lumensPerHour || 0} Lumens/h
-          </p>
+          <div className="flex items-center justify-center gap-2 mt-0.5">
+            <p className="text-[10px] text-muted-foreground">
+              Nivel {sanctuary?.sanctuaryLevel || 1} · {sanctuary?.lumensPerHour || 0} Lumens/h
+            </p>
+            <span className="text-[10px] text-muted-foreground/40">·</span>
+            <p className={`text-[10px] font-medium ${
+              sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits
+                ? 'text-lumora-gold'
+                : 'text-muted-foreground'
+            }`}>
+              ✨ {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
+            </p>
+          </div>
         </div>
 
         {/* Element balance bar */}

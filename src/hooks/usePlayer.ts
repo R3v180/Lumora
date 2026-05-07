@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { toast } from 'sonner';
+import { useGameStore } from '@/lib/store';
 
 interface PlayerData {
   id: string;
@@ -56,6 +58,7 @@ interface PlayerData {
 
 export function usePlayer() {
   const { data: session, status } = useSession();
+  const refreshKey = useGameStore((s) => s.refreshKey);
   const [player, setPlayer] = useState<PlayerData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +78,9 @@ export function usePlayer() {
       setPlayer(data);
       setError(null);
     } catch (err) {
+      console.error('Failed to fetch player:', err);
       setError('Error al cargar perfil');
+      toast.error('Error al cargar perfil');
     } finally {
       setIsLoading(false);
     }
@@ -83,7 +88,7 @@ export function usePlayer() {
 
   useEffect(() => {
     fetchPlayer();
-  }, [fetchPlayer]);
+  }, [fetchPlayer, refreshKey]);
 
   return {
     player,

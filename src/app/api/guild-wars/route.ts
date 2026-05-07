@@ -10,15 +10,20 @@ const WINNER_BONUS_LUMENS = 1000;
 const WINNER_RETURN_MULTIPLIER = 2;
 const LOSER_RETURN_MULTIPLIER = 0.5;
 
+// In-memory lock to prevent race conditions during war resolution
+const resolutionLocks = new Set<string>(); // Set of war IDs currently being resolved
+const RESOLUTION_BUFFER_MS = 10_000; // 10-second buffer to avoid edge-case timing
+
 // Helper: resolve any ended wars for a guild
 async function resolveEndedWars(guildId: string) {
   const now = new Date();
+  const bufferTime = new Date(now.getTime() - RESOLUTION_BUFFER_MS);
 
-  // Check for active wars that should be completed
-  const activeWars = await db.guildWar.findMany({
+  // Find ended wars for this guild (both upcoming→active and active→completed)
+  const endedWars = await db.guildWar.findMany({
     where: {
-      status: 'active',
-      endsAt: { lte: now },
+      status: { in: ['upcoming', 'active'] },
+      endsAt: { lte: bufferTime },
       OR: [
         { attackerGuildId: guildId },
         { defenderGuildId: guildId },
@@ -30,78 +35,83 @@ async function resolveEndedWars(guildId: string) {
     },
   });
 
-  for (const war of activeWars) {
-    let winnerId: string | null = null;
+  for (const war of endedWars) {
+    // Skip if already being resolved by another request
+    if (resolutionLocks.has(war.id)) continue;
 
-    if (war.attackerScore > war.defenderScore) {
-      winnerId = war.attackerGuildId;
-    } else if (war.defenderScore > war.attackerScore) {
-      winnerId = war.defenderGuildId;
+    resolutionLocks.add(war.id);
+    try {
+      // Re-fetch war to check if it was already resolved
+      const freshWar = await db.guildWar.findUnique({ where: { id: war.id } });
+      if (!freshWar || freshWar.status === 'completed') continue;
+
+      if (freshWar.status === 'active') {
+        // Active war has ended — resolve it with rewards
+        let winnerId: string | null = null;
+
+        if (freshWar.attackerScore > freshWar.defenderScore) {
+          winnerId = freshWar.attackerGuildId;
+        } else if (freshWar.defenderScore > freshWar.attackerScore) {
+          winnerId = freshWar.defenderGuildId;
+        }
+        // draw: winnerId stays null
+
+        // Calculate rewards
+        const attackerIsWinner = winnerId === freshWar.attackerGuildId;
+        const defenderIsWinner = winnerId === freshWar.defenderGuildId;
+
+        const attackerReward = attackerIsWinner
+          ? Math.floor(freshWar.attackerScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
+          : Math.floor(freshWar.attackerScore * LOSER_RETURN_MULTIPLIER);
+
+        const defenderReward = defenderIsWinner
+          ? Math.floor(freshWar.defenderScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
+          : Math.floor(freshWar.defenderScore * LOSER_RETURN_MULTIPLIER);
+
+        const attackerXpGain = attackerIsWinner ? 500 : 100;
+        const defenderXpGain = defenderIsWinner ? 500 : 100;
+
+        await db.$transaction(async (tx) => {
+          // Update war status
+          await tx.guildWar.update({
+            where: { id: freshWar.id },
+            data: {
+              status: 'completed',
+              winnerId,
+            },
+          });
+
+          // Reward attacker guild
+          await tx.guild.update({
+            where: { id: freshWar.attackerGuildId },
+            data: {
+              treasury: { increment: attackerReward },
+              experience: { increment: attackerXpGain },
+            },
+          });
+
+          // Reward defender guild
+          await tx.guild.update({
+            where: { id: freshWar.defenderGuildId },
+            data: {
+              treasury: { increment: defenderReward },
+              experience: { increment: defenderXpGain },
+            },
+          });
+        });
+      } else if (freshWar.status === 'upcoming') {
+        // Upcoming war should start — transition to active
+        // Only transition if startsAt has passed (with buffer)
+        if (freshWar.startsAt <= bufferTime) {
+          await db.guildWar.update({
+            where: { id: freshWar.id },
+            data: { status: 'active' },
+          });
+        }
+      }
+    } finally {
+      resolutionLocks.delete(war.id);
     }
-    // draw: winnerId stays null
-
-    // Calculate rewards
-    const attackerIsWinner = winnerId === war.attackerGuildId;
-    const defenderIsWinner = winnerId === war.defenderGuildId;
-
-    const attackerReward = attackerIsWinner
-      ? Math.floor(war.attackerScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
-      : Math.floor(war.attackerScore * LOSER_RETURN_MULTIPLIER);
-
-    const defenderReward = defenderIsWinner
-      ? Math.floor(war.defenderScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
-      : Math.floor(war.defenderScore * LOSER_RETURN_MULTIPLIER);
-
-    const attackerXpGain = attackerIsWinner ? 500 : 100;
-    const defenderXpGain = defenderIsWinner ? 500 : 100;
-
-    await db.$transaction(async (tx) => {
-      // Update war status
-      await tx.guildWar.update({
-        where: { id: war.id },
-        data: {
-          status: 'completed',
-          winnerId,
-        },
-      });
-
-      // Reward attacker guild
-      await tx.guild.update({
-        where: { id: war.attackerGuildId },
-        data: {
-          treasury: { increment: attackerReward },
-          experience: { increment: attackerXpGain },
-        },
-      });
-
-      // Reward defender guild
-      await tx.guild.update({
-        where: { id: war.defenderGuildId },
-        data: {
-          treasury: { increment: defenderReward },
-          experience: { increment: defenderXpGain },
-        },
-      });
-    });
-  }
-
-  // Also transition upcoming wars that should start
-  const upcomingWars = await db.guildWar.findMany({
-    where: {
-      status: 'upcoming',
-      startsAt: { lte: now },
-      OR: [
-        { attackerGuildId: guildId },
-        { defenderGuildId: guildId },
-      ],
-    },
-  });
-
-  for (const war of upcomingWars) {
-    await db.guildWar.update({
-      where: { id: war.id },
-      data: { status: 'active' },
-    });
   }
 }
 

@@ -12,6 +12,7 @@ import { BlessingWidget } from '@/components/blessing/BlessingWidget';
 import { DailyChallengesPanel } from '@/components/progression/DailyChallengesPanel';
 import { OfflineRewardsDialog } from '@/components/home/OfflineRewardsDialog';
 import { WorldTreeWidget } from '@/components/home/WorldTreeWidget';
+import { toast } from 'sonner';
 
 // Event Widget component — shows active/upcoming world events
 function EventWidget() {
@@ -28,7 +29,10 @@ function EventWidget() {
           setEvents(data.active || []);
           setUpcoming(data.upcoming || []);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Failed to fetch events:', err);
+        toast.error('Error al cargar eventos');
+      }
     };
     fetchEvents();
     const interval = setInterval(fetchEvents, 60000); // Refresh every minute

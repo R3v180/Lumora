@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { useGameStore } from '@/lib/store';
 
 // ===== Types =====
 interface WarGuildInfo {
@@ -265,6 +266,7 @@ export function GuildWarsPanel() {
         setShowContributeDialog(false);
         setSelectedSpirit(null);
         fetchWarData();
+        useGameStore.getState().triggerRefresh();
       } else {
         alert(data.error || 'Error al contribuir');
       }

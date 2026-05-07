@@ -15,6 +15,8 @@ import { SanctuaryView } from '@/components/sanctuary/SanctuaryView';
 import { SpiritPlacementPanel } from '@/components/sanctuary/SpiritPlacementPanel';
 import { LumensCollector } from '@/components/sanctuary/LumensCollector';
 import { SpiritDetailCard } from '@/components/sanctuary/SpiritDetailCard';
+import { useGameStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 // === TYPES ===
 interface PlacedItem {
@@ -73,6 +75,8 @@ interface SanctuaryData {
   unplacedSpirits: UnplacedSpirit[];
   totalSpirits: number;
   sanctuaryLevel: number;
+  maxPlacedSpirits: number;
+  currentPlacedCount: number;
 }
 
 export default function SanctuaryPage() {
@@ -147,9 +151,13 @@ export default function SanctuaryPage() {
         setPlayerLumens(data.totalLumens);
         // Refresh sanctuary to reset idle counter
         fetchSanctuary();
+        useGameStore.getState().triggerRefresh();
         return { collected: data.collected, totalLumens: data.totalLumens };
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to collect lumens:', err);
+      toast.error('Error al recolectar Lumens');
+    }
     return null;
   }, [fetchSanctuary]);
 
@@ -177,6 +185,7 @@ export default function SanctuaryPage() {
         setIsPlacingMode(false);
         setShowPlacementPanel(false);
         fetchSanctuary();
+        useGameStore.getState().triggerRefresh();
         setTimeout(() => setActionMessage(null), 3000);
       } else {
         const data = await res.json();
@@ -211,16 +220,28 @@ export default function SanctuaryPage() {
 
       if (res.ok) {
         fetchSanctuary();
+        useGameStore.getState().triggerRefresh();
         return true;
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to remove spirit:', err);
+      toast.error('Error al quitar espíritu');
+    }
     return false;
   }, [fetchSanctuary]);
 
   // Start placing mode
   const startPlacingMode = () => {
-    if (!sanctuary || sanctuary.unplacedSpirits.length === 0) {
-      setActionMessage('No tienes espíritus para colocar. ¡Gira para conseguir más!');
+    if (!sanctuary) return;
+
+    if (sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits) {
+      setActionMessage(t('maxSpiritsReached'));
+      setTimeout(() => setActionMessage(null), 4000);
+      return;
+    }
+
+    if (sanctuary.unplacedSpirits.length === 0) {
+      setActionMessage(t('noSpiritsToPlace'));
       setTimeout(() => setActionMessage(null), 3000);
       return;
     }
@@ -243,7 +264,10 @@ export default function SanctuaryPage() {
         fetchSanctuary();
         setTimeout(() => setActionMessage(null), 2000);
       }
-    } catch {}
+    } catch (err) {
+      console.error('Failed to rename sanctuary:', err);
+      toast.error('Error al renombrar santuario');
+    }
   }, [renameValue, fetchSanctuary]);
 
   // Cancel placing mode
@@ -403,8 +427,8 @@ export default function SanctuaryPage() {
         {/* Place Spirit */}
         <Button
           onClick={startPlacingMode}
-          disabled={isPlacingMode}
-          className="rounded-xl gap-1.5 bg-gradient-to-r from-lumora-emerald to-lumora-blue text-white hover:opacity-90"
+          disabled={isPlacingMode || (sanctuary ? sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits : false)}
+          className="rounded-xl gap-1.5 bg-gradient-to-r from-lumora-emerald to-lumora-blue text-white hover:opacity-90 disabled:opacity-50"
         >
           <Plus className="h-4 w-4" />
           {t('placeSpirit')}
@@ -414,10 +438,21 @@ export default function SanctuaryPage() {
         <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card/60 border border-border/30">
           <Sparkles className="h-3.5 w-3.5 text-lumora-purple" />
           <span className="text-xs font-medium">
-            {sanctuary?.totalSpirits || 0} espíritus
+            {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
           </span>
         </div>
       </div>
+
+      {/* Sanctuary full message */}
+      {sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-lg mt-3 px-4 py-2 rounded-xl bg-lumora-gold/10 border border-lumora-gold/20 text-xs text-lumora-gold text-center"
+        >
+          {t('maxSpiritsReached')}
+        </motion.div>
+      )}
 
       {/* Placed spirits summary */}
       {sanctuary && sanctuary.placedSpirits.length > 0 && (
