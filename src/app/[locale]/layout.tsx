@@ -8,16 +8,20 @@ import { AuthProvider } from '@/components/layout/AuthProvider';
 import { ServiceWorkerRegistrar } from '@/components/layout/ServiceWorkerRegistrar';
 import { Toaster } from '@/components/ui/sonner';
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { Sora, Inter } from "next/font/google";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sora = Sora({
+  variable: "--font-title",
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 export default async function LocaleLayout({
@@ -38,7 +42,7 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${sora.variable} ${inter.variable} antialiased bg-background text-foreground font-body`}
       >
         <ThemeProvider
           attribute="class"
@@ -48,6 +52,7 @@ export default async function LocaleLayout({
         >
           <AuthProvider>
             <NextIntlClientProvider messages={messages}>
+              <div className="bg-noise" aria-hidden="true" />
               <ServiceWorkerRegistrar />
               <AppShell>{children}</AppShell>
               <Toaster />

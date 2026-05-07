@@ -71,7 +71,7 @@ export function BlessingWidget() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-lumora-gold/20 bg-gradient-to-br from-lumora-gold/5 to-lumora-purple/5 p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Gift className="h-4 w-4 text-lumora-gold" />
           <span className="text-sm font-fantasy font-bold text-lumora-gold">{t('title')}</span>
@@ -90,7 +90,7 @@ export function BlessingWidget() {
 
   return (
     <>
-      <div className="rounded-2xl border border-lumora-gold/20 bg-gradient-to-br from-lumora-gold/5 to-lumora-purple/5 p-4">
+      <div className="glass-card p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ export function BlessingWidget() {
           <Button
             onClick={handleClaim}
             disabled={isClaiming}
-            className="w-full rounded-xl bg-gradient-to-r from-lumora-gold to-lumora-emerald text-white font-semibold gap-2"
+            className="w-full rounded-xl btn-lumora-emerald font-semibold gap-2"
           >
             <Gift className="h-4 w-4" />
             {isClaiming ? '...' : t('claim')}
@@ -233,7 +233,7 @@ export function BlessingWidget() {
               </div>
               <Button
                 onClick={() => setShowClaim(false)}
-                className="rounded-xl bg-lumora-gold text-white"
+                className="rounded-xl btn-lumora"
               >
                 {t('claimed')}
               </Button>

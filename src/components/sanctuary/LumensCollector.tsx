@@ -53,7 +53,7 @@ export function LumensCollector({
 
   return (
     <div className="w-full max-w-lg mx-auto">
-      <div className="rounded-2xl border border-lumora-gold/20 bg-gradient-to-r from-lumora-gold/5 via-card/60 to-lumora-gold/5 p-4 backdrop-blur-sm">
+      <div className="glass-card p-4 backdrop-blur-sm">
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -96,7 +96,7 @@ export function LumensCollector({
             disabled={!hasLumensToCollect || isCollecting}
             className={`w-full rounded-xl h-11 font-semibold gap-2 ${
               hasLumensToCollect
-                ? 'bg-gradient-to-r from-lumora-gold to-lumora-pink text-white hover:opacity-90'
+                ? 'btn-lumora hover:opacity-90'
                 : 'bg-muted/30 text-muted-foreground cursor-not-allowed'
             }`}
           >

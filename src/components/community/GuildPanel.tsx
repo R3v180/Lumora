@@ -221,14 +221,14 @@ export function GuildPanel() {
     return (
       <div className="flex flex-col gap-4">
         {/* Guild Header (always visible) */}
-        <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/10 to-lumora-blue/5 p-4">
+        <div className="glass-card p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-lumora-purple/20 flex items-center justify-center text-2xl border border-lumora-purple/30">
                 {guild.emblem || GUILD_EMOJIS[0]}
               </div>
               <div>
-                <h3 className="font-fantasy font-bold text-lg text-lumora-purple">
+                <h3 className="font-fantasy font-title font-bold text-lg text-lumora-purple">
                   {guild.name}
                 </h3>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -327,7 +327,7 @@ export function GuildPanel() {
                 {guild.members.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/40 border border-border/20"
+                    className="flex items-center justify-between px-3 py-2 rounded-xl glass-card-subtle"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 border border-border/30">
@@ -375,7 +375,7 @@ export function GuildPanel() {
         </DialogTrigger>
         <DialogContent className="sm:max-w-sm rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="font-fantasy">{t('createGuild')}</DialogTitle>
+            <DialogTitle className="font-fantasy font-title">{t('createGuild')}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-2">
             <Input
@@ -491,7 +491,7 @@ function GuildCard({
   const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '🐉', '💎', '🏆', '🔥'];
 
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-card/40 border border-border/20 hover:border-lumora-purple/20 transition-colors">
+    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl glass-card-subtle hover:border-lumora-purple/20 transition-colors">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-lumora-purple/15 flex items-center justify-center text-xl border border-lumora-purple/20">
           {guild.emblem || GUILD_EMOJIS[Math.floor(Math.random() * GUILD_EMOJIS.length)]}

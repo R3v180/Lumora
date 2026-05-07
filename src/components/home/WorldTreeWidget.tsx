@@ -47,15 +47,15 @@ interface WorldTreeData {
 
 const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass: string; borderClass: string; glowClass: string; icon: typeof Flame }> = {
   fire: {
-    emoji: '🔴',
+    emoji: '🔥',
     color: 'text-lumora-fire',
     bgClass: 'bg-lumora-fire/20',
     borderClass: 'border-lumora-fire/40',
-    glowClass: 'shadow-[0_0_20px_rgba(255,107,53,0.4)]',
+    glowClass: 'glow-gold',
     icon: Flame,
   },
   water: {
-    emoji: '🔵',
+    emoji: '💧',
     color: 'text-lumora-water',
     bgClass: 'bg-lumora-water/20',
     borderClass: 'border-lumora-water/40',
@@ -63,7 +63,7 @@ const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass
     icon: Droplets,
   },
   dream: {
-    emoji: '💜',
+    emoji: '🌙',
     color: 'text-lumora-dream',
     bgClass: 'bg-lumora-dream/20',
     borderClass: 'border-lumora-dream/40',
@@ -71,11 +71,11 @@ const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass
     icon: Moon,
   },
   nature: {
-    emoji: '💚',
+    emoji: '🌿',
     color: 'text-lumora-nature',
     bgClass: 'bg-lumora-nature/20',
     borderClass: 'border-lumora-nature/40',
-    glowClass: 'shadow-[0_0_20px_rgba(39,174,96,0.4)]',
+    glowClass: 'glow-emerald',
     icon: Leaf,
   },
   star: {
@@ -143,18 +143,18 @@ function ElementOrb({
         marginTop: y - size / 2,
       }}
       animate={{
-        marginLeft: [x - size / 2, x - size / 2 + 2, x - size / 2],
-        marginTop: [y - size / 2, y - size / 2 - 3, y - size / 2],
+        marginLeft: [x - size / 2, x - size / 2 + 3, x - size / 2],
+        marginTop: [y - size / 2, y - size / 2 - 5, y - size / 2],
       }}
-      transition={{ duration: 2 + Math.random(), repeat: Infinity, ease: 'easeInOut' }}
+      transition={{ duration: 1.5 + Math.random(), repeat: Infinity, ease: 'easeInOut' }}
     >
       <motion.div
         className={`rounded-full flex items-center justify-center border-2 ${config.borderClass} ${config.bgClass} ${isDominant ? config.glowClass : ''}`}
         style={{ width: size, height: size }}
-        animate={isDominant ? { scale: [1, 1.15, 1] } : {}}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        animate={isDominant ? { scale: [1, 1.2, 1] } : { scale: [1, 1.08, 1] }}
+        transition={{ duration: isDominant ? 1.2 : 2, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <span className="text-xs">{config.emoji}</span>
+        <config.icon className={`h-3.5 w-3.5 ${config.color}`} />
       </motion.div>
       {amount > 0 && (
         <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
@@ -355,8 +355,8 @@ export function WorldTreeWidget() {
         {/* Central tree */}
         <motion.div
           className="relative flex items-center justify-center"
-          animate={{ y: [0, -6, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ y: [0, -8, 0], scale: [1, 1.02, 1] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
           <div className={`${getTreeSize(level)} flex items-center justify-center relative`}>
             {/* Tree trunk glow */}

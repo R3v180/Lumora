@@ -160,7 +160,7 @@ export function ShopPanel() {
   return (
     <div className="flex flex-col gap-4">
       {/* Lumens display */}
-      <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-lumora-gold/10 border border-lumora-gold/20">
+      <div className="flex items-center justify-between px-4 py-2.5 rounded-xl glass-card-subtle">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-lumora-gold" />
           <span className="text-sm font-semibold text-lumora-gold">Tus Lumens</span>
@@ -210,10 +210,10 @@ export function ShopPanel() {
                 key={item.id}
                 onClick={() => canAfford && setPurchaseDialog(item)}
                 disabled={!canAfford}
-                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all ${
+                className={`relative flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition-all glass-card-subtle ${
                   canAfford
-                    ? 'border-border/30 bg-card/50 hover:border-lumora-gold/30 hover:bg-card/70 cursor-pointer'
-                    : 'border-border/15 bg-card/20 opacity-60 cursor-not-allowed'
+                    ? 'hover:border-lumora-gold/30 hover:shadow-[0_0_15px_rgba(255,215,0,0.1)] cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
                 }`}
                 whileHover={canAfford ? { scale: 1.02 } : {}}
                 whileTap={canAfford ? { scale: 0.98 } : {}}
@@ -275,7 +275,7 @@ export function ShopPanel() {
               <Button
                 onClick={() => handlePurchase(purchaseDialog)}
                 disabled={isPurchasing}
-                className="w-full rounded-xl bg-gradient-to-r from-lumora-gold to-lumora-emerald text-white font-semibold"
+                className="w-full rounded-xl btn-lumora-emerald font-semibold"
               >
                 {isPurchasing ? '...' : t('buy')}
               </Button>

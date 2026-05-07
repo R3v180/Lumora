@@ -23,7 +23,7 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/30 bg-background/90 backdrop-blur-md safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-background/70 backdrop-blur-xl safe-area-bottom">
       <div className="flex items-center justify-around px-2 py-1">
         {navItems.map((item) => {
           const active = isActive(item.href);

@@ -185,7 +185,7 @@ export function AchievementsPanel() {
 
       {/* Category Tabs */}
       <Tabs defaultValue={data.categories[0]?.key || 'collection'} className="w-full">
-        <TabsList className="w-full bg-card/40 border border-border/20 rounded-xl h-auto p-1 gap-0.5">
+        <TabsList className="w-full glass-card-subtle rounded-xl h-auto p-1 gap-0.5">
           {data.categories.map((cat) => {
             const config = CATEGORY_CONFIG[cat.key] || CATEGORY_CONFIG.collection;
             const Icon = config.icon;
@@ -211,7 +211,7 @@ export function AchievementsPanel() {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{config.emoji}</span>
-                  <span className={`text-sm font-fantasy font-bold ${config.color}`}>
+                  <span className={`text-sm font-fantasy font-title font-bold ${config.color}`}>
                     {t(cat.key as any)}
                   </span>
                 </div>
@@ -245,7 +245,7 @@ export function AchievementsPanel() {
                           ? 'bg-gradient-to-br from-lumora-gold/5 to-lumora-gold/10 border-lumora-gold/30 glow-gold'
                           : ach.completed
                           ? 'bg-card/60 border-lumora-gold/40 shadow-[0_0_12px_rgba(255,215,0,0.15)]'
-                          : 'bg-card/40 border-border/20'
+                          : 'glass-card-subtle'
                       }`}
                     >
                       <div className="flex gap-3">
@@ -329,7 +329,7 @@ export function AchievementsPanel() {
                                 size="sm"
                                 onClick={() => handleClaim(ach.id)}
                                 disabled={claimingId === ach.id}
-                                className="h-7 rounded-lg text-[11px] px-3 bg-gradient-to-r from-lumora-gold to-lumora-emerald text-white font-semibold gap-1"
+                                className="h-7 rounded-lg text-[11px] px-3 btn-lumora-emerald font-semibold gap-1"
                               >
                                 <Sparkles className="h-3 w-3" />
                                 {claimingId === ach.id ? '...' : t('claim')}

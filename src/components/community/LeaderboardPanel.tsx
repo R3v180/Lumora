@@ -71,7 +71,7 @@ export function LeaderboardPanel() {
     if (rank === 1) return { emoji: '🥇', bg: 'bg-lumora-gold/10 border-lumora-gold/30' };
     if (rank === 2) return { emoji: '🥈', bg: 'bg-gray-400/10 border-gray-400/30' };
     if (rank === 3) return { emoji: '🥉', bg: 'bg-amber-700/10 border-amber-700/30' };
-    return { emoji: null, bg: 'bg-card/40 border-border/20' };
+    return { emoji: null, bg: 'glass-card-subtle' };
   };
 
   const getCategoryValue = (entry: LeaderboardEntry) => {

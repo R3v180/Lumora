@@ -458,7 +458,7 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-lumora-gold via-lumora-emerald to-lumora-gold bg-clip-text text-transparent font-fantasy">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-lumora-gold via-lumora-emerald to-lumora-gold bg-clip-text text-transparent font-fantasy font-title">
               {t('title')}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -584,7 +584,7 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
                 className="text-center"
               >
                 <Sparkles className="h-8 w-8 text-lumora-gold mx-auto mb-2" />
-                <h3 className="text-xl font-bold text-lumora-gold font-fantasy mb-4">
+                <h3 className="text-xl font-bold text-lumora-gold font-fantasy font-title mb-4">
                   {t('totalWin')}
                 </h3>
 
@@ -639,7 +639,7 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
                 >
                   <Button
                     onClick={handleClose}
-                    className="w-full rounded-xl bg-gradient-to-r from-lumora-gold to-lumora-emerald text-white font-bold hover:opacity-90 transition-opacity h-12 text-base"
+                    className="w-full rounded-xl btn-lumora-emerald font-bold hover:opacity-90 transition-opacity h-12 text-base"
                   >
                     {t('close')}
                   </Button>

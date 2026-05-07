@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame } from 'lucide-react';
+import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf } from 'lucide-react';
 
 // === TYPES ===
 interface PlacedItem {
@@ -76,7 +76,16 @@ interface SanctuaryViewProps {
 // === CONSTANTS ===
 const GRID_SIZE = 8;
 
-// Element emoji mapping
+// Element icon mapping using Lucide
+const ELEMENT_ICONS: Record<string, { icon: typeof Flame; color: string }> = {
+  fire: { icon: Flame, color: 'text-lumora-fire' },
+  water: { icon: Droplets, color: 'text-lumora-water' },
+  dream: { icon: Moon, color: 'text-lumora-dream' },
+  nature: { icon: Leaf, color: 'text-lumora-nature' },
+  star: { icon: Star, color: 'text-lumora-star' },
+};
+
+// Element emoji mapping (fallback)
 const ELEMENT_EMOJIS: Record<string, string> = {
   fire: '🔥',
   water: '💧',
@@ -118,11 +127,11 @@ function getTerrainForPosition(x: number, y: number, level: number): TerrainType
 
 function getTerrainStyle(terrain: TerrainType): string {
   switch (terrain) {
-    case 'grass': return 'bg-emerald-900/40 border-emerald-700/30';
-    case 'water': return 'bg-blue-900/40 border-blue-700/30';
-    case 'rock': return 'bg-stone-800/40 border-stone-600/30';
-    case 'flower': return 'bg-emerald-900/50 border-pink-500/20';
-    case 'sand': return 'bg-amber-900/30 border-amber-700/20';
+    case 'grass': return 'bg-emerald-900/30 border-emerald-700/20 backdrop-blur-sm';
+    case 'water': return 'bg-blue-900/30 border-blue-600/20 backdrop-blur-sm';
+    case 'rock': return 'bg-stone-800/30 border-stone-600/20 backdrop-blur-sm';
+    case 'flower': return 'bg-emerald-900/35 border-pink-500/15 backdrop-blur-sm';
+    case 'sand': return 'bg-amber-900/25 border-amber-700/15 backdrop-blur-sm';
   }
 }
 
@@ -193,7 +202,7 @@ export function SanctuaryView({
           transition-all duration-200 select-none
           ${terrainClass}
           ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-105 z-10' : ''}
-          ${isSelected && !isHovered ? 'ring-1 ring-lumora-gold/30' : ''}
+          ${isSelected && !isHovered ? 'tile-placement-border' : ''}
           ${isOccupied ? 'z-5 ring-1 ring-lumora-gold/40' : ''}
           ${terrain === 'water' ? 'cursor-not-allowed opacity-60' : ''}
         `}
@@ -222,14 +231,24 @@ export function SanctuaryView({
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             className={`
               absolute inset-1 rounded-md border-2 flex items-center justify-center
-              bg-card/70 backdrop-blur-sm
+              glass-card-subtle
               ${RARITY_COLORS[spiritInfo.spiritType.rarity]}
               ${RARITY_GLOW[spiritInfo.spiritType.rarity]}
+              spirit-float-shadow
             `}
           >
-            <span className="text-lg sm:text-xl">{ELEMENT_EMOJIS[spiritInfo.spiritType.element]}</span>
+            <span className="text-lg sm:text-xl">
+              {ELEMENT_ICONS[spiritInfo.spiritType.element]
+                ? (() => {
+                    const ElIcon = ELEMENT_ICONS[spiritInfo.spiritType.element].icon;
+                    return <ElIcon className={`h-5 w-5 sm:h-6 w-6 ${ELEMENT_ICONS[spiritInfo.spiritType.element].color}`} />;
+                  })()
+                : ELEMENT_EMOJIS[spiritInfo.spiritType.element]
+              }
+            </span>
             {/* Level badge */}
             <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-lumora-purple/80 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
               {spiritInfo.level}
@@ -264,7 +283,7 @@ export function SanctuaryView({
   return (
     <div className="relative w-full max-w-lg mx-auto">
       {/* Island frame with ethereal glow */}
-      <div className="relative rounded-2xl border-2 border-lumora-emerald/30 bg-gradient-to-b from-emerald-950/30 via-card/60 to-blue-950/20 p-3 backdrop-blur-sm shadow-xl overflow-hidden">
+      <div className="sanctuary-frame p-3 overflow-hidden">
         {/* Floating particles (decorative) */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {Array.from({ length: 6 }).map((_, i) => (

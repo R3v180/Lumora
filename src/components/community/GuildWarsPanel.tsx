@@ -360,7 +360,7 @@ export function GuildWarsPanel() {
           {/* Title */}
           <div className="flex items-center justify-center gap-2 mb-3">
             <Swords className="h-5 w-5 text-orange-400" />
-            <h3 className="font-fantasy font-bold text-orange-300 text-lg">
+            <h3 className="font-fantasy font-title font-bold text-orange-300 text-lg">
               {t('activeWar')}
             </h3>
             <Swords className="h-5 w-5 text-orange-400" />
@@ -387,7 +387,7 @@ export function GuildWarsPanel() {
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
-                <span className="text-2xl font-fantasy font-black text-orange-500">VS</span>
+                <span className="text-2xl font-fantasy font-title font-black text-orange-500">VS</span>
               </motion.div>
             </div>
 
@@ -560,7 +560,7 @@ export function GuildWarsPanel() {
         <Dialog open={showContributeDialog} onOpenChange={setShowContributeDialog}>
           <DialogContent className="sm:max-w-sm rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="font-fantasy flex items-center gap-2">
+              <DialogTitle className="font-fantasy font-title flex items-center gap-2">
                 <Flame className="h-5 w-5 text-orange-500" />
                 {t('contribute')}
               </DialogTitle>
@@ -598,7 +598,7 @@ export function GuildWarsPanel() {
                       className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
                         selectedSpirit === spirit.id
                           ? 'border-orange-500/50 bg-orange-950/30'
-                          : 'border-border/20 bg-card/40 hover:border-orange-500/20'
+                          : 'glass-card-subtle hover:border-orange-500/20'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -642,7 +642,7 @@ export function GuildWarsPanel() {
         <Dialog open={showSurrenderConfirm} onOpenChange={setShowSurrenderConfirm}>
           <DialogContent className="sm:max-w-sm rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="font-fantasy flex items-center gap-2 text-red-400">
+              <DialogTitle className="font-fantasy font-title flex items-center gap-2 text-red-400">
                 <AlertTriangle className="h-5 w-5" />
                 {t('surrender')}
               </DialogTitle>
@@ -680,7 +680,7 @@ export function GuildWarsPanel() {
       {/* War title */}
       <div className="flex items-center justify-center gap-2">
         <Swords className="h-5 w-5 text-orange-500" />
-        <h3 className="font-fantasy font-bold text-orange-300 text-lg">
+        <h3 className="font-fantasy font-title font-bold text-orange-300 text-lg">
           {t('title')}
         </h3>
         <Swords className="h-5 w-5 text-orange-500" />
@@ -697,7 +697,7 @@ export function GuildWarsPanel() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-sm rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="font-fantasy flex items-center gap-2">
+              <DialogTitle className="font-fantasy font-title flex items-center gap-2">
                 <Swords className="h-5 w-5 text-orange-500" />
                 {t('declareWar')}
               </DialogTitle>
@@ -737,7 +737,7 @@ export function GuildWarsPanel() {
                       className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${
                         selectedTarget === g.id
                           ? 'border-orange-500/50 bg-orange-950/30'
-                          : 'border-border/20 bg-card/40 hover:border-orange-500/20'
+                          : 'glass-card-subtle hover:border-orange-500/20'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -832,7 +832,7 @@ export function GuildWarsPanel() {
               <motion.button
                 key={war.id}
                 onClick={() => setShowResult(war)}
-                className="w-full text-left rounded-xl border border-border/20 bg-card/40 p-3 hover:border-orange-500/20 transition-all"
+                className="w-full text-left rounded-xl glass-card-subtle p-3 hover:border-orange-500/20 transition-all"
                 whileHover={{ scale: 1.01 }}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -885,7 +885,7 @@ export function GuildWarsPanel() {
           {showResult && (
             <>
               <DialogHeader>
-                <DialogTitle className="font-fantasy text-center">
+                <DialogTitle className="font-fantasy font-title text-center">
                   {showResult.result === 'victory' ? (
                     <motion.div
                       initial={{ scale: 0.5, opacity: 0 }}
@@ -919,7 +919,7 @@ export function GuildWarsPanel() {
               </DialogHeader>
               <div className="flex flex-col gap-3 py-2">
                 {/* Score breakdown */}
-                <div className="rounded-xl bg-card/40 border border-border/20 p-3">
+                <div className="rounded-xl glass-card-subtle p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-center flex-1">
                       <div className="w-10 h-10 rounded-lg bg-red-950/30 flex items-center justify-center text-lg border border-red-500/20 mx-auto mb-1">
@@ -928,7 +928,7 @@ export function GuildWarsPanel() {
                       <p className="text-[10px] font-bold text-red-400">{showResult.attackerGuild.name}</p>
                       <p className="text-lg font-black text-red-300">{showResult.attackerScore.toLocaleString()}</p>
                     </div>
-                    <div className="text-lg font-fantasy font-bold text-muted-foreground">VS</div>
+                    <div className="text-lg font-fantasy font-title font-bold text-muted-foreground">VS</div>
                     <div className="text-center flex-1">
                       <div className="w-10 h-10 rounded-lg bg-blue-950/30 flex items-center justify-center text-lg border border-blue-500/20 mx-auto mb-1">
                         {showResult.defenderGuild.emblem || '🛡️'}

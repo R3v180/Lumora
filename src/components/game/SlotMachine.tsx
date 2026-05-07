@@ -282,18 +282,21 @@ export function SlotMachine() {
       return (
         <motion.div
           key={`result-${col}-${row}`}
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={{ scale: 0.3, opacity: 0, y: 20 }}
           animate={{
-            scale: isWinPosition ? [1, 1.15, 1] : isBonusSymbol && result?.bonusTriggered ? [1, 1.2, 1] : 1,
+            scale: isWinPosition ? [1, 1.2, 1] : isBonusSymbol && result?.bonusTriggered ? [1, 1.25, 1] : 1,
             opacity: 1,
+            y: 0,
           }}
           transition={{
-            scale: isWinPosition || (isBonusSymbol && result?.bonusTriggered) ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
+            scale: isWinPosition || (isBonusSymbol && result?.bonusTriggered)
+              ? { duration: 0.5, repeat: Infinity, type: 'spring', stiffness: 300, damping: 15 }
+              : { duration: 0.4, type: 'spring', stiffness: 250, damping: 20 },
+            opacity: { duration: 0.3 },
+            y: { duration: 0.4, type: 'spring', stiffness: 200, damping: 18 },
           }}
-          className={`w-full h-full flex items-center justify-center rounded-xl text-2xl sm:text-3xl
-            ${isWinPosition ? 'bg-lumora-gold/15 ring-2 ring-lumora-gold/50' : isBonusSymbol && result?.bonusTriggered ? 'bg-lumora-emerald/20 ring-2 ring-lumora-emerald/50' : 'bg-card/40'}
-            border ${isWinPosition ? 'border-lumora-gold/30' : isBonusSymbol && result?.bonusTriggered ? 'border-lumora-emerald/30' : 'border-border/20'}`}
-          style={isWinPosition ? { boxShadow: `0 0 15px ${sym.glowColor}40` } : isBonusSymbol && result?.bonusTriggered ? { boxShadow: '0 0 15px rgba(46, 204, 113, 0.4)' } : {}}
+          className={`w-full h-full flex items-center justify-center rounded-xl text-2xl sm:text-3xl slot-cell
+            ${isWinPosition ? 'slot-cell-winning animate-radial-flash' : isBonusSymbol && result?.bonusTriggered ? 'slot-cell-bonus' : ''}`}
         >
           {sym.emoji}
         </motion.div>
@@ -302,7 +305,7 @@ export function SlotMachine() {
 
     // Spinning state
     return (
-      <div className="w-full h-full flex items-center justify-center rounded-xl bg-card/30 border border-border/10 text-2xl sm:text-3xl animate-pulse">
+      <div className="w-full h-full flex items-center justify-center rounded-xl slot-cell text-2xl sm:text-3xl animate-pulse">
         {spinningGrid[col]?.[row] || '✨'}
       </div>
     );
@@ -325,9 +328,10 @@ export function SlotMachine() {
           </div>
         </div>
         {/* Energy bar */}
-        <div className="w-full h-2 bg-muted/30 rounded-full overflow-hidden">
+        <div className="w-full h-2.5 bg-muted/20 rounded-full overflow-hidden border border-white/5">
           <motion.div
-            className="h-full bg-gradient-to-r from-lumora-blue to-lumora-purple rounded-full"
+            className="h-full rounded-full bar-animated"
+            style={{ background: 'linear-gradient(90deg, #5DADE2, #9B59B6, #FF69B4, #5DADE2)', backgroundSize: '200% 100%' }}
             animate={{ width: `${energyPercent}%` }}
             transition={{ duration: 0.5 }}
           />
@@ -337,7 +341,7 @@ export function SlotMachine() {
       {/* Slot Machine Grid: 5×4 */}
       <div className="relative w-full mb-6">
         {/* Machine frame */}
-        <div className="rounded-2xl border-2 border-lumora-purple/30 bg-gradient-to-b from-card/60 to-background/80 p-3 backdrop-blur-sm shadow-xl">
+        <div className="slot-machine-frame p-3">
           {/* Win lines indicator (decorative) */}
           <div className="flex justify-between px-1 mb-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -418,17 +422,18 @@ export function SlotMachine() {
         <AnimatePresence>
           {showWin && result && result.totalPayout > 0 && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
+              exit={{ opacity: 0, scale: 0.6 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className="absolute inset-0 flex items-center justify-center pointer-events-none z-20"
             >
-              <div className={`px-6 py-3 rounded-2xl backdrop-blur-md border-2 text-center ${
+              <div className={`px-6 py-3 rounded-2xl backdrop-blur-md border-2 text-center glass-card ${
                 result.isMegaWin
-                  ? 'bg-lumora-gold/20 border-lumora-gold/50 animate-lumora-pulse'
+                  ? 'border-lumora-gold/40 animate-lumora-pulse'
                   : result.isBigWin
-                  ? 'bg-lumora-pink/20 border-lumora-pink/50'
-                  : 'bg-lumora-purple/20 border-lumora-purple/50'
+                  ? 'border-lumora-pink/40'
+                  : 'border-lumora-purple/40'
               }`}>
                 <p className={`text-lg font-fantasy font-bold ${
                   result.isMegaWin ? 'text-lumora-gold' : result.isBigWin ? 'text-lumora-pink' : 'text-lumora-purple'
@@ -447,12 +452,13 @@ export function SlotMachine() {
         <AnimatePresence>
           {showSpiritReward && result && result.spiritsWon.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -30, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 250, damping: 20 }}
               className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
             >
-              <div className="px-6 py-4 rounded-2xl bg-lumora-emerald/20 border-2 border-lumora-emerald/50 backdrop-blur-md text-center">
+              <div className="px-6 py-4 rounded-2xl glass-card border-2 border-lumora-emerald/40 text-center">
                 <Sparkles className="h-6 w-6 text-lumora-emerald mx-auto mb-2" />
                 <p className="text-sm font-fantasy font-bold text-lumora-emerald mb-1">
                   ¡Espíritu conseguido!
@@ -489,7 +495,7 @@ export function SlotMachine() {
             {result.wins.map((win, i) => (
               <div
                 key={i}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-card/60 border border-border/30 text-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card-subtle text-xs"
               >
                 <span className="text-base">{win.symbolEmoji}</span>
                 <span className="font-semibold">{win.count}×</span>
@@ -526,18 +532,18 @@ export function SlotMachine() {
           onClick={doSpin}
           disabled={isSpinning || energy < 5}
           className="relative group"
-          whileHover={{ scale: isSpinning ? 1 : 1.05 }}
-          whileTap={{ scale: isSpinning ? 1 : 0.95 }}
+          whileHover={{ scale: isSpinning ? 1 : 1.08 }}
+          whileTap={{ scale: isSpinning ? 1 : 0.92 }}
         >
-          <div className={`absolute -inset-1.5 rounded-full blur-lg transition-opacity ${
-            isSpinning ? 'opacity-30' : 'opacity-60 group-hover:opacity-80'
+          <div className={`absolute -inset-2 rounded-full blur-xl transition-opacity duration-300 ${
+            isSpinning ? 'opacity-20' : 'opacity-50 group-hover:opacity-80'
           } bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple`} />
           <div className={`relative flex items-center gap-2 rounded-full px-8 py-3.5 font-fantasy font-bold text-lg text-white shadow-xl transition-all ${
             isSpinning
               ? 'bg-muted cursor-not-allowed'
               : energy < 5
               ? 'bg-muted/50 cursor-not-allowed'
-              : 'bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple'
+              : 'btn-lumora'
           }`}>
             {isSpinning ? (
               <motion.div

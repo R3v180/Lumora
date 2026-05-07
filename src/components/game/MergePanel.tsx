@@ -179,7 +179,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
             <div className="flex items-center justify-between p-4 border-b border-border/20">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-lumora-purple" />
-                <h2 className="text-lg font-fantasy font-bold bg-gradient-to-r from-lumora-purple to-lumora-pink bg-clip-text text-transparent">
+                <h2 className="text-lg font-fantasy font-title font-bold bg-gradient-to-r from-lumora-purple to-lumora-pink bg-clip-text text-transparent">
                   {t('merge')} & {t('evolve')}
                 </h2>
               </div>
@@ -256,7 +256,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
                 <Button
                   onClick={() => handleMerge(selectedGroup)}
                   disabled={isMerging || mergeSuccess}
-                  className="w-full rounded-xl h-12 bg-gradient-to-r from-lumora-purple to-lumora-pink text-white font-semibold"
+                  className="w-full rounded-xl h-12 btn-lumora font-semibold"
                 >
                   {mergeSuccess ? (
                     <span className="flex items-center gap-2">

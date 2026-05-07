@@ -119,7 +119,7 @@ export function SpiritDetailCard({
                 {ELEMENT_EMOJIS[spirit.spiritType.element]}
               </div>
 
-              <h3 className="text-lg font-fantasy font-bold text-foreground">
+              <h3 className="text-lg font-fantasy font-title font-bold text-foreground">
                 {spirit.spiritType.name}
               </h3>
 

@@ -15,7 +15,7 @@ export function TopBar() {
   const sanctuaryLevel = player?.sanctuaryLevel ?? 1;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/30 bg-background/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl">
       <div className="flex items-center justify-between px-4 py-2">
         {/* Left: App name */}
         <div className="flex items-center gap-2">
@@ -27,17 +27,17 @@ export function TopBar() {
 
         {/* Center: Resources */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-full bg-lumora-gold/10 px-3 py-1">
+          <div className="flex items-center gap-1 rounded-full bg-lumora-gold/10 px-3 py-1 border border-lumora-gold/15">
             <Sparkles className="h-3.5 w-3.5 text-lumora-gold" />
-            <span className="text-xs font-semibold text-lumora-gold">{lumens.toLocaleString()}</span>
+            <span className="text-xs font-semibold text-lumora-gold font-title">{lumens.toLocaleString()}</span>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-lumora-blue/10 px-3 py-1">
+          <div className="flex items-center gap-1 rounded-full bg-lumora-blue/10 px-3 py-1 border border-lumora-blue/15">
             <Zap className="h-3.5 w-3.5 text-lumora-blue" />
-            <span className="text-xs font-semibold text-lumora-blue">{energy}/{maxEnergy}</span>
+            <span className="text-xs font-semibold text-lumora-blue font-title">{energy}/{maxEnergy}</span>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-lumora-purple/10 px-3 py-1">
+          <div className="flex items-center gap-1 rounded-full bg-lumora-purple/10 px-3 py-1 border border-lumora-purple/15">
             <Shield className="h-3.5 w-3.5 text-lumora-purple" />
-            <span className="text-xs font-semibold text-lumora-purple">{sanctuaryLevel}</span>
+            <span className="text-xs font-semibold text-lumora-purple font-title">{sanctuaryLevel}</span>
           </div>
         </div>
 

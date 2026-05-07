@@ -114,7 +114,7 @@ export function SpiritPlacementPanel({
             <div className="flex items-center justify-between p-4 border-b border-border/20">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-lumora-emerald" />
-                <h2 className="text-lg font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
+                <h2 className="text-lg font-fantasy font-title font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
                   Colocar Espíritu
                 </h2>
               </div>

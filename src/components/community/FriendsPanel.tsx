@@ -240,7 +240,7 @@ export function FriendsPanel() {
               {searchResults.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/40 border border-border/20"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl glass-card-subtle"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 border border-border/30">
@@ -353,7 +353,7 @@ export function FriendsPanel() {
             {pendingSent.map((req) => (
               <div
                 key={req.friendshipId}
-                className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/40 border border-border/20"
+                className="flex items-center justify-between px-3 py-2 rounded-xl glass-card-subtle"
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8 border border-border/30">
@@ -408,7 +408,7 @@ export function FriendsPanel() {
               key={friend.friendshipId}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-card/40 border border-border/20 hover:border-lumora-blue/20 transition-colors"
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl glass-card-subtle hover:border-lumora-blue/20 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">

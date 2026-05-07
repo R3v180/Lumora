@@ -148,7 +148,7 @@ export function DailyChallengesPanel() {
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/5 to-lumora-gold/5 p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-4">
           <Skeleton className="h-5 w-32 rounded-lg" />
           <Skeleton className="h-4 w-16 rounded-lg" />
@@ -164,7 +164,7 @@ export function DailyChallengesPanel() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/5 to-lumora-gold/5 p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-lumora-purple" />
@@ -183,7 +183,7 @@ export function DailyChallengesPanel() {
 
   if (!data || data.challenges.length === 0) {
     return (
-      <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/5 to-lumora-gold/5 p-4">
+      <div className="glass-card p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-lumora-purple" />
@@ -196,7 +196,7 @@ export function DailyChallengesPanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/5 to-lumora-gold/5 backdrop-blur-sm p-4">
+    <div className="glass-card backdrop-blur-sm p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
