@@ -1,0 +1,36 @@
+{
+  "name": "Echoes of Lumora",
+  "short_name": "Lumora",
+  "description": "Un mundo onírico compartido donde cada giro construye algo mayor",
+  "start_url": "/es",
+  "display": "standalone",
+  "background_color": "#1a0a2e",
+  "theme_color": "#1a0a2e",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Spin Dream",
+      "short_name": "Spin",
+      "url": "/es/spins",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

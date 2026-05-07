@@ -1,0 +1,121 @@
+{
+  "common": {
+    "appName": "Echoes of Lumora",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "error": "Error",
+    "success": "Éxito",
+    "language": "Idioma"
+  },
+  "nav": {
+    "home": "Inicio",
+    "spins": "Giros",
+    "sanctuary": "Santuario",
+    "community": "Comunidad",
+    "shop": "Tienda"
+  },
+  "home": {
+    "welcome": "Bienvenido a Lumora",
+    "spinDream": "Giro Onírico",
+    "lumens": "Lumens",
+    "energy": "Energía",
+    "sanctuaryLevel": "Nivel Santuario",
+    "currentEvent": "Evento Actual",
+    "friendsOnline": "Amigos Online",
+    "worldTree": "Árbol del Mundo"
+  },
+  "spins": {
+    "title": "Giro Onírico",
+    "spin": "Girar",
+    "autoSpin": "Auto-Giro",
+    "stop": "Detener",
+    "win": "Ganaste",
+    "combo": "Combo",
+    "merge": "Fusionar",
+    "evolve": "Evolucionar",
+    "elements": {
+      "fire": "Fuego",
+      "water": "Agua",
+      "dream": "Sueño",
+      "nature": "Naturaleza",
+      "star": "Estrella"
+    },
+    "rarity": {
+      "common": "Común",
+      "uncommon": "Poco Común",
+      "rare": "Raro",
+      "epic": "Épico",
+      "legendary": "Legendario"
+    }
+  },
+  "sanctuary": {
+    "title": "Santuario",
+    "myIsland": "Mi Isla",
+    "placeSpirit": "Colocar Espíritu",
+    "collectLumens": "Recolectar Lumens",
+    "customize": "Personalizar",
+    "idleGeneration": "Generación por hora: {lumens} Lumens",
+    "lastCollected": "Última recolección"
+  },
+  "community": {
+    "title": "Comunidad",
+    "friends": "Amigos",
+    "guild": "Gremio",
+    "chat": "Chat",
+    "leaderboard": "Clasificación",
+    "inviteCode": "Código de Invitación",
+    "noGuild": "Aún no estás en un gremio",
+    "joinGuild": "Unirse a un Gremio",
+    "createGuild": "Crear Gremio"
+  },
+  "shop": {
+    "title": "Tienda",
+    "lumenPacks": "Paquetes de Lumens",
+    "seasonPass": "Pase de Temporada",
+    "cosmetics": "Cosméticos",
+    "bundles": "Paquetes Temáticos",
+    "boosts": "Impulsos",
+    "buy": "Comprar",
+    "owned": "Adquirido",
+    "free": "Gratis"
+  },
+  "events": {
+    "awakening": "Hora del Despertar",
+    "guildWar": "Guerra de Sueños",
+    "eclipse": "Eclipse Estelar",
+    "seasonal": "Evento Estacional",
+    "timeLeft": "Tiempo restante",
+    "startsIn": "Comienza en"
+  },
+  "auth": {
+    "login": "Iniciar Sesión",
+    "register": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "loginWithGoogle": "Iniciar sesión con Google",
+    "orContinueWithEmail": "O continúa con email",
+    "noAccount": "¿No tienes cuenta?",
+    "hasAccount": "¿Ya tienes cuenta?",
+    "displayName": "Nombre de Jugador"
+  },
+  "onboarding": {
+    "welcome": "Bienvenido a Lumora",
+    "subtitle": "Un mundo onírico te espera",
+    "chooseName": "Elige tu nombre de viajero",
+    "chooseSpirit": "Elige tu primer espíritu guardián",
+    "start": "Comenzar Aventura"
+  },
+  "blessing": {
+    "title": "Bendiciones Diarias",
+    "day": "Día {day}",
+    "claim": "Reclamar",
+    "claimed": "Reclamado",
+    "streak": "Racha de {days} días"
+  }
+}

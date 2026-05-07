@@ -1,0 +1,121 @@
+{
+  "common": {
+    "appName": "Echoes of Lumora",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "error": "Error",
+    "success": "Success",
+    "language": "Language"
+  },
+  "nav": {
+    "home": "Home",
+    "spins": "Spins",
+    "sanctuary": "Sanctuary",
+    "community": "Community",
+    "shop": "Shop"
+  },
+  "home": {
+    "welcome": "Welcome to Lumora",
+    "spinDream": "Spin Dream",
+    "lumens": "Lumens",
+    "energy": "Energy",
+    "sanctuaryLevel": "Sanctuary Level",
+    "currentEvent": "Current Event",
+    "friendsOnline": "Friends Online",
+    "worldTree": "World Tree"
+  },
+  "spins": {
+    "title": "Dream Spin",
+    "spin": "Spin",
+    "autoSpin": "Auto-Spin",
+    "stop": "Stop",
+    "win": "You Won",
+    "combo": "Combo",
+    "merge": "Merge",
+    "evolve": "Evolve",
+    "elements": {
+      "fire": "Fire",
+      "water": "Water",
+      "dream": "Dream",
+      "nature": "Nature",
+      "star": "Star"
+    },
+    "rarity": {
+      "common": "Common",
+      "uncommon": "Uncommon",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary"
+    }
+  },
+  "sanctuary": {
+    "title": "Sanctuary",
+    "myIsland": "My Island",
+    "placeSpirit": "Place Spirit",
+    "collectLumens": "Collect Lumens",
+    "customize": "Customize",
+    "idleGeneration": "Hourly generation: {lumens} Lumens",
+    "lastCollected": "Last collected"
+  },
+  "community": {
+    "title": "Community",
+    "friends": "Friends",
+    "guild": "Guild",
+    "chat": "Chat",
+    "leaderboard": "Leaderboard",
+    "inviteCode": "Invite Code",
+    "noGuild": "You're not in a guild yet",
+    "joinGuild": "Join a Guild",
+    "createGuild": "Create Guild"
+  },
+  "shop": {
+    "title": "Shop",
+    "lumenPacks": "Lumen Packs",
+    "seasonPass": "Season Pass",
+    "cosmetics": "Cosmetics",
+    "bundles": "Theme Bundles",
+    "boosts": "Boosts",
+    "buy": "Buy",
+    "owned": "Owned",
+    "free": "Free"
+  },
+  "events": {
+    "awakening": "Awakening Hour",
+    "guildWar": "Dream War",
+    "eclipse": "Stellar Eclipse",
+    "seasonal": "Seasonal Event",
+    "timeLeft": "Time left",
+    "startsIn": "Starts in"
+  },
+  "auth": {
+    "login": "Log In",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "loginWithGoogle": "Log in with Google",
+    "orContinueWithEmail": "Or continue with email",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "displayName": "Player Name"
+  },
+  "onboarding": {
+    "welcome": "Welcome to Lumora",
+    "subtitle": "A dream world awaits you",
+    "chooseName": "Choose your traveler name",
+    "chooseSpirit": "Choose your first guardian spirit",
+    "start": "Start Adventure"
+  },
+  "blessing": {
+    "title": "Daily Blessings",
+    "day": "Day {day}",
+    "claim": "Claim",
+    "claimed": "Claimed",
+    "streak": "{days} day streak"
+  }
+}
