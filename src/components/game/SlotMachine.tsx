@@ -7,6 +7,7 @@ import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX } from 'lucide
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { useRouter } from '@/i18n/navigation';
+import { BonusGame } from '@/components/game/BonusGame';
 
 interface GridSymbol {
   id: string;
@@ -47,6 +48,8 @@ interface SpinResult {
   isMegaWin: boolean;
   spiritsWon: SpiritReward[];
   elementContributions: Record<string, number>;
+  bonusTriggered?: boolean;
+  bonusCount?: number;
   player: {
     lumens: number;
     energy: number;
@@ -61,6 +64,7 @@ const SPIN_EMOJIS = ['🔥', '💧', '🌙', '🌿', '⭐', '💎', '🍄', '�
 
 export function SlotMachine() {
   const t = useTranslations('spins');
+  const tBonus = useTranslations('bonus');
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -79,6 +83,11 @@ export function SlotMachine() {
   const [spinCount, setSpinCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [reelsStopped, setReelsStopped] = useState<boolean[]>([false, false, false, false, false]);
+
+  // Bonus game state
+  const [showBonusTrigger, setShowBonusTrigger] = useState(false);
+  const [showBonusGame, setShowBonusGame] = useState(false);
+  const [bonusCount, setBonusCount] = useState(3);
 
   const autoSpinRef = useRef(false);
 
@@ -122,6 +131,7 @@ export function SlotMachine() {
     setIsSpinning(true);
     setShowWin(false);
     setShowSpiritReward(false);
+    setShowBonusTrigger(false);
     setError(null);
     setReelsStopped([false, false, false, false, false]);
 
@@ -177,16 +187,25 @@ export function SlotMachine() {
         setSpinCount(prev => prev + 1);
         setIsSpinning(false);
 
-        // Show win animation
-        if (spinResult.totalPayout > 0) {
-          setTimeout(() => setShowWin(true), 200);
-          setTimeout(() => setShowWin(false), 3000);
-        }
+        // Check for bonus trigger FIRST (takes priority over other overlays)
+        if (spinResult.bonusTriggered) {
+          // Stop auto-spin when bonus triggers
+          setAutoSpin(false);
+          autoSpinRef.current = false;
+          // Show bonus trigger overlay after a short delay
+          setTimeout(() => setShowBonusTrigger(true), 300);
+        } else {
+          // Show win animation
+          if (spinResult.totalPayout > 0) {
+            setTimeout(() => setShowWin(true), 200);
+            setTimeout(() => setShowWin(false), 3000);
+          }
 
-        // Show spirit reward
-        if (spinResult.spiritsWon.length > 0) {
-          setTimeout(() => setShowSpiritReward(true), 1500);
-          setTimeout(() => setShowSpiritReward(false), 4500);
+          // Show spirit reward
+          if (spinResult.spiritsWon.length > 0) {
+            setTimeout(() => setShowSpiritReward(true), 1500);
+            setTimeout(() => setShowSpiritReward(false), 4500);
+          }
         }
       }, 300 + 5 * 250 + 200);
 
@@ -205,7 +224,7 @@ export function SlotMachine() {
   }, [autoSpin]);
 
   useEffect(() => {
-    if (!autoSpin || isSpinning) return;
+    if (!autoSpin || isSpinning || showBonusTrigger || showBonusGame) return;
 
     const timer = setTimeout(() => {
       if (autoSpinRef.current) {
@@ -214,7 +233,32 @@ export function SlotMachine() {
     }, 1200);
 
     return () => clearTimeout(timer);
-  }, [autoSpin, isSpinning, doSpin, spinCount]);
+  }, [autoSpin, isSpinning, doSpin, spinCount, showBonusTrigger, showBonusGame]);
+
+  // Handle bonus game open
+  const handleOpenBonus = () => {
+    setShowBonusTrigger(false);
+    if (result?.bonusCount) {
+      setBonusCount(result.bonusCount);
+    }
+    setShowBonusGame(true);
+  };
+
+  // Handle bonus game complete
+  const handleBonusComplete = (bonusResults: {
+    totalLumens: number;
+    totalEnergy: number;
+    spiritsWon: any[];
+    player: { lumens: number; energy: number; maxEnergy: number; level: number; experience: number };
+  }) => {
+    setShowBonusGame(false);
+    // Update player stats from bonus results
+    if (bonusResults.player) {
+      setLumens(bonusResults.player.lumens);
+      setEnergy(bonusResults.player.energy);
+      setMaxEnergy(bonusResults.player.maxEnergy);
+    }
+  };
 
   // Render a single reel cell
   const renderCell = (col: number, row: number) => {
@@ -225,22 +269,23 @@ export function SlotMachine() {
       const isWinPosition = result?.wins.some(w =>
         w.positions.some(p => p.col === col && p.row === row)
       );
+      const isBonusSymbol = sym.symbolType === 'bonus';
 
       return (
         <motion.div
           key={`result-${col}-${row}`}
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{
-            scale: isWinPosition ? [1, 1.15, 1] : 1,
+            scale: isWinPosition ? [1, 1.15, 1] : isBonusSymbol && result?.bonusTriggered ? [1, 1.2, 1] : 1,
             opacity: 1,
           }}
           transition={{
-            scale: isWinPosition ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
+            scale: isWinPosition || (isBonusSymbol && result?.bonusTriggered) ? { duration: 0.6, repeat: Infinity } : { duration: 0.3 },
           }}
           className={`w-full h-full flex items-center justify-center rounded-xl text-2xl sm:text-3xl
-            ${isWinPosition ? 'bg-lumora-gold/15 ring-2 ring-lumora-gold/50' : 'bg-card/40'}
-            border ${isWinPosition ? 'border-lumora-gold/30' : 'border-border/20'}`}
-          style={isWinPosition ? { boxShadow: `0 0 15px ${sym.glowColor}40` } : {}}
+            ${isWinPosition ? 'bg-lumora-gold/15 ring-2 ring-lumora-gold/50' : isBonusSymbol && result?.bonusTriggered ? 'bg-lumora-emerald/20 ring-2 ring-lumora-emerald/50' : 'bg-card/40'}
+            border ${isWinPosition ? 'border-lumora-gold/30' : isBonusSymbol && result?.bonusTriggered ? 'border-lumora-emerald/30' : 'border-border/20'}`}
+          style={isWinPosition ? { boxShadow: `0 0 15px ${sym.glowColor}40` } : isBonusSymbol && result?.bonusTriggered ? { boxShadow: '0 0 15px rgba(46, 204, 113, 0.4)' } : {}}
         >
           {sym.emoji}
         </motion.div>
@@ -314,6 +359,53 @@ export function SlotMachine() {
           </div>
         </div>
 
+        {/* Bonus Trigger Overlay */}
+        <AnimatePresence>
+          {showBonusTrigger && result?.bonusTriggered && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute inset-0 flex items-center justify-center z-40 cursor-pointer"
+              onClick={handleOpenBonus}
+            >
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm rounded-2xl" />
+              <motion.div
+                className="relative px-8 py-6 rounded-2xl bg-gradient-to-b from-lumora-emerald/30 to-lumora-gold/20 border-2 border-lumora-emerald/50 backdrop-blur-md text-center"
+                animate={{
+                  boxShadow: [
+                    '0 0 20px rgba(46, 204, 113, 0.3)',
+                    '0 0 40px rgba(46, 204, 113, 0.5)',
+                    '0 0 20px rgba(46, 204, 113, 0.3)',
+                  ],
+                }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 0.8, repeat: Infinity }}
+                  className="text-4xl mb-2"
+                >
+                  🌱
+                </motion.div>
+                <p className="text-2xl font-bold bg-gradient-to-r from-lumora-gold to-lumora-emerald bg-clip-text text-transparent font-fantasy">
+                  ¡Bonus Game!
+                </p>
+                <p className="text-sm text-lumora-emerald mt-1">
+                  {result.bonusCount}x {tBonus('title')}
+                </p>
+                <motion.p
+                  className="text-xs text-muted-foreground mt-3"
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  Toca para jugar
+                </motion.p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Win overlay */}
         <AnimatePresence>
           {showWin && result && result.totalPayout > 0 && (
@@ -383,7 +475,7 @@ export function SlotMachine() {
       )}
 
       {/* Win details (persistent) */}
-      {result && result.wins.length > 0 && !isSpinning && (
+      {result && result.wins.length > 0 && !isSpinning && !showBonusTrigger && !showBonusGame && (
         <div className="w-full mb-4 px-2">
           <div className="flex flex-wrap gap-2">
             {result.wins.map((win, i) => (
@@ -468,6 +560,22 @@ export function SlotMachine() {
       <p className="text-xs text-muted-foreground">
         Coste: 5 energía por giro · 1 energía cada 5 min
       </p>
+
+      {/* Bonus Game Full-Screen Overlay */}
+      <AnimatePresence>
+        {showBonusGame && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <BonusGame
+              bonusCount={bonusCount}
+              onComplete={handleBonusComplete}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

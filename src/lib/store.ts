@@ -34,6 +34,9 @@ export interface PlayerState {
   globalDream: number;
   globalStar: number;
 
+  // Offline rewards
+  offlineRewardsClaimed: boolean;
+
   // Actions
   setDisplayName: (name: string) => void;
   addLumens: (amount: number) => void;
@@ -45,6 +48,7 @@ export interface PlayerState {
   addSpirit: (spirit: SpiritItem) => void;
   addExperience: (amount: number) => void;
   contributeToElement: (element: string, amount: number) => void;
+  setOfflineRewardsClaimed: () => void;
 }
 
 export const useGameStore = create<PlayerState>((set, get) => ({
@@ -68,6 +72,8 @@ export const useGameStore = create<PlayerState>((set, get) => ({
   globalNature: 0,
   globalDream: 0,
   globalStar: 0,
+
+  offlineRewardsClaimed: false,
 
   // Actions
   setDisplayName: (name) => set({ displayName: name }),
@@ -121,4 +127,6 @@ export const useGameStore = create<PlayerState>((set, get) => ({
       const current = (state[key] as number) || 0;
       return { [key]: current + amount } as Partial<PlayerState>;
     }),
+
+  setOfflineRewardsClaimed: () => set({ offlineRewardsClaimed: true }),
 }));

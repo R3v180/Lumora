@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield, Plus, LogOut, Search, Crown, Star, User,
   Swords, Sparkles, Users, ChevronRight, Edit3, X,
+  Flame, Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { GuildWarsPanel } from './GuildWarsPanel';
+
+type GuildSubTab = 'info' | 'members' | 'war';
 
 interface GuildMember {
   id: string;
@@ -69,6 +73,7 @@ export function GuildPanel() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newGuildName, setNewGuildName] = useState('');
   const [newGuildDesc, setNewGuildDesc] = useState('');
+  const [subTab, setSubTab] = useState<GuildSubTab>('info');
 
   const fetchGuild = useCallback(async () => {
     try {
@@ -189,6 +194,12 @@ export function GuildPanel() {
 
   const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '⚔️', '🐉', '💎', '🏆'];
 
+  const GUILD_SUBTABS: { key: GuildSubTab; icon: any; label: string; color: string }[] = [
+    { key: 'info', icon: Info, label: 'Info', color: 'text-lumora-purple' },
+    { key: 'members', icon: Users, label: t('members'), color: 'text-lumora-blue' },
+    { key: 'war', icon: Swords, label: t('warTab') || 'Guerra', color: 'text-orange-500' },
+  ];
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -209,7 +220,7 @@ export function GuildPanel() {
 
     return (
       <div className="flex flex-col gap-4">
-        {/* Guild Header */}
+        {/* Guild Header (always visible) */}
         <div className="rounded-2xl border border-lumora-purple/20 bg-gradient-to-br from-lumora-purple/10 to-lumora-blue/5 p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -258,56 +269,95 @@ export function GuildPanel() {
           </div>
         </div>
 
-        {/* Guild Actions */}
-        {!isOwner && (
-          <Button
-            variant="outline"
-            onClick={handleLeaveGuild}
-            className="w-full rounded-xl gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
-          >
-            <LogOut className="h-4 w-4" />
-            {t('leaveGuild')}
-          </Button>
-        )}
-
-        {/* Members List */}
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-lumora-blue" />
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {t('members')} ({guild.members.length})
-          </p>
+        {/* Sub-tab navigation */}
+        <div className="flex gap-1.5">
+          {GUILD_SUBTABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = subTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setSubTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                  isActive
+                    ? `${tab.color} bg-card/60 border border-current/20 shadow-sm`
+                    : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          {guild.members.map((member) => (
-            <div
-              key={member.id}
-              className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/40 border border-border/20"
-            >
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8 border border-border/30">
-                  <AvatarImage src={member.player.avatar || undefined} />
-                  <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-xs">
-                    {member.player.displayName.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-semibold">{member.player.displayName}</p>
-                    {getRoleIcon(member.role)}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Nv. {member.player.level} · {getRoleLabel(member.role)}
+        {/* Sub-tab content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={subTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {subTab === 'info' && (
+              <div className="flex flex-col gap-3">
+                {/* Guild Actions */}
+                {!isOwner && (
+                  <Button
+                    variant="outline"
+                    onClick={handleLeaveGuild}
+                    className="w-full rounded-xl gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {t('leaveGuild')}
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {subTab === 'members' && (
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="h-4 w-4 text-lumora-blue" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {t('members')} ({guild.members.length})
                   </p>
                 </div>
+                {guild.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl bg-card/40 border border-border/20"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 border border-border/30">
+                        <AvatarImage src={member.player.avatar || undefined} />
+                        <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-xs">
+                          {member.player.displayName.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold">{member.player.displayName}</p>
+                          {getRoleIcon(member.role)}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Nv. {member.player.level} · {getRoleLabel(member.role)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-lumora-gold">
+                      <Sparkles className="h-3 w-3" />
+                      {member.player.lumens.toLocaleString()}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center gap-1 text-[10px] text-lumora-gold">
-                <Sparkles className="h-3 w-3" />
-                {member.player.lumens.toLocaleString()}
-              </div>
-            </div>
-          ))}
-        </div>
+            )}
+
+            {subTab === 'war' && <GuildWarsPanel />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     );
   }

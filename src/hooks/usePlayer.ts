@@ -40,6 +40,18 @@ interface PlayerData {
     claimed: boolean;
     lastClaimAt: string;
   }>;
+  guild: {
+    id: string;
+    guildId: string;
+    role: string;
+    guild: {
+      id: string;
+      name: string;
+      description: string | null;
+      emblem: string | null;
+      level: number;
+    };
+  } | null;
 }
 
 export function usePlayer() {

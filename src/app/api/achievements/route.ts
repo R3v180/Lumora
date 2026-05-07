@@ -44,6 +44,8 @@ export async function GET() {
         progress: playerAch?.progress || 0,
         completed: playerAch?.completed || false,
         completedAt: playerAch?.completedAt || null,
+        claimed: playerAch?.claimed || false,
+        claimedAt: playerAch?.claimedAt || null,
       };
     });
 
@@ -57,6 +59,7 @@ export async function GET() {
     }
 
     const totalCompleted = result.filter((a) => a.completed).length;
+    const totalClaimed = result.filter((a) => a.claimed).length;
 
     return NextResponse.json({
       achievements: result,
@@ -64,15 +67,123 @@ export async function GET() {
         key,
         items,
         completed: items.filter((i) => i.completed).length,
+        claimed: items.filter((i) => i.claimed).length,
         total: items.length,
       })),
       totalCompleted,
+      totalClaimed,
       totalAchievements: result.length,
     });
   } catch (error) {
     console.error('Achievements fetch error:', error);
     return NextResponse.json(
       { error: 'Error al obtener logros' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/achievements - Claim a completed achievement reward
+export async function POST(request: any) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    const userId = (session.user as any).id;
+    const body = await request.json();
+    const { action, achievementId } = body;
+
+    if (action !== 'claim' || !achievementId) {
+      return NextResponse.json(
+        { error: 'Se requiere action=claim y achievementId' },
+        { status: 400 }
+      );
+    }
+
+    const player = await db.playerProfile.findUnique({ where: { userId } });
+    if (!player) {
+      return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
+    }
+
+    const playerAchievement = await db.playerAchievement.findFirst({
+      where: { playerId: player.id, achievementId },
+      include: { achievement: true },
+    });
+
+    if (!playerAchievement) {
+      return NextResponse.json(
+        { error: 'Logro no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    if (!playerAchievement.completed) {
+      return NextResponse.json(
+        { error: 'Logro no completado aún' },
+        { status: 400 }
+      );
+    }
+
+    if (playerAchievement.claimed) {
+      return NextResponse.json(
+        { error: 'Recompensa ya reclamada' },
+        { status: 400 }
+      );
+    }
+
+    // Claim reward
+    const reward = playerAchievement.achievement.reward as any;
+
+    await db.$transaction(async (tx) => {
+      await tx.playerAchievement.update({
+        where: { id: playerAchievement.id },
+        data: { claimed: true, claimedAt: new Date() },
+      });
+
+      const updateData: any = {};
+      if (reward.lumens) {
+        updateData.lumens = { increment: reward.lumens };
+      }
+      if (reward.energy) {
+        updateData.energy = Math.min(player.energy + reward.energy, player.maxEnergy);
+      }
+      if (reward.experience) {
+        updateData.experience = player.experience + reward.experience;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await tx.playerProfile.update({
+          where: { id: player.id },
+          data: updateData,
+        });
+      }
+
+      await tx.transaction.create({
+        data: {
+          playerId: player.id,
+          type: 'achievement',
+          amount: reward.lumens || 0,
+          currency: 'lumens',
+          metadata: {
+            source: 'achievement_claim',
+            achievementId,
+            achievementName: playerAchievement.achievement.name,
+          },
+        },
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      reward,
+    });
+  } catch (error) {
+    console.error('Achievement claim error:', error);
+    return NextResponse.json(
+      { error: 'Error al reclamar logro' },
       { status: 500 }
     );
   }

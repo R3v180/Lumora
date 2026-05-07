@@ -9,6 +9,27 @@ import {
 } from '@/game/engine/spinEngine';
 import { GameSymbol } from '@/game/engine/symbols';
 
+// World Tree buff helpers
+interface TreeBuff {
+  lumensMultiplier: number;
+  energyRegenBonus: number;
+  rareSpiritBonus: number;
+  bonusGameChance: number;
+}
+
+function getBuffsForLevel(level: number): TreeBuff {
+  if (level >= 21) {
+    return { lumensMultiplier: 1.2, energyRegenBonus: 3, rareSpiritBonus: 0.1, bonusGameChance: 0.05 };
+  } else if (level >= 16) {
+    return { lumensMultiplier: 1.15, energyRegenBonus: 2, rareSpiritBonus: 0.05, bonusGameChance: 0 };
+  } else if (level >= 11) {
+    return { lumensMultiplier: 1.1, energyRegenBonus: 1, rareSpiritBonus: 0, bonusGameChance: 0 };
+  } else if (level >= 6) {
+    return { lumensMultiplier: 1.05, energyRegenBonus: 0, rareSpiritBonus: 0, bonusGameChance: 0 };
+  }
+  return { lumensMultiplier: 1, energyRegenBonus: 0, rareSpiritBonus: 0, bonusGameChance: 0 };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Get player profile
     const player = await db.playerProfile.findUnique({
       where: { userId },
-      include: { sanctuary: true },
+      include: { sanctuary: true, guild: true },
     });
 
     if (!player) {
@@ -41,8 +62,16 @@ export async function POST(request: NextRequest) {
 
     const currentEnergy = player.energy + energyRegenerated;
 
-    // Check if enough energy
-    if (currentEnergy < ENERGY_COST) {
+    // Get World Tree level for buffs (used for energy check and spin buffs)
+    let worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
+    if (!worldState) {
+      worldState = await db.worldState.create({ data: { id: 'lumora_world' } });
+    }
+    const treeBuffs = getBuffsForLevel(worldState.treeLevel);
+
+    // Check if enough energy (accounting for tree buff energy regen discount)
+    const effectiveEnergyCost = Math.max(0, ENERGY_COST - treeBuffs.energyRegenBonus);
+    if (currentEnergy < effectiveEnergyCost) {
       return NextResponse.json(
         {
           error: 'Energía insuficiente',
@@ -57,22 +86,85 @@ export async function POST(request: NextRequest) {
     // Execute spin
     const spinResult: ReelResult = executeSpin();
 
+    // Apply World Tree buffs
+    // 1. Lumens multiplier
+    const buffedPayout = Math.floor(spinResult.totalPayout * treeBuffs.lumensMultiplier);
+
+    // 2. Energy regen bonus: effectively give back some energy
+    const energyDiscount = treeBuffs.energyRegenBonus;
+
+    // 3. Rare spirit chance bonus: re-roll spirit rewards with boosted rarity if bonus applies
+    if (treeBuffs.rareSpiritBonus > 0 && spinResult.spiritsWon.length > 0) {
+      for (const reward of spinResult.spiritsWon) {
+        if (Math.random() < treeBuffs.rareSpiritBonus) {
+          // Boost rarity by one tier
+          const rarityChain: Record<string, string> = {
+            common: 'uncommon',
+            uncommon: 'rare',
+            rare: 'epic',
+            epic: 'legendary',
+          };
+          const boosted = rarityChain[reward.rarity];
+          if (boosted) {
+            reward.rarity = boosted;
+          }
+        }
+      }
+    }
+
+    // 4. Bonus game chance bonus
+    if (treeBuffs.bonusGameChance > 0 && !spinResult.bonusTriggered) {
+      if (Math.random() < treeBuffs.bonusGameChance) {
+        spinResult.bonusTriggered = true;
+        spinResult.bonusCount = Math.max(spinResult.bonusCount, 3);
+      }
+    }
+
     // Serialize grid for storage (store symbol IDs)
     const serializedGrid = spinResult.grid.map((col) =>
       col.map((sym) => sym.id)
     );
 
-    // Calculate new energy
-    const newEnergy = currentEnergy - ENERGY_COST;
+    // Calculate new energy (with World Tree energy regen bonus)
+    const energyCost = Math.max(0, ENERGY_COST - energyDiscount);
+    const newEnergy = currentEnergy - energyCost;
 
-    // Calculate new lumens
-    const newLumens = player.lumens + spinResult.totalPayout;
+    // Calculate new lumens (with World Tree lumens multiplier)
+    const newLumens = player.lumens + buffedPayout;
 
-    // Calculate experience (1 XP per spin + bonus for wins)
-    const xpGain = 1 + Math.floor(spinResult.totalPayout / 10);
+    // Calculate experience (1 XP per spin + bonus for wins, using buffed payout)
+    const xpGain = 1 + Math.floor(buffedPayout / 10);
 
     // Determine spirits to add to player collection
     const spiritRewards = spinResult.spiritsWon;
+
+    // Check for active guild war
+    let warContribution: {
+      warId: string;
+      guildSide: 'attacker' | 'defender';
+      contributed: number;
+    } | null = null;
+
+    if (player.guild && spinResult.totalPayout > 0) {
+      const activeWar = await db.guildWar.findFirst({
+        where: {
+          status: 'active',
+          OR: [
+            { attackerGuildId: player.guild.guildId },
+            { defenderGuildId: player.guild.guildId },
+          ],
+        },
+      });
+
+      if (activeWar) {
+        const isAttacker = activeWar.attackerGuildId === player.guild.guildId;
+        warContribution = {
+          warId: activeWar.id,
+          guildSide: isAttacker ? 'attacker' : 'defender',
+          contributed: spinResult.totalPayout,
+        };
+      }
+    }
 
     // Update player data in a transaction
     const updatedPlayer = await db.$transaction(async (tx) => {
@@ -210,6 +302,21 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Guild war contribution: add lumens won to war score
+      if (warContribution) {
+        await tx.guildWar.update({
+          where: { id: warContribution.warId },
+          data: {
+            attackerScore: warContribution.guildSide === 'attacker'
+              ? { increment: warContribution.contributed }
+              : undefined,
+            defenderScore: warContribution.guildSide === 'defender'
+              ? { increment: warContribution.contributed }
+              : undefined,
+          },
+        });
+      }
+
       return updated;
     });
 
@@ -244,6 +351,9 @@ export async function POST(request: NextRequest) {
       isMegaWin: spinResult.isMegaWin,
       spiritsWon: spiritRewards,
       elementContributions: spinResult.elementContributions,
+      // Bonus trigger info
+      bonusTriggered: spinResult.bonusTriggered,
+      bonusCount: spinResult.bonusCount,
       // Updated player state
       player: {
         lumens: newLumens,
@@ -252,6 +362,20 @@ export async function POST(request: NextRequest) {
         level: updatedPlayer.level,
         experience: updatedPlayer.experience,
       },
+      // Guild war contribution info
+      warContribution: warContribution ? {
+        contributed: warContribution.contributed,
+        side: warContribution.guildSide,
+      } : null,
+      // World Tree buff info
+      worldBuff: treeBuffs.lumensMultiplier > 1 ? {
+        lumensMultiplier: treeBuffs.lumensMultiplier,
+        energyRegenBonus: treeBuffs.energyRegenBonus,
+        rareSpiritBonus: treeBuffs.rareSpiritBonus,
+        bonusGameChance: treeBuffs.bonusGameChance,
+        source: `World Tree Lv.${worldState.treeLevel}`,
+      } : null,
+      buffedPayout,
     });
   } catch (error) {
     console.error('Spin error:', error);

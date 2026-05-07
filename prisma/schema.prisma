@@ -93,6 +93,7 @@ model PlayerProfile {
   energyRefillAt DateTime @default(now())
   sanctuaryLevel Int      @default(1)
   language       String   @default("es")
+  lastLoginAt    DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -106,6 +107,7 @@ model PlayerProfile {
   achievements PlayerAchievement[]
   dailyChallenges PlayerDailyChallenge[]
   blessings  Blessing[]
+  chatMessages ChatMessage[]
 
   @@map("player_profiles")
 }
@@ -222,6 +224,7 @@ model Guild {
   level       Int      @default(1)
   experience  Int      @default(0)
   maxMembers  Int      @default(50)
+  treasury    Int      @default(0)
   ownerId     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -259,6 +262,25 @@ model Friendship {
 
   @@unique([player1Id, player2Id])
   @@map("friendships")
+}
+
+// =====================
+// CHAT
+// =====================
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  senderId    String
+  guildId     String?  // null for world chat, guildId for guild chat
+  content     String
+  messageType String   @default("user") // user, system
+  createdAt   DateTime @default(now())
+
+  sender PlayerProfile @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, createdAt])
+  @@index([createdAt])
+  @@map("chat_messages")
 }
 
 // =====================
@@ -327,6 +349,8 @@ model PlayerAchievement {
   progress      Int      @default(0)
   completed     Boolean  @default(false)
   completedAt   DateTime?
+  claimed       Boolean  @default(false)
+  claimedAt     DateTime?
   createdAt     DateTime @default(now())
 
   player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)

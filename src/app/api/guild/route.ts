@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
           level: guild.level,
           experience: guild.experience,
           maxMembers: guild.maxMembers,
+          treasury: guild.treasury,
           ownerId: guild.ownerId,
           memberCount: guild.members.length,
           members: guild.members.map((m) => ({

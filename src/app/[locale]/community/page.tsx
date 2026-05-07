@@ -3,21 +3,23 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Shield, Trophy, MessageCircle } from 'lucide-react';
+import { Users, Shield, Trophy, MessageCircle, Award } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from '@/i18n/navigation';
 import { FriendsPanel } from '@/components/community/FriendsPanel';
 import { GuildPanel } from '@/components/community/GuildPanel';
 import { LeaderboardPanel } from '@/components/community/LeaderboardPanel';
 import { ChatPanel } from '@/components/community/ChatPanel';
+import { AchievementsPanel } from '@/components/progression/AchievementsPanel';
 
-type Tab = 'friends' | 'guild' | 'leaderboard' | 'chat';
+type Tab = 'friends' | 'guild' | 'leaderboard' | 'chat' | 'achievements';
 
 const TABS: { key: Tab; icon: any; color: string }[] = [
   { key: 'friends', icon: Users, color: 'text-lumora-blue' },
   { key: 'guild', icon: Shield, color: 'text-lumora-purple' },
   { key: 'leaderboard', icon: Trophy, color: 'text-lumora-gold' },
   { key: 'chat', icon: MessageCircle, color: 'text-lumora-pink' },
+  { key: 'achievements', icon: Award, color: 'text-lumora-emerald' },
 ];
 
 export default function CommunityPage() {
@@ -55,7 +57,7 @@ export default function CommunityPage() {
       </h1>
 
       {/* Tab navigation */}
-      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1">
+      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 scrollbar-none">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -63,7 +65,7 @@ export default function CommunityPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
                   ? `${tab.color} bg-card/60 border border-current/20 shadow-sm`
                   : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
@@ -89,6 +91,7 @@ export default function CommunityPage() {
           {activeTab === 'guild' && <GuildPanel />}
           {activeTab === 'leaderboard' && <LeaderboardPanel />}
           {activeTab === 'chat' && <ChatPanel />}
+          {activeTab === 'achievements' && <AchievementsPanel />}
         </motion.div>
       </AnimatePresence>
     </div>
