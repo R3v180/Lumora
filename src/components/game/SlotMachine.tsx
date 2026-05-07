@@ -191,7 +191,15 @@ export function SlotMachine() {
         setMaxEnergy(spinResult.player.maxEnergy);
         setSpinCount(prev => prev + 1);
         setIsSpinning(false);
-        useGameStore.getState().triggerRefresh();
+
+        // Sync player stats instantly to Zustand so TopBar updates immediately
+        useGameStore.getState().syncPlayerStats({
+          lumens: spinResult.player.lumens,
+          energy: spinResult.player.energy,
+          maxEnergy: spinResult.player.maxEnergy,
+          level: spinResult.player.level,
+          experience: spinResult.player.experience,
+        });
 
         // Check for bonus trigger FIRST (takes priority over other overlays)
         if (spinResult.bonusTriggered) {
@@ -264,8 +272,15 @@ export function SlotMachine() {
       setLumens(bonusResults.player.lumens);
       setEnergy(bonusResults.player.energy);
       setMaxEnergy(bonusResults.player.maxEnergy);
+      // Sync instantly to Zustand so TopBar updates immediately
+      useGameStore.getState().syncPlayerStats({
+        lumens: bonusResults.player.lumens,
+        energy: bonusResults.player.energy,
+        maxEnergy: bonusResults.player.maxEnergy,
+        level: bonusResults.player.level,
+        experience: bonusResults.player.experience,
+      });
     }
-    useGameStore.getState().triggerRefresh();
   };
 
   // Render a single reel cell

@@ -53,6 +53,8 @@ export interface PlayerState {
   contributeToElement: (element: string, amount: number) => void;
   setOfflineRewardsClaimed: () => void;
   triggerRefresh: () => void;
+  // Instant sync from server responses (no API re-fetch needed)
+  syncPlayerStats: (stats: { lumens: number; energy: number; maxEnergy: number; level?: number; experience?: number; sanctuaryLevel?: number }) => void;
 }
 
 export const useGameStore = create<PlayerState>((set, get) => ({
@@ -137,4 +139,15 @@ export const useGameStore = create<PlayerState>((set, get) => ({
 
   triggerRefresh: () =>
     set((state) => ({ refreshKey: state.refreshKey + 1 })),
+
+  syncPlayerStats: (stats) =>
+    set((state) => ({
+      lumens: stats.lumens,
+      energy: stats.energy,
+      maxEnergy: stats.maxEnergy,
+      ...(stats.level !== undefined ? { level: stats.level } : {}),
+      ...(stats.experience !== undefined ? { experience: stats.experience } : {}),
+      ...(stats.sanctuaryLevel !== undefined ? { sanctuaryLevel: stats.sanctuaryLevel } : {}),
+      refreshKey: state.refreshKey + 1,
+    })),
 }));

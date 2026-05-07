@@ -4,15 +4,24 @@ import { useTranslations } from 'next-intl';
 import { Sparkles, Zap, Shield, Globe } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { usePlayer } from '@/hooks/usePlayer';
+import { useGameStore } from '@/lib/store';
 
 export function TopBar() {
   const t = useTranslations('home');
   const { player, isAuthenticated } = usePlayer();
 
-  const lumens = player?.lumens ?? 100;
-  const energy = player?.energy ?? 100;
-  const maxEnergy = player?.maxEnergy ?? 100;
-  const sanctuaryLevel = player?.sanctuaryLevel ?? 1;
+  // Read instant values from Zustand store (synced by SlotMachine/bonus/shop/etc.)
+  const storeLumens = useGameStore((s) => s.lumens);
+  const storeEnergy = useGameStore((s) => s.energy);
+  const storeMaxEnergy = useGameStore((s) => s.maxEnergy);
+  const storeLevel = useGameStore((s) => s.level);
+  const refreshKey = useGameStore((s) => s.refreshKey);
+
+  // Use Zustand values when available (instant), fall back to player API data
+  const lumens = refreshKey > 0 ? storeLumens : (player?.lumens ?? 100);
+  const energy = refreshKey > 0 ? storeEnergy : (player?.energy ?? 100);
+  const maxEnergy = refreshKey > 0 ? storeMaxEnergy : (player?.maxEnergy ?? 100);
+  const sanctuaryLevel = refreshKey > 0 ? storeLevel : (player?.sanctuaryLevel ?? 1);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl">

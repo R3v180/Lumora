@@ -77,6 +77,18 @@ export function usePlayer() {
       const data = await res.json();
       setPlayer(data);
       setError(null);
+
+      // Sync server data to Zustand so all components see it instantly
+      useGameStore.getState().syncPlayerStats({
+        lumens: data.lumens,
+        energy: data.energy,
+        maxEnergy: data.maxEnergy,
+        level: data.level,
+        experience: data.experience,
+        sanctuaryLevel: data.sanctuaryLevel,
+      });
+      // Also sync display name
+      useGameStore.getState().setDisplayName(data.displayName);
     } catch (err) {
       console.error('Failed to fetch player:', err);
       setError('Error al cargar perfil');
