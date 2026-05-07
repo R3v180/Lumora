@@ -141,13 +141,12 @@ export const useGameStore = create<PlayerState>((set, get) => ({
     set((state) => ({ refreshKey: state.refreshKey + 1 })),
 
   syncPlayerStats: (stats) =>
-    set((state) => ({
+    set({
       lumens: stats.lumens,
       energy: stats.energy,
       maxEnergy: stats.maxEnergy,
       ...(stats.level !== undefined ? { level: stats.level } : {}),
       ...(stats.experience !== undefined ? { experience: stats.experience } : {}),
       ...(stats.sanctuaryLevel !== undefined ? { sanctuaryLevel: stats.sanctuaryLevel } : {}),
-      refreshKey: state.refreshKey + 1,
-    })),
+    }),
 }));

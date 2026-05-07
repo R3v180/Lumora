@@ -11,17 +11,18 @@ export function TopBar() {
   const { player, isAuthenticated } = usePlayer();
 
   // Read instant values from Zustand store (synced by SlotMachine/bonus/shop/etc.)
+  // The store is updated by usePlayer on first load and by game actions in real-time.
+  // We prefer store values because they update instantly (no API round-trip).
+  // Fall back to usePlayer API data on first render before the store is populated.
   const storeLumens = useGameStore((s) => s.lumens);
   const storeEnergy = useGameStore((s) => s.energy);
   const storeMaxEnergy = useGameStore((s) => s.maxEnergy);
   const storeLevel = useGameStore((s) => s.level);
-  const refreshKey = useGameStore((s) => s.refreshKey);
 
-  // Use Zustand values when available (instant), fall back to player API data
-  const lumens = refreshKey > 0 ? storeLumens : (player?.lumens ?? 100);
-  const energy = refreshKey > 0 ? storeEnergy : (player?.energy ?? 100);
-  const maxEnergy = refreshKey > 0 ? storeMaxEnergy : (player?.maxEnergy ?? 100);
-  const sanctuaryLevel = refreshKey > 0 ? storeLevel : (player?.sanctuaryLevel ?? 1);
+  const lumens = player ? storeLumens : (player?.lumens ?? 100);
+  const energy = player ? storeEnergy : (player?.energy ?? 100);
+  const maxEnergy = player ? storeMaxEnergy : (player?.maxEnergy ?? 100);
+  const sanctuaryLevel = player ? storeLevel : (player?.sanctuaryLevel ?? 1);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-xl">

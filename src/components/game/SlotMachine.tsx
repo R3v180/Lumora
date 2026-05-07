@@ -200,6 +200,8 @@ export function SlotMachine() {
           level: spinResult.player.level,
           experience: spinResult.player.experience,
         });
+        // Also trigger a full refresh so other components (daily challenges, etc.) re-fetch
+        useGameStore.getState().triggerRefresh();
 
         // Check for bonus trigger FIRST (takes priority over other overlays)
         if (spinResult.bonusTriggered) {
@@ -280,6 +282,8 @@ export function SlotMachine() {
         level: bonusResults.player.level,
         experience: bonusResults.player.experience,
       });
+      // Also trigger a full refresh so other components re-fetch
+      useGameStore.getState().triggerRefresh();
     }
   };
 
