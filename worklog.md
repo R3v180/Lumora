@@ -190,3 +190,37 @@ Stage Summary:
 - Sanctuary rename functionality
 - 5 new decoration items, 3 new achievements in seed
 - Phase 3 complete - Ready for Phase 4: Social y Comunidad
+
+---
+Task ID: 4
+Agent: Super Z (Main)
+Task: Phase 4 - Social y Comunidad
+
+Work Log:
+- Created /api/friends GET route: lists friends, pending sent, pending received with player profile data
+- Created /api/friends POST route: 6 actions (send, accept, reject, remove, cancel) with full validation
+- Created /api/search GET route: search players by displayName, includes friendship status per result
+- Created /api/guild GET route: returns guild info if member, recommended guilds if not, search by name
+- Created /api/guild POST route: 6 actions (create, join, leave, kick, promote/demote, update) with role-based permissions
+- Created /api/leaderboard GET route: 4 ranking categories (lumens, level, spirits, sanctuary) with pagination and player's own rank
+- Built FriendsPanel component: search players, send/accept/reject friend requests, friends list with avatars, remove friend
+- Built GuildPanel component: create guild dialog, join guild, leave guild, search guilds, member list with roles (owner/officer/member), guild XP bar
+- Built LeaderboardPanel component: 4 category tabs, paginated results, medals for top 3, "your rank" highlight, avatar display
+- Built ChatPanel component: world/guild chat modes, message bubbles, simulated responses (ready for WebSocket upgrade), timestamps
+- Rewrote Community page: 4-tab layout (Friends, Guild, Leaderboard, Chat) with animated tab transitions, auth-gated
+- Updated home page: friends widget now links to /community page
+- Updated i18n (es/en) with 30+ new community strings (search, friends, guild, leaderboard, chat)
+- Added 5 social achievements to seed: First Friend, Social Soul (5), World Connector (10), Founder, Clan Member
+- Fixed duplicate ach_sanc_level5 in seed
+- Seeded database with 14 total achievements
+- Build passes with no errors, all routes rendering 200 OK
+
+Stage Summary:
+- Complete social system: friends, guilds, leaderboard, chat
+- Friends: search, add, accept/reject, remove with real-time status
+- Guilds: create, join, leave, kick, promote/demote, update with role-based access
+- Leaderboard: 4 categories with pagination and player rank tracking
+- Chat: simulated world/guild chat (ready for WebSocket upgrade)
+- 5 new social achievements seeded
+- 30+ new i18n strings in es/en
+- Phase 4 complete - Ready for Phase 5

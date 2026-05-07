@@ -135,9 +135,14 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Friends Online Widget */}
-      <div className="relative z-10 w-full max-w-sm">
-        <div className="rounded-2xl border border-lumora-blue/20 bg-card/60 backdrop-blur-sm p-4">
+      {/* Friends & Community Widget */}
+      <motion.button
+        onClick={() => router.push('/community')}
+        className="relative z-10 w-full max-w-sm"
+        whileHover={{ scale: 1.01 }}
+        whileTap={{ scale: 0.99 }}
+      >
+        <div className="rounded-2xl border border-lumora-blue/20 bg-card/60 backdrop-blur-sm p-4 hover:border-lumora-blue/40 transition-colors">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-lumora-blue" />
@@ -146,7 +151,7 @@ export default function HomePage() {
             <span className="text-xs text-lumora-blue font-bold">0 conectados</span>
           </div>
         </div>
-      </div>
+      </motion.button>
 
       {/* Sanctuary Widget (when logged in) */}
       {isAuthenticated && player && player.sanctuary && (

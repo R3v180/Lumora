@@ -1,9 +1,25 @@
 // Dream Spin Engine - Core game logic
 // Handles reel generation, win detection, payout calculation, spirit rewards
+// Enhanced with: Evolution Map, Wild Multipliers, Elemental Surge, Bonus Trigger, Lucky Spin
 
 import { SYMBOLS, TOTAL_WEIGHT, GameSymbol, Element } from './symbols';
 
 // === TYPES ===
+
+export interface WinResult {
+  symbol: GameSymbol;
+  positions: { col: number; row: number }[];
+  count: number; // 3, 4, or 5 matching symbols
+  payout: number;
+  isWild: boolean;
+  wildMultiplier: number; // 1 (no wild), 2 (1 wild), 3 (2 wilds), or 5 (3+ wilds)
+}
+
+export interface ElementalSurge {
+  element: Element;
+  count: number;
+  bonusLumens: number;
+}
 
 export interface ReelResult {
   grid: GameSymbol[][]; // 5 columns × 4 rows
@@ -13,14 +29,10 @@ export interface ReelResult {
   elementContributions: Record<Element, number>;
   isBigWin: boolean; // payout >= 50x bet
   isMegaWin: boolean; // payout >= 100x bet
-}
-
-export interface WinResult {
-  symbol: GameSymbol;
-  positions: { col: number; row: number }[];
-  count: number; // 3, 4, or 5 matching symbols
-  payout: number;
-  isWild: boolean;
+  elementalSurges: ElementalSurge[];
+  bonusTriggered: boolean;
+  bonusCount: number;
+  isLucky: boolean;
 }
 
 export interface SpiritReward {
@@ -69,6 +81,43 @@ export const PAYLINES: number[][] = [
   [2, 3, 2, 3, 2],
 ];
 
+// === EVOLUTION MAP ===
+// Maps spirit symbol IDs to their evolved form (next rarity tier)
+// Chain: common → uncommon → rare → epic → legendary
+const RARITY_CHAIN: Record<string, string> = {
+  common: 'uncommon',
+  uncommon: 'rare',
+  rare: 'epic',
+  epic: 'legendary',
+};
+
+export const EVOLUTION_MAP: Record<string, string> = {};
+
+// Build the evolution map from SYMBOLS: for each spirit, find the next rarity in the same element
+(function buildEvolutionMap() {
+  for (const symbol of SYMBOLS) {
+    if (symbol.symbolType !== 'spirit') continue;
+
+    const nextRarity = RARITY_CHAIN[symbol.rarity];
+    if (!nextRarity) continue; // legendary has no evolution
+
+    // Find the evolved form: same element, next rarity tier, spirit type
+    const evolved = SYMBOLS.find(
+      s =>
+        s.symbolType === 'spirit' &&
+        s.element === symbol.element &&
+        s.rarity === nextRarity
+    );
+
+    if (evolved) {
+      // Map spirit type ID format: sym_fire_common → spirit_fire_uncommon
+      const inputSpiritId = symbol.id.replace('sym_', 'spirit_');
+      const outputSpiritId = evolved.id.replace('sym_', 'spirit_');
+      EVOLUTION_MAP[inputSpiritId] = outputSpiritId;
+    }
+  }
+})();
+
 // === RNG ===
 
 // Weighted random symbol selection
@@ -115,6 +164,14 @@ function sameElement(a: GameSymbol, b: GameSymbol): boolean {
   return a.element === b.element;
 }
 
+// Calculate wild multiplier based on number of wilds in a winning payline
+function calculateWildMultiplier(wildCount: number): number {
+  if (wildCount >= 3) return 5;
+  if (wildCount === 2) return 3;
+  if (wildCount === 1) return 2;
+  return 1;
+}
+
 export function detectWins(grid: GameSymbol[][]): WinResult[] {
   const wins: WinResult[] = [];
   const matchedPositions = new Set<string>();
@@ -157,8 +214,19 @@ export function detectWins(grid: GameSymbol[][]): WinResult[] {
       if (!matchedPositions.has(posKey)) {
         matchedPositions.add(posKey);
 
-        const payout = matchSymbol.payout[matchCount] || 0;
-        const hasWild = lineSymbols.slice(0, matchCount).some(ls => ls.symbol.symbolType === 'wild');
+        // Count wilds in the winning portion of the payline
+        const wildCount = lineSymbols
+          .slice(0, matchCount)
+          .filter(ls => ls.symbol.symbolType === 'wild').length;
+
+        const hasWild = wildCount > 0;
+        const wildMultiplier = calculateWildMultiplier(wildCount);
+
+        // Base payout from symbol paytable
+        const basePayout = matchSymbol.payout[matchCount] || 0;
+
+        // Apply wild multiplier to the payout
+        const payout = basePayout * wildMultiplier;
 
         wins.push({
           symbol: matchSymbol,
@@ -166,6 +234,7 @@ export function detectWins(grid: GameSymbol[][]): WinResult[] {
           count: matchCount,
           payout,
           isWild: hasWild,
+          wildMultiplier,
         });
       }
     }
@@ -176,7 +245,7 @@ export function detectWins(grid: GameSymbol[][]): WinResult[] {
 
 // === ELEMENTAL COMBO DETECTION ===
 
-// Count elements across all grid positions
+// Count elements across all grid positions (wilds count toward every element)
 export function countElements(grid: GameSymbol[][]): Record<Element, number> {
   const counts: Record<Element, number> = {
     fire: 0,
@@ -186,16 +255,113 @@ export function countElements(grid: GameSymbol[][]): Record<Element, number> {
     star: 0,
   };
 
+  // Count how many wilds are on the grid (they contribute to all elements)
+  let wildCount = 0;
+
   for (let col = 0; col < REELS; col++) {
     for (let row = 0; row < ROWS; row++) {
       const sym = grid[col][row];
-      if (sym.symbolType !== 'wild' && sym.symbolType !== 'bonus') {
+      if (sym.symbolType === 'wild') {
+        wildCount++;
+      } else if (sym.symbolType !== 'bonus') {
         counts[sym.element]++;
       }
     }
   }
 
+  // Wilds count toward every element
+  if (wildCount > 0) {
+    for (const element of Object.keys(counts) as Element[]) {
+      counts[element] += wildCount;
+    }
+  }
+
   return counts;
+}
+
+// === ELEMENTAL SURGE DETECTION ===
+
+// If 6+ symbols of the same element (counting wilds), award Elemental Surge bonus
+export function detectElementalSurges(
+  elementCounts: Record<Element, number>
+): ElementalSurge[] {
+  const surges: ElementalSurge[] = [];
+
+  for (const [element, count] of Object.entries(elementCounts)) {
+    if (count >= 6) {
+      let bonusLumens: number;
+
+      if (count >= 10) {
+        bonusLumens = 50;
+      } else if (count >= 8) {
+        bonusLumens = 25;
+      } else {
+        bonusLumens = 10;
+      }
+
+      surges.push({
+        element: element as Element,
+        count,
+        bonusLumens,
+      });
+    }
+  }
+
+  return surges;
+}
+
+// === BONUS GAME TRIGGER DETECTION ===
+
+// Count bonus symbols on the grid
+export function detectBonusTrigger(grid: GameSymbol[][]): {
+  bonusTriggered: boolean;
+  bonusCount: number;
+} {
+  let bonusCount = 0;
+
+  for (let col = 0; col < REELS; col++) {
+    for (let row = 0; row < ROWS; row++) {
+      if (grid[col][row].id === 'sym_bonus') {
+        bonusCount++;
+      }
+    }
+  }
+
+  return {
+    bonusTriggered: bonusCount >= 3,
+    bonusCount,
+  };
+}
+
+// === LUCKY SPIN MECHANIC ===
+
+const LUCKY_SPIN_CHANCE = 0.02; // 2% chance
+
+// Roll for Lucky Spin
+function rollLuckySpin(): boolean {
+  return Math.random() < LUCKY_SPIN_CHANCE;
+}
+
+// Force a guaranteed minimum win of 3+ match by replacing symbols
+// This ensures at least one payline has a 3+ match
+function forceLuckyWin(grid: GameSymbol[][]): GameSymbol[][] {
+  // Pick a random payline
+  const paylineIndex = Math.floor(Math.random() * PAYLINES.length);
+  const payline = PAYLINES[paylineIndex];
+
+  // Pick a random spirit symbol for the match (prefer higher rarity for excitement)
+  const spiritSymbols = SYMBOLS.filter(s => s.symbolType === 'spirit');
+  const matchSymbol = spiritSymbols[Math.floor(Math.random() * spiritSymbols.length)];
+
+  // Replace the first 3 positions on the payline with the chosen symbol
+  const newGrid = grid.map(col => [...col]); // deep copy
+  for (let i = 0; i < 3; i++) {
+    const col = i;
+    const row = payline[i];
+    newGrid[col][row] = { ...matchSymbol };
+  }
+
+  return newGrid;
 }
 
 // === SPIRIT REWARD DETERMINATION ===
@@ -239,10 +405,7 @@ export function determineSpiritRewards(
         if (matchingSpirits.length > 0) {
           const spirit = matchingSpirits[0];
           rewards.push({
-            spiritTypeId: spirit.id.replace('sym_', 'spirit_').replace(/_common|_uncommon|_rare/, (match) => {
-              // Map symbol ID to spirit type ID format
-              return match;
-            }),
+            spiritTypeId: spirit.id.replace('sym_', 'spirit_'),
             element: element as Element,
             rarity,
             name: spirit.name,
@@ -263,17 +426,33 @@ function mapRarity(symbolRarity: string): string {
 // === MAIN SPIN FUNCTION ===
 
 export function executeSpin(): ReelResult {
-  // Generate the reel grid
-  const grid = generateReelGrid();
+  // Roll for Lucky Spin
+  const isLucky = rollLuckySpin();
 
-  // Detect wins
+  // Generate the reel grid
+  let grid = generateReelGrid();
+
+  // If Lucky Spin, force a guaranteed minimum 3+ match win
+  if (isLucky) {
+    grid = forceLuckyWin(grid);
+  }
+
+  // Detect wins (includes wild multiplier in payouts)
   const wins = detectWins(grid);
 
-  // Calculate total payout
-  const totalPayout = wins.reduce((sum, w) => sum + w.payout, 0);
+  // Calculate total payout from payline wins
+  let totalPayout = wins.reduce((sum, w) => sum + w.payout, 0);
 
-  // Count elements for spirit rewards and world contribution
+  // Count elements for spirit rewards, world contribution, and surge detection
   const elementContributions = countElements(grid);
+
+  // Detect Elemental Surges and add bonus lumens
+  const elementalSurges = detectElementalSurges(elementContributions);
+  const surgeBonus = elementalSurges.reduce((sum, s) => sum + s.bonusLumens, 0);
+  totalPayout += surgeBonus;
+
+  // Detect bonus game trigger
+  const { bonusTriggered, bonusCount } = detectBonusTrigger(grid);
 
   // Determine spirit rewards
   const spiritsWon = determineSpiritRewards(elementContributions, totalPayout);
@@ -290,6 +469,10 @@ export function executeSpin(): ReelResult {
     elementContributions,
     isBigWin,
     isMegaWin,
+    elementalSurges,
+    bonusTriggered,
+    bonusCount,
+    isLucky,
   };
 }
 
@@ -314,15 +497,7 @@ export function checkMerge(
   return matching.length >= 3;
 }
 
-// Get the evolved form of a spirit
+// Get the evolved form of a spirit using the EVOLUTION_MAP
 export function getEvolvedForm(spiritTypeId: string): string | null {
-  // Look for a spirit whose evolveFrom matches this one
-  // This would query the database in production
-  // For now, we use the SYMBOLS data
-  const evolver = SYMBOLS.find(s => {
-    const spiritId = s.id.replace('sym_', 'spirit_');
-    // Check if any spirit evolves from the given type
-    return false; // Placeholder - actual logic will query DB
-  });
-  return null;
+  return EVOLUTION_MAP[spiritTypeId] ?? null;
 }

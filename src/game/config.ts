@@ -1,7 +1,12 @@
 import Phaser from 'phaser';
+import { BootScene } from './scenes/BootScene';
+import { DreamSpinScene } from './scenes/DreamSpinScene';
+import { WinEffectScene } from './scenes/WinEffectScene';
 
-// Phaser game configuration for Echoes of Lumora
-// This is the base config - scenes will be added per feature
+/**
+ * Phaser game configuration for Echoes of Lumora.
+ * Base config factory – scenes are injected per use-case.
+ */
 export function createGameConfig(
   parent: string,
   scenes: Phaser.Types.Scenes.SceneType[]
@@ -24,15 +29,30 @@ export function createGameConfig(
         debug: false,
       },
     },
-    // Disable right-click context menu
     input: {
       mouse: {
         preventDefaultWheel: true,
       },
     },
-    // Audio settings
     audio: {
       disableWebAudio: false,
     },
   };
 }
+
+/**
+ * Pre-built config for the full Dream Spin slot-machine experience.
+ * Includes BootScene → DreamSpinScene + WinEffectScene (overlay).
+ */
+export function createSlotGameConfig(
+  parent: string
+): Phaser.Types.Core.GameConfig {
+  return createGameConfig(parent, [BootScene, DreamSpinScene, WinEffectScene]);
+}
+
+/** Scene keys for external reference (event wiring, scene launching, etc.) */
+export const SCENE_KEYS = {
+  Boot: 'BootScene',
+  DreamSpin: 'DreamSpinScene',
+  WinEffect: 'WinEffectScene',
+} as const;
