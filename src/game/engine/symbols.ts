@@ -1,0 +1,342 @@
+// Symbol definitions for Echoes of Lumora Dream Spin
+// Each symbol has an element, rarity weight, payout multipliers, and visual properties
+
+export type Element = 'fire' | 'water' | 'dream' | 'nature' | 'star';
+export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type SymbolType = 'spirit' | 'artifact' | 'plant' | 'wild' | 'bonus';
+
+export interface GameSymbol {
+  id: string;
+  name: string;
+  nameEn: string;
+  element: Element;
+  symbolType: SymbolType;
+  rarity: Rarity;
+  weight: number; // Higher = more common. Total should be ~1000
+  payout: { [key: number]: number }; // {3: 5, 4: 15, 5: 50} = payout for 3/4/5 matches
+  emoji: string; // Fallback visual before sprite assets
+  color: string; // Tailwind color class
+  glowColor: string;
+}
+
+// All symbols in the game
+export const SYMBOLS: GameSymbol[] = [
+  // === FIRE SPIRITS ===
+  {
+    id: 'sym_fire_common',
+    name: 'Chispa',
+    nameEn: 'Spark',
+    element: 'fire',
+    symbolType: 'spirit',
+    rarity: 'common',
+    weight: 120,
+    payout: { 3: 3, 4: 8, 5: 25 },
+    emoji: '🔥',
+    color: 'lumora-fire',
+    glowColor: '#FF6B35',
+  },
+  {
+    id: 'sym_fire_uncommon',
+    name: 'Ignis',
+    nameEn: 'Ignis',
+    element: 'fire',
+    symbolType: 'spirit',
+    rarity: 'uncommon',
+    weight: 60,
+    payout: { 3: 8, 4: 25, 5: 80 },
+    emoji: '🜂',
+    color: 'lumora-fire',
+    glowColor: '#FF6B35',
+  },
+  {
+    id: 'sym_fire_rare',
+    name: 'Fénix',
+    nameEn: 'Phoenix',
+    element: 'fire',
+    symbolType: 'spirit',
+    rarity: 'rare',
+    weight: 25,
+    payout: { 3: 25, 4: 80, 5: 250 },
+    emoji: '🦅',
+    color: 'lumora-fire',
+    glowColor: '#FF6B35',
+  },
+  // === WATER SPIRITS ===
+  {
+    id: 'sym_water_common',
+    name: 'Gotita',
+    nameEn: 'Droplet',
+    element: 'water',
+    symbolType: 'spirit',
+    rarity: 'common',
+    weight: 120,
+    payout: { 3: 3, 4: 8, 5: 25 },
+    emoji: '💧',
+    color: 'lumora-water',
+    glowColor: '#3498DB',
+  },
+  {
+    id: 'sym_water_uncommon',
+    name: 'Aqua',
+    nameEn: 'Aqua',
+    element: 'water',
+    symbolType: 'spirit',
+    rarity: 'uncommon',
+    weight: 60,
+    payout: { 3: 8, 4: 25, 5: 80 },
+    emoji: '🌊',
+    color: 'lumora-water',
+    glowColor: '#3498DB',
+  },
+  {
+    id: 'sym_water_rare',
+    name: 'Sirena',
+    nameEn: 'Siren',
+    element: 'water',
+    symbolType: 'spirit',
+    rarity: 'rare',
+    weight: 25,
+    payout: { 3: 25, 4: 80, 5: 250 },
+    emoji: '🧜',
+    color: 'lumora-water',
+    glowColor: '#3498DB',
+  },
+  // === DREAM SPIRITS ===
+  {
+    id: 'sym_dream_common',
+    name: 'Suspiro',
+    nameEn: 'Whisper',
+    element: 'dream',
+    symbolType: 'spirit',
+    rarity: 'common',
+    weight: 120,
+    payout: { 3: 3, 4: 8, 5: 25 },
+    emoji: '🌙',
+    color: 'lumora-dream',
+    glowColor: '#DDA0DD',
+  },
+  {
+    id: 'sym_dream_uncommon',
+    name: 'Somnus',
+    nameEn: 'Somnus',
+    element: 'dream',
+    symbolType: 'spirit',
+    rarity: 'uncommon',
+    weight: 60,
+    payout: { 3: 8, 4: 25, 5: 80 },
+    emoji: '💫',
+    color: 'lumora-dream',
+    glowColor: '#DDA0DD',
+  },
+  {
+    id: 'sym_dream_rare',
+    name: 'Aurora',
+    nameEn: 'Aurora',
+    element: 'dream',
+    symbolType: 'spirit',
+    rarity: 'rare',
+    weight: 25,
+    payout: { 3: 25, 4: 80, 5: 250 },
+    emoji: '✨',
+    color: 'lumora-dream',
+    glowColor: '#DDA0DD',
+  },
+  // === NATURE SPIRITS ===
+  {
+    id: 'sym_nature_common',
+    name: 'Brotito',
+    nameEn: 'Sprout',
+    element: 'nature',
+    symbolType: 'spirit',
+    rarity: 'common',
+    weight: 120,
+    payout: { 3: 3, 4: 8, 5: 25 },
+    emoji: '🌿',
+    color: 'lumora-nature',
+    glowColor: '#27AE60',
+  },
+  {
+    id: 'sym_nature_uncommon',
+    name: 'Verdis',
+    nameEn: 'Verdis',
+    element: 'nature',
+    symbolType: 'spirit',
+    rarity: 'uncommon',
+    weight: 60,
+    payout: { 3: 8, 4: 25, 5: 80 },
+    emoji: '🌳',
+    color: 'lumora-nature',
+    glowColor: '#27AE60',
+  },
+  {
+    id: 'sym_nature_rare',
+    name: 'Árbol Sabio',
+    nameEn: 'Wise Tree',
+    element: 'nature',
+    symbolType: 'spirit',
+    rarity: 'rare',
+    weight: 25,
+    payout: { 3: 25, 4: 80, 5: 250 },
+    emoji: '🍀',
+    color: 'lumora-nature',
+    glowColor: '#27AE60',
+  },
+  // === STAR SPIRITS ===
+  {
+    id: 'sym_star_common',
+    name: 'Destello',
+    nameEn: 'Glimmer',
+    element: 'star',
+    symbolType: 'spirit',
+    rarity: 'common',
+    weight: 120,
+    payout: { 3: 3, 4: 8, 5: 25 },
+    emoji: '⭐',
+    color: 'lumora-star',
+    glowColor: '#F1C40F',
+  },
+  {
+    id: 'sym_star_uncommon',
+    name: 'Astra',
+    nameEn: 'Astra',
+    element: 'star',
+    symbolType: 'spirit',
+    rarity: 'uncommon',
+    weight: 60,
+    payout: { 3: 8, 4: 25, 5: 80 },
+    emoji: '🌟',
+    color: 'lumora-star',
+    glowColor: '#F1C40F',
+  },
+  {
+    id: 'sym_star_rare',
+    name: 'Nova',
+    nameEn: 'Nova',
+    element: 'star',
+    symbolType: 'spirit',
+    rarity: 'rare',
+    weight: 25,
+    payout: { 3: 25, 4: 80, 5: 250 },
+    emoji: '💫',
+    color: 'lumora-star',
+    glowColor: '#F1C40F',
+  },
+  // === ARTIFACTS (higher payout, no element) ===
+  {
+    id: 'sym_artifact_crystal',
+    name: 'Cristal Arcano',
+    nameEn: 'Arcane Crystal',
+    element: 'star', // counts as star for combos
+    symbolType: 'artifact',
+    rarity: 'uncommon',
+    weight: 40,
+    payout: { 3: 12, 4: 40, 5: 120 },
+    emoji: '💎',
+    color: 'lumora-purple',
+    glowColor: '#9B59B6',
+  },
+  {
+    id: 'sym_artifact_ring',
+    name: 'Anillo de Lumora',
+    nameEn: 'Ring of Lumora',
+    element: 'dream',
+    symbolType: 'artifact',
+    rarity: 'rare',
+    weight: 15,
+    payout: { 3: 40, 4: 120, 5: 400 },
+    emoji: '💍',
+    color: 'lumora-purple',
+    glowColor: '#9B59B6',
+  },
+  // === PLANTS ===
+  {
+    id: 'sym_plant_lotus',
+    name: 'Loto Lunar',
+    nameEn: 'Moon Lotus',
+    element: 'water',
+    symbolType: 'plant',
+    rarity: 'common',
+    weight: 80,
+    payout: { 3: 4, 4: 12, 5: 35 },
+    emoji: '🪷',
+    color: 'lumora-dream',
+    glowColor: '#DDA0DD',
+  },
+  {
+    id: 'sym_plant_mushroom',
+    name: 'Seta Brillante',
+    nameEn: 'Glowshroom',
+    element: 'nature',
+    symbolType: 'plant',
+    rarity: 'common',
+    weight: 80,
+    payout: { 3: 4, 4: 12, 5: 35 },
+    emoji: '🍄',
+    color: 'lumora-emerald',
+    glowColor: '#2ECC71',
+  },
+  // === WILD ===
+  {
+    id: 'sym_wild',
+    name: 'Comodón Onírico',
+    nameEn: 'Dream Wild',
+    element: 'dream', // wild substitutes for any
+    symbolType: 'wild',
+    rarity: 'epic',
+    weight: 10,
+    payout: { 3: 50, 4: 200, 5: 1000 },
+    emoji: '🌀',
+    color: 'lumora-gold',
+    glowColor: '#FFD700',
+  },
+  // === BONUS ===
+  {
+    id: 'sym_bonus',
+    name: 'Semilla de Lumora',
+    nameEn: 'Lumora Seed',
+    element: 'nature',
+    symbolType: 'bonus',
+    rarity: 'epic',
+    weight: 8,
+    payout: { 3: 30, 4: 100, 5: 500 }, // + triggers bonus event
+    emoji: '🌱',
+    color: 'lumora-emerald',
+    glowColor: '#2ECC71',
+  },
+];
+
+// Total weight for probability calculation
+export const TOTAL_WEIGHT = SYMBOLS.reduce((sum, s) => sum + s.weight, 0);
+
+// Get symbol by ID
+export function getSymbolById(id: string): GameSymbol | undefined {
+  return SYMBOLS.find(s => s.id === id);
+}
+
+// Get symbols by element
+export function getSymbolsByElement(element: Element): GameSymbol[] {
+  return SYMBOLS.filter(s => s.element === element);
+}
+
+// Get symbols by rarity
+export function getSymbolsByRarity(rarity: Rarity): GameSymbol[] {
+  return SYMBOLS.filter(s => s.rarity === rarity);
+}
+
+// Element emoji mapping for quick reference
+export const ELEMENT_EMOJIS: Record<Element, string> = {
+  fire: '🔥',
+  water: '💧',
+  dream: '🌙',
+  nature: '🌿',
+  star: '⭐',
+};
+
+// Element color mapping
+export const ELEMENT_COLORS: Record<Element, string> = {
+  fire: '#FF6B35',
+  water: '#3498DB',
+  dream: '#DDA0DD',
+  nature: '#27AE60',
+  star: '#F1C40F',
+};
