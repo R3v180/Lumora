@@ -148,9 +148,34 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Sanctuary Widget (when logged in) */}
+      {isAuthenticated && player && player.sanctuary && (
+        <div className="relative z-10 w-full max-w-sm mt-6">
+          <motion.button
+            onClick={() => router.push('/sanctuary')}
+            className="w-full rounded-2xl border border-lumora-emerald/20 bg-card/60 backdrop-blur-sm p-4 text-left hover:border-lumora-emerald/40 transition-colors"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <TreePine className="h-4 w-4 text-lumora-emerald" />
+                <span className="text-sm font-semibold text-lumora-emerald">Mi Santuario</span>
+              </div>
+              <span className="text-xs text-lumora-gold font-medium">
+                ✨ {player.sanctuary.lumensPerHour}/h
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Nivel {player.sanctuaryLevel} · {player.sanctuary.name || 'Isla Flotante'}
+            </p>
+          </motion.button>
+        </div>
+      )}
+
       {/* Spirit Collection Preview (when logged in) */}
       {isAuthenticated && player && player.spirits.length > 0 && (
-        <div className="relative z-10 w-full max-w-sm mt-6">
+        <div className="relative z-10 w-full max-w-sm mt-3">
           <div className="rounded-2xl border border-lumora-emerald/20 bg-card/60 backdrop-blur-sm p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold text-lumora-emerald">Mis Espíritus</span>

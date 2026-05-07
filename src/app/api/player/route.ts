@@ -54,7 +54,33 @@ export async function GET() {
       player.energy += energyRegenerated;
     }
 
-    return NextResponse.json(player);
+    // Calculate sanctuary lumens per hour including placed spirits
+    let sanctuaryLPH = player.sanctuary?.lumensPerHour || 0;
+    if (player.sanctuary) {
+      const placedDecorations = await db.sanctuaryDecoration.findMany({
+        where: {
+          sanctuaryId: player.sanctuary.id,
+          type: 'spirit',
+          spiritId: { not: null },
+        },
+      });
+      const placedSpiritIds = placedDecorations.map(d => d.spiritId!);
+      if (placedSpiritIds.length > 0) {
+        const placedSpirits = await db.playerSpirit.findMany({
+          where: { id: { in: placedSpiritIds } },
+          include: { spiritType: true },
+        });
+        sanctuaryLPH += placedSpirits.reduce((sum, s) => sum + s.spiritType.lumensPerHour, 0);
+      }
+    }
+
+    return NextResponse.json({
+      ...player,
+      sanctuary: player.sanctuary ? {
+        ...player.sanctuary,
+        lumensPerHour: sanctuaryLPH,
+      } : null,
+    });
   } catch (error) {
     console.error('Player fetch error:', error);
     return NextResponse.json(

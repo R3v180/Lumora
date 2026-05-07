@@ -523,6 +523,86 @@ async function main() {
   ]);
   console.log(`✅ Created ${shopItems.length} shop items`);
 
+  // Create sanctuary decorations shop items
+  const decorItems = await Promise.all([
+    prisma.shopItem.upsert({
+      where: { id: 'shop_deco_fountain' },
+      update: {},
+      create: {
+        id: 'shop_deco_fountain',
+        name: 'Fuente de los Sueños',
+        nameEn: 'Dream Fountain',
+        description: 'Fuente mágica que genera Lumens pasivos',
+        descEn: 'Magical fountain that generates passive Lumens',
+        category: 'cosmetic',
+        price: 150,
+        currency: 'lumens',
+        content: { type: 'fountain', lumensBonus: 5 },
+      },
+    }),
+    prisma.shopItem.upsert({
+      where: { id: 'shop_deco_crystal' },
+      update: {},
+      create: {
+        id: 'shop_deco_crystal',
+        name: 'Cristal Arcano',
+        nameEn: 'Arcane Crystal',
+        description: 'Cristal que amplifica la energía de los espíritus cercanos',
+        descEn: 'Crystal that amplifies nearby spirits energy',
+        category: 'cosmetic',
+        price: 250,
+        currency: 'lumens',
+        content: { type: 'crystal', powerBonus: 10 },
+      },
+    }),
+    prisma.shopItem.upsert({
+      where: { id: 'shop_deco_lamp' },
+      update: {},
+      create: {
+        id: 'shop_deco_lamp',
+        name: 'Lámpara Onírica',
+        nameEn: 'Dream Lamp',
+        description: 'Lámpara que atrae espíritus de sueños',
+        descEn: 'Lamp that attracts dream spirits',
+        category: 'cosmetic',
+        price: 100,
+        currency: 'lumens',
+        content: { type: 'lamp', elementBonus: 'dream' },
+      },
+    }),
+    prisma.shopItem.upsert({
+      where: { id: 'shop_deco_tree' },
+      update: {},
+      create: {
+        id: 'shop_deco_tree',
+        name: 'Árbol Ancestral',
+        nameEn: 'Ancestral Tree',
+        description: 'Árbol milenario que potencia la naturaleza',
+        descEn: 'Millennial tree that empowers nature',
+        category: 'cosmetic',
+        price: 200,
+        currency: 'lumens',
+        content: { type: 'tree', elementBonus: 'nature' },
+      },
+    }),
+    prisma.shopItem.upsert({
+      where: { id: 'shop_deco_flower_bed' },
+      update: {},
+      create: {
+        id: 'shop_deco_flower_bed',
+        name: 'Jardín de Loto',
+        nameEn: 'Lotus Garden',
+        description: 'Jardín florido que embellece tu santuario',
+        descEn: 'Flowery garden that beautifies your sanctuary',
+        category: 'cosmetic',
+        price: 75,
+        currency: 'lumens',
+        content: { type: 'flower_bed', beautyBonus: 3 },
+      },
+    }),
+  ]);
+  console.log(`✅ Created ${decorItems.length} decoration items`);
+
   // Create initial achievements
   const achievements = await Promise.all([
     prisma.achievement.upsert({
@@ -623,6 +703,48 @@ async function main() {
         reward: { lumens: 300 },
       },
     }),
+    prisma.achievement.upsert({
+      where: { id: 'ach_sanc_level5' },
+      update: {},
+      create: {
+        id: 'ach_sanc_level5',
+        name: 'Santuario Floreciente',
+        nameEn: 'Blossoming Sanctuary',
+        description: 'Alcanza el nivel 5 de santuario',
+        descEn: 'Reach sanctuary level 5',
+        category: 'exploration',
+        requirement: 5,
+        reward: { lumens: 300 },
+      },
+    }),
+    prisma.achievement.upsert({
+      where: { id: 'ach_place_spirit' },
+      update: {},
+      create: {
+        id: 'ach_place_spirit',
+        name: 'Primer Hogar',
+        nameEn: 'First Home',
+        description: 'Coloca tu primer espíritu en el santuario',
+        descEn: 'Place your first spirit in the sanctuary',
+        category: 'exploration',
+        requirement: 1,
+        reward: { lumens: 100 },
+      },
+    }),
+    prisma.achievement.upsert({
+      where: { id: 'ach_collect_idle' },
+      update: {},
+      create: {
+        id: 'ach_collect_idle',
+        name: 'Recolector Paciente',
+        nameEn: 'Patient Collector',
+        description: 'Recolecta Lumens idle por primera vez',
+        descEn: 'Collect idle Lumens for the first time',
+        category: 'exploration',
+        requirement: 1,
+        reward: { lumens: 50 },
+      },
+    }),
   ]);
   console.log(`✅ Created ${achievements.length} achievements`);
 
@@ -630,6 +752,7 @@ async function main() {
   console.log('🌟 Echoes of Lumora database seeded successfully!');
   console.log(`   - ${fireSpirits.length + waterSpirits.length + dreamSpirits.length + natureSpirits.length + starSpirits.length} Spirit Types`);
   console.log(`   - ${shopItems.length} Shop Items`);
+  console.log(`   - ${decorItems.length} Decoration Items`);
   console.log(`   - ${achievements.length} Achievements`);
   console.log(`   - World State initialized`);
 }
