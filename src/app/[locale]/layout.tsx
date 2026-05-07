@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { AppShell } from '@/components/layout/AppShell';
+import { AuthProvider } from '@/components/layout/AuthProvider';
 import { ServiceWorkerRegistrar } from '@/components/layout/ServiceWorkerRegistrar';
 
 import { Geist, Geist_Mono } from "next/font/google";
@@ -44,10 +45,12 @@ export default async function LocaleLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <NextIntlClientProvider messages={messages}>
-            <ServiceWorkerRegistrar />
-            <AppShell>{children}</AppShell>
-          </NextIntlClientProvider>
+          <AuthProvider>
+            <NextIntlClientProvider messages={messages}>
+              <ServiceWorkerRegistrar />
+              <AppShell>{children}</AppShell>
+            </NextIntlClientProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

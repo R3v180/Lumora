@@ -18,8 +18,10 @@ model User {
   id            String         @id @default(cuid())
   email         String         @unique
   name          String?
+  passwordHash  String?        // null for OAuth users
   emailVerified DateTime?
   image         String?
+  onboardingCompleted Boolean  @default(false)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

@@ -3,9 +3,16 @@
 import { useTranslations } from 'next-intl';
 import { Sparkles, Zap, Shield, Globe } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { usePlayer } from '@/hooks/usePlayer';
 
 export function TopBar() {
   const t = useTranslations('home');
+  const { player, isAuthenticated } = usePlayer();
+
+  const lumens = player?.lumens ?? 100;
+  const energy = player?.energy ?? 100;
+  const maxEnergy = player?.maxEnergy ?? 100;
+  const sanctuaryLevel = player?.sanctuaryLevel ?? 1;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/30 bg-background/80 backdrop-blur-md">
@@ -14,7 +21,7 @@ export function TopBar() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-lumora-gold" />
           <span className="font-fantasy text-sm font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent">
-            {t('welcome')}
+            {isAuthenticated ? player?.displayName || t('welcome') : t('welcome')}
           </span>
         </div>
 
@@ -22,15 +29,15 @@ export function TopBar() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 rounded-full bg-lumora-gold/10 px-3 py-1">
             <Sparkles className="h-3.5 w-3.5 text-lumora-gold" />
-            <span className="text-xs font-semibold text-lumora-gold">100</span>
+            <span className="text-xs font-semibold text-lumora-gold">{lumens.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1 rounded-full bg-lumora-blue/10 px-3 py-1">
             <Zap className="h-3.5 w-3.5 text-lumora-blue" />
-            <span className="text-xs font-semibold text-lumora-blue">100</span>
+            <span className="text-xs font-semibold text-lumora-blue">{energy}/{maxEnergy}</span>
           </div>
           <div className="flex items-center gap-1 rounded-full bg-lumora-purple/10 px-3 py-1">
             <Shield className="h-3.5 w-3.5 text-lumora-purple" />
-            <span className="text-xs font-semibold text-lumora-purple">1</span>
+            <span className="text-xs font-semibold text-lumora-purple">{sanctuaryLevel}</span>
           </div>
         </div>
 

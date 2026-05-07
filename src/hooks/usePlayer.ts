@@ -1,0 +1,84 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface PlayerData {
+  id: string;
+  displayName: string;
+  level: number;
+  experience: number;
+  lumens: number;
+  energy: number;
+  maxEnergy: number;
+  sanctuaryLevel: number;
+  language: string;
+  sanctuary: {
+    id: string;
+    name: string;
+    lumensPerHour: number;
+    globalWater: number;
+    globalFire: number;
+    globalNature: number;
+    globalDream: number;
+    globalStar: number;
+  } | null;
+  spirits: Array<{
+    id: string;
+    level: number;
+    spiritType: {
+      name: string;
+      nameEn: string;
+      element: string;
+      rarity: string;
+      basePower: number;
+    };
+  }>;
+  blessings: Array<{
+    id: string;
+    day: number;
+    claimed: boolean;
+    lastClaimAt: string;
+  }>;
+}
+
+export function usePlayer() {
+  const { data: session, status } = useSession();
+  const [player, setPlayer] = useState<PlayerData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchPlayer = useCallback(async () => {
+    if (status !== 'authenticated') {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/player');
+      if (!res.ok) {
+        throw new Error('Failed to fetch player');
+      }
+      const data = await res.json();
+      setPlayer(data);
+      setError(null);
+    } catch (err) {
+      setError('Error al cargar perfil');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    fetchPlayer();
+  }, [fetchPlayer]);
+
+  return {
+    player,
+    isLoading,
+    error,
+    isAuthenticated: status === 'authenticated',
+    session,
+    refetch: fetchPlayer,
+  };
+}

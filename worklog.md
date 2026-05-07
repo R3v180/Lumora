@@ -40,3 +40,51 @@ Stage Summary:
 - Phaser 3 integrated and ready for game development
 - All Phase 0 deliverables complete
 - Ready for Phase 1: Authentication and Base
+
+---
+Task ID: 1
+Agent: Super Z (Main)
+Task: Phase 1 - Authentication and Base
+
+Work Log:
+- Installed bcryptjs for password hashing
+- Added passwordHash and onboardingCompleted fields to User model in Prisma
+- Pushed schema updates to Neon PostgreSQL
+- Created AuthProvider (SessionProvider wrapper) component
+- Updated auth.ts with Credentials + Google providers, proper password verification
+- Google OAuth auto-creates user + profile + sanctuary + blessing on first login
+- Created /api/auth/register route with validation, bcrypt hashing, and auto-creation of PlayerProfile + Sanctuary + Blessing
+- Created /api/player GET route with energy refill calculation and full profile data
+- Created /api/player PATCH route for profile updates (displayName, language)
+- Created /hooks/usePlayer.ts - React hook for fetching and managing player data
+- Created 3-step onboarding flow: Welcome -> Choose Name -> Choose First Spirit
+  - Animated transitions with Framer Motion
+  - Spirit selection for all 5 elements (fire/water/dream/nature/star)
+  - Auto-registration and login after completing onboarding
+- Updated login page with real NextAuth credentials integration
+- Updated register page with real API registration + auto-login
+- Both auth pages have Google OAuth button + email form with error handling
+- Seeded database with 25 Spirit Types (5 per element × 5 rarities each)
+  - Fire: Chispa → Ignis → Fénix Menor → Dragón de Brasas → Sol de Lumora
+  - Water: Gotita → Aqua → Sirena de Río → Leviatán → Marea Celestial
+  - Dream: Suspiro → Somnus → Aurora Mental → Soñador Eterno → Tejedor de Lumora
+  - Nature: Brotito → Verdis → Árbol Sabio → Guardián del Bosque → Raíz del Mundo
+  - Star: Destello → Astra → Nova Menor → Cometa Arcano → Corona de Lumora
+- Seeded 5 Shop Items (Lumen packs, Energy refill, Season Pass, Forest Bundle)
+- Seeded 7 Achievements (First Spin, 10 Spins, First Spirit, Collector, Rare Spirit, First Merge, Sanctuary Level 5)
+- Updated TopBar to show real player data (lumens, energy, sanctuary level)
+- Updated Home page with logged-in/logged-out states
+  - Logged out: "Comenzar Aventura" + "Ya tengo cuenta" buttons
+  - Logged in: Player greeting, Spin Dream button, Spirit collection preview
+- AppShell hides nav on auth and onboarding pages
+- ESLint passes with no errors
+- All routes rendering 200 OK
+
+Stage Summary:
+- Full authentication flow working (register → login → profile)
+- Google OAuth configured (requires GOOGLE_CLIENT_ID/SECRET env vars)
+- Onboarding flow with name + spirit selection
+- Player profile auto-created with sanctuary + blessing
+- Database seeded with 25 spirits, 5 shop items, 7 achievements
+- Real player data shown in UI (TopBar, Home page)
+- Phase 1 complete - Ready for Phase 2: Dream Spin Mechanics
