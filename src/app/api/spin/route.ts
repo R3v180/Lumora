@@ -409,13 +409,7 @@ export async function POST(request: NextRequest) {
       bonusTriggered: spinResult.bonusTriggered,
       bonusCount: spinResult.bonusCount,
       // Updated player state
-      player: {
-        lumens: newLumens,
-        energy: newEnergy,
-        maxEnergy: player.maxEnergy, totalPower: updatedPlayer.totalPower, collectionMultiplier: updatedPlayer.collectionMultiplier,
-        level: updatedPlayer.updated.level,
-        experience: updatedPlayer.updated.experience,
-      },
+      player: { lumens: newLumens, energy: newEnergy, maxEnergy: player.maxEnergy, totalPower, collectionMultiplier, level: updatedPlayer.updated.level, experience: updatedPlayer.updated.experience, },
       chestDrop: updatedPlayer.chestDrop,
       // Guild war contribution info
       warContribution: warContribution ? {

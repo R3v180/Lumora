@@ -13,7 +13,7 @@ interface SymbolData {
 
 interface SymbolIconProps {
   symbol: SymbolData;
-  size?: number;
+  size?: number | string;
   isWin?: boolean;
   isBonus?: boolean;
   isSpinning?: boolean;

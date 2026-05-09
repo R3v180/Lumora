@@ -385,15 +385,16 @@ export function SlotMachine() {
         setSpinCount(prev => prev + 1);
         setIsSpinning(false);
 
-        useGameStore.getState().syncPlayerStats({
+        const statsToSync = {
           lumens: spinResult.player.lumens,
           energy: spinResult.player.energy,
           maxEnergy: spinResult.player.maxEnergy,
           level: spinResult.player.level,
           experience: spinResult.player.experience,
-          totalPower: spinResult.player.totalPower,
-          collectionMultiplier: spinResult.player.collectionMultiplier,
-        });
+          totalPower: (spinResult.player as any).totalPower,
+          collectionMultiplier: (spinResult.player as any).collectionMultiplier,
+        };
+        useGameStore.getState().syncPlayerStats(statsToSync);
         useGameStore.getState().triggerRefresh();
         window.dispatchEvent(new Event('player-update'));
 
