@@ -75,6 +75,11 @@ export function GuildPanel() {
   const [newGuildDesc, setNewGuildDesc] = useState('');
   const [subTab, setSubTab] = useState<GuildSubTab>('info');
 
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editGuildName, setEditGuildName] = useState('');
+  const [editGuildDesc, setEditGuildDesc] = useState('');
+  const [editGuildEmblem, setEditGuildEmblem] = useState('');
+
   const fetchGuild = useCallback(async () => {
     try {
       const res = await fetch('/api/guild');
@@ -118,6 +123,39 @@ export function GuildPanel() {
         setShowCreateDialog(false);
         setNewGuildName('');
         setNewGuildDesc('');
+        fetchGuild();
+      }
+    } catch {
+      // silently fail
+    }
+  };
+
+  const openEditDialog = () => {
+    if (guild) {
+      setEditGuildName(guild.name);
+      setEditGuildDesc(guild.description || '');
+      setEditGuildEmblem(guild.emblem || GUILD_EMOJIS[0]);
+      setShowEditDialog(true);
+    }
+  };
+
+  const handleEditGuild = async () => {
+    if (!editGuildName.trim() || editGuildName.trim().length < 3) return;
+
+    try {
+      const res = await fetch('/api/guild', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          name: editGuildName.trim(),
+          description: editGuildDesc.trim() || undefined,
+          emblem: editGuildEmblem,
+        }),
+      });
+
+      if (res.ok) {
+        setShowEditDialog(false);
         fetchGuild();
       }
     } catch {
@@ -244,7 +282,7 @@ export function GuildPanel() {
               </div>
             </div>
             {(isOwner || isOfficer) && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={openEditDialog}>
                 <Edit3 className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -331,7 +369,7 @@ export function GuildPanel() {
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 border border-border/30">
-                        <AvatarImage src={member.player.avatar || undefined} />
+                        <AvatarImage src={member.player.avatar || undefined} seed={member.player.displayName} />
                         <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-xs">
                           {member.player.displayName.slice(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -358,6 +396,56 @@ export function GuildPanel() {
             {subTab === 'war' && <GuildWarsPanel />}
           </motion.div>
         </AnimatePresence>
+
+        {/* Edit Guild Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="sm:max-w-sm rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-fantasy font-title">Editar Gremio</DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col gap-2 mb-2">
+                <label className="text-xs text-muted-foreground">Emblema</label>
+                <div className="flex flex-wrap gap-2">
+                  {GUILD_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => setEditGuildEmblem(emoji)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${
+                        editGuildEmblem === emoji
+                          ? 'bg-lumora-purple/30 border border-lumora-purple'
+                          : 'bg-card/40 border border-border/30 hover:bg-card/60'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <Input
+                value={editGuildName}
+                onChange={(e) => setEditGuildName(e.target.value)}
+                placeholder="Nombre del Gremio"
+                maxLength={20}
+                className="rounded-xl"
+              />
+              <Input
+                value={editGuildDesc}
+                onChange={(e) => setEditGuildDesc(e.target.value)}
+                placeholder="Descripción del Gremio"
+                maxLength={100}
+                className="rounded-xl"
+              />
+              <Button
+                onClick={handleEditGuild}
+                disabled={editGuildName.trim().length < 3}
+                className="rounded-xl bg-gradient-to-r from-lumora-purple to-lumora-blue text-white"
+              >
+                Guardar Cambios
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

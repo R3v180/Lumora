@@ -1,4 +1,6 @@
 {
+  // Trigger TS reload
+
   "compilerOptions": {
     "target": "ES2017",
     "lib": [

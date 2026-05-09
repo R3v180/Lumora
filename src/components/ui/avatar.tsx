@@ -4,6 +4,7 @@ import * as React from "react"
 import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
 import { cn } from "@/lib/utils"
+import { generateSvgAvatar } from "@/lib/svg-avatar"
 
 function Avatar({
   className,
@@ -23,12 +24,16 @@ function Avatar({
 
 function AvatarImage({
   className,
+  src,
+  seed,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+}: React.ComponentProps<typeof AvatarPrimitive.Image> & { seed?: string }) {
+  const finalSrc = src || (seed ? generateSvgAvatar(seed) : undefined);
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full object-cover", className)}
+      src={finalSrc}
       {...props}
     />
   )

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
-  Sparkles, TreePine, Coins, Settings, Pencil,
+  Sparkles, TreePine, Coins, Settings, Pencil, ArrowUp,
   Plus, ArrowRight, Info, ChevronUp, Check, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,12 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from '@/i18n/navigation';
 import { SanctuaryView } from '@/components/sanctuary/SanctuaryView';
 import { SpiritPlacementPanel } from '@/components/sanctuary/SpiritPlacementPanel';
+import { audioService } from '@/lib/audioService';
 import { LumensCollector } from '@/components/sanctuary/LumensCollector';
 import { SpiritDetailCard } from '@/components/sanctuary/SpiritDetailCard';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 
 // === TYPES ===
 interface PlacedItem {
@@ -78,6 +80,8 @@ interface SanctuaryData {
   maxPlacedSpirits: number;
   currentPlacedCount: number;
 }
+
+import { SanctuaryHelpDialog } from '@/components/sanctuary/SanctuaryHelpDialog';
 
 export default function SanctuaryPage() {
   const t = useTranslations('sanctuary');
@@ -149,6 +153,7 @@ export default function SanctuaryPage() {
       if (res.ok) {
         const data = await res.json();
         setPlayerLumens(data.totalLumens);
+        if (data.collected > 0) audioService.playCollect();
         // Refresh sanctuary to reset idle counter
         fetchSanctuary();
         useGameStore.getState().triggerRefresh();
@@ -160,6 +165,50 @@ export default function SanctuaryPage() {
     }
     return null;
   }, [fetchSanctuary]);
+
+  // Upgrade sanctuary
+  const handleUpgrade = async () => {
+    try {
+      const res = await fetch('/api/sanctuary/upgrade', { method: 'POST' });
+      if (res.ok) {
+        toast.success('¡Santuario Mejorado!');
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#FFD700', '#9B59B6', '#2ECC71'] });
+        fetchSanctuary();
+        useGameStore.getState().triggerRefresh();
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Error al mejorar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    }
+  };
+
+  // Auto Place
+  const handleAutoPlace = async () => {
+    setIsPlacing(true);
+    try {
+      const res = await fetch('/api/sanctuary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'auto_place' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`¡${data.placedCount} espíritus colocados automáticamente!`);
+        fetchSanctuary();
+        useGameStore.getState().triggerRefresh();
+        setShowPlacementPanel(false);
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Error al colocar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setIsPlacing(false);
+    }
+  };
 
   // Place spirit on tile
   const handleTileClick = useCallback(async (x: number, y: number) => {
@@ -180,6 +229,7 @@ export default function SanctuaryPage() {
 
       if (res.ok) {
         const data = await res.json();
+        audioService.playPlaceSpirit();
         setActionMessage(`${data.spiritName} colocado en (${x}, ${y})`);
         setSelectedSpiritId(null);
         setIsPlacingMode(false);
@@ -314,12 +364,17 @@ export default function SanctuaryPage() {
   }
 
   return (
-    <div className="flex flex-col items-center px-4 pt-2 pb-8 min-h-[80vh]">
+    <div className="flex flex-col items-center px-4 pt-2 pb-8 min-h-[80vh] relative overflow-x-hidden">
+      {/* Sanctuary background — fixed behind everything */}
+      <div 
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-screen pointer-events-none"
+        style={{ backgroundImage: "url('/assets/sanctuary/bg_sanctuary.png')" }} 
+      />
       {/* Title with rename */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-3"
+        className="text-center mb-3 flex flex-col items-center"
       >
         <div className="flex items-center justify-center gap-2">
           <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
@@ -361,9 +416,12 @@ export default function SanctuaryPage() {
             </button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground mt-1">
-            {sanctuary?.name || 'Tu isla flotante'} · Nivel {sanctuary?.sanctuaryLevel || 1}
-          </p>
+          <div className="flex flex-col items-center mt-1">
+            <p className="text-xs text-muted-foreground mb-2">
+              {sanctuary?.name || 'Tu isla flotante'} · Nivel {sanctuary?.sanctuaryLevel || 1}
+            </p>
+            <SanctuaryHelpDialog />
+          </div>
         )}
       </motion.div>
 
@@ -433,6 +491,18 @@ export default function SanctuaryPage() {
           <Plus className="h-4 w-4" />
           {t('placeSpirit')}
         </Button>
+
+        {/* Upgrade Sanctuary */}
+        {sanctuary && (
+          <Button
+            onClick={handleUpgrade}
+            disabled={playerLumens < sanctuary.sanctuaryLevel * 2000}
+            className="rounded-xl gap-1.5 bg-gradient-to-r from-lumora-gold to-lumora-purple text-white hover:opacity-90 disabled:opacity-50"
+          >
+            <ArrowUp className="h-4 w-4" />
+            Mejorar ({sanctuary.sanctuaryLevel * 2000} ✨)
+          </Button>
+        )}
 
         {/* Collection count */}
         <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card/60 border border-border/30">
@@ -532,10 +602,11 @@ export default function SanctuaryPage() {
       {/* Spirit Placement Panel */}
       <SpiritPlacementPanel
         isOpen={showPlacementPanel}
-        onClose={cancelPlacingMode}
+        onClose={() => setShowPlacementPanel(false)}
         spirits={sanctuary?.unplacedSpirits || []}
         onSelectSpirit={(id) => setSelectedSpiritId(id)}
         selectedSpiritId={selectedSpiritId}
+        onAutoPlace={handleAutoPlace}
       />
 
       {/* Spirit Detail Card */}

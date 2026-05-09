@@ -15,6 +15,7 @@ interface PlayerData {
   maxEnergy: number;
   sanctuaryLevel: number;
   language: string;
+  avatar: string | null;
   sanctuary: {
     id: string;
     name: string;

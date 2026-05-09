@@ -26,6 +26,7 @@ interface SpiritPlacementPanelProps {
   spirits: UnplacedSpirit[];
   onSelectSpirit: (spiritId: string) => void;
   selectedSpiritId?: string | null;
+  onAutoPlace?: () => void;
 }
 
 // Element emoji mapping
@@ -68,6 +69,7 @@ export function SpiritPlacementPanel({
   spirits,
   onSelectSpirit,
   selectedSpiritId,
+  onAutoPlace,
 }: SpiritPlacementPanelProps) {
   const [filterElement, setFilterElement] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'rarity' | 'power' | 'lumens'>('rarity');
@@ -118,9 +120,16 @@ export function SpiritPlacementPanel({
                   Colocar Espíritu
                 </h2>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8">
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                {onAutoPlace && spirits.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={onAutoPlace} className="h-7 text-xs rounded-full border-lumora-gold/30 text-lumora-gold">
+                    Auto-Colocar
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Filters */}
@@ -185,7 +194,10 @@ export function SpiritPlacementPanel({
                   {filteredSpirits.map((spirit) => (
                     <motion.button
                       key={spirit.id}
-                      onClick={() => onSelectSpirit(spirit.id)}
+                      onClick={() => {
+                        onSelectSpirit(spirit.id);
+                        onClose();
+                      }}
                       className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all ${
                         selectedSpiritId === spirit.id
                           ? 'border-lumora-gold/50 bg-lumora-gold/10 ring-1 ring-lumora-gold/30'
@@ -196,7 +208,7 @@ export function SpiritPlacementPanel({
                     >
                       {/* Spirit icon */}
                       <div className="w-12 h-12 rounded-xl bg-background/50 flex items-center justify-center text-2xl border border-border/20">
-                        {ELEMENT_EMOJIS[spirit.spiritType.element]}
+                        <img src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} className="w-10 h-10 object-contain" />
                       </div>
 
                       {/* Info */}

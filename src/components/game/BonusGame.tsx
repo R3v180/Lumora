@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Zap, Leaf, HandCoins, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { audioService } from '@/lib/audioService';
 
 // === TYPES ===
 
@@ -16,6 +17,12 @@ interface PodReward {
   spiritTypeId?: string;
   spiritName?: string;
   spiritNameEn?: string;
+  // collectAll reward extras
+  collectedAll?: boolean;
+  collectedIndices?: number[];
+  totalLumens?: number;
+  totalEnergy?: number;
+  spiritsWon?: any[];
 }
 
 interface BonusGameProps {
@@ -274,6 +281,8 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
       const reward: PodReward = data.reward;
       const newRemaining = data.remainingPicks;
 
+      audioService.playBonusReveal();
+
       // Show burst animation
       setCurrentBurst({ index: podIndex, reward });
 
@@ -416,7 +425,7 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
               }}
               className="text-xl sm:text-2xl"
             >
-              🌱
+              <img src="/assets/symbols/sym_bonus.png" className="w-12 h-12 object-contain" />
             </motion.div>
             <motion.div
               className="absolute inset-0 rounded-2xl"
@@ -514,7 +523,7 @@ export function BonusGame({ bonusCount, onComplete }: BonusGameProps) {
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
               className="text-3xl"
             >
-              🌱
+              <img src="/assets/symbols/sym_bonus.png" className="w-12 h-12 object-contain" />
             </motion.div>
             <p className="text-sm text-muted-foreground mt-3">Cargando jardín...</p>
           </div>

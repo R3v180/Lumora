@@ -82,20 +82,22 @@ model VerificationToken {
 // =====================
 
 model PlayerProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  displayName    String
-  level          Int      @default(1)
-  experience     Int      @default(0)
-  lumens         Int      @default(100)
-  energy         Int      @default(100)
-  maxEnergy      Int      @default(100)
-  energyRefillAt DateTime @default(now())
-  sanctuaryLevel Int      @default(1)
-  language       String   @default("es")
-  lastLoginAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  displayName      String
+  level            Int      @default(1)
+  experience       Int      @default(0)
+  lumens           Int      @default(100)
+  energy           Int      @default(100)
+  maxEnergy        Int      @default(100)
+  energyRefillAt   DateTime @default(now())
+  sanctuaryLevel   Int      @default(1)
+  arenaRating      Int      @default(1000)
+  arenaDefenseTeam Json     @default("[]")
+  language         String   @default("es")
+  lastLoginAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   sanctuary Sanctuary?
@@ -108,6 +110,9 @@ model PlayerProfile {
   dailyChallenges PlayerDailyChallenge[]
   blessings  Blessing[]
   chatMessages ChatMessage[]
+  bossDamageLogs BossDamageLog[]
+  spinRaceEntries SpinRaceEntry[]
+  chests    PlayerChest[]
 
   @@map("player_profiles")
 }
@@ -128,6 +133,7 @@ model Sanctuary {
   globalStar      Int      @default(0)
   lumensPerHour   Int      @default(10)
   lastCollectAt   DateTime @default(now())
+  shieldUntil     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -474,4 +480,118 @@ model SpinLog {
   createdAt   DateTime @default(now())
 
   @@map("spin_logs")
+}
+
+// =====================
+// WORLD BOSS
+// =====================
+
+model WorldBoss {
+  id          String   @id @default(cuid())
+  name        String
+  nameEn      String
+  element     String
+  maxHp       Int
+  currentHp   Int
+  startsAt    DateTime @default(now())
+  endsAt      DateTime
+  status      String   @default("active") // active, defeated, expired
+  createdAt   DateTime @default(now())
+
+  damageLogs  BossDamageLog[]
+
+  @@map("world_bosses")
+}
+
+model BossDamageLog {
+  id          String   @id @default(cuid())
+  bossId      String
+  playerId    String
+  damage      Int
+  spiritsUsed Json
+  createdAt   DateTime @default(now())
+
+  boss   WorldBoss     @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  player PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([bossId, damage(sort: Desc)])
+  @@map("boss_damage_logs")
+}
+
+// =====================
+// ARENA PvP
+// =====================
+
+model ArenaMatch {
+  id              String   @id @default(cuid())
+  attackerId      String
+  defenderId      String
+  attackerSpirits Json
+  defenderSpirits Json
+  winnerId        String
+  ratingChange    Int
+  createdAt       DateTime @default(now())
+
+  @@map("arena_matches")
+}
+
+// =====================
+// SANCTUARY RAIDS
+// =====================
+
+model RaidLog {
+  id              String   @id @default(cuid())
+  attackerId      String
+  defenderId      String
+  lumensStolen    Int
+  createdAt       DateTime @default(now())
+
+  @@map("raid_logs")
+}
+
+// =====================
+// SPIN RACES
+// =====================
+
+model SpinRace {
+  id          String   @id @default(cuid())
+  startsAt    DateTime
+  endsAt      DateTime
+  status      String   @default("active") // active, completed
+
+  entries     SpinRaceEntry[]
+
+  @@map("spin_races")
+}
+
+model SpinRaceEntry {
+  id          String   @id @default(cuid())
+  raceId      String
+  playerId    String
+  score       Int      @default(0)
+
+  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  race        SpinRace      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@unique([raceId, playerId])
+  @@map("spin_race_entries")
+}
+
+// =====================
+// CHEST SYSTEM
+// =====================
+
+model PlayerChest {
+  id          String   @id @default(cuid())
+  playerId    String
+  type        String   @default("boss") // boss, raid, event
+  rarity      String   // common, rare, epic, legendary
+  unlocksAt   DateTime
+  isOpened    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@map("player_chests")
 }

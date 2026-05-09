@@ -14,7 +14,7 @@
   },
   "nav": {
     "home": "Home",
-    "spins": "Spins",
+    "play": "Play",
     "sanctuary": "Sanctuary",
     "community": "Community",
     "shop": "Shop"
@@ -22,12 +22,34 @@
   "home": {
     "welcome": "Welcome to Lumora",
     "spinDream": "Spin Dream",
+    "chooseAdventure": "Choose Your Adventure",
+    "exploreModes": "Explore different game modes and earn rewards.",
+    "travelerProfile": "Traveler Profile",
     "lumens": "Lumens",
     "energy": "Energy",
     "sanctuaryLevel": "Sanctuary Level",
     "currentEvent": "Current Event",
     "friendsOnline": "Friends Online",
     "worldTree": "World Tree"
+  },
+  "help": {
+    "spinsTitle": "Dream Spin Guide",
+    "sanctuaryTitle": "Sanctuary Guide",
+    "howToWin": "How to win?",
+    "paylines": "Paylines",
+    "paylinesDesc": "Get 3 or more identical symbols on one of the 20 lines, always starting from the first reel on the left.",
+    "elementalSurge": "Elemental Surge",
+    "elementalSurgeDesc": "If 6 or more symbols of the same element (fire, water, etc.) appear anywhere, you receive a Lumens bonus.",
+    "spiritUnlock": "Spirit Capture",
+    "spiritUnlockDesc": "By getting 3 or more symbols of an element, you have a chance to obtain a Spirit of that type for your Sanctuary.",
+    "wildSymbol": "Wild Symbol",
+    "wildSymbolDesc": "The 🌀 symbol substitutes for any element and multiplies the payouts on that line.",
+    "generation": "Passive Generation",
+    "generationDesc": "Each placed spirit generates Lumens every hour. Rarer and higher-level spirits produce much more.",
+    "limit": "Population Limit",
+    "limitDesc": "Your capacity depends on the Sanctuary level. Formula: (Level × 3) + 2.",
+    "collect": "Collection",
+    "collectDesc": "Lumens accumulate up to a maximum of 8 hours. Don't forget to collect before the chest gets full!"
   },
   "spins": {
     "title": "Dream Spin",
@@ -51,7 +73,9 @@
       "rare": "Rare",
       "epic": "Epic",
       "legendary": "Legendary"
-    }
+    },
+    "emptyMerge": "You do not have enough spirits of the same type to merge.",
+    "mergeButton": "Merge (x3)"
   },
   "sanctuary": {
     "title": "Sanctuary",
@@ -138,7 +162,10 @@
     "chatPlaceholder": "Type a message...",
     "chatDisclaimer": "Simulated chat · Real-time chat coming soon",
     "achievements": "Achievements",
-    "warTab": "War"
+    "warTab": "War",
+    "bossTab": "Bosses",
+    "arenaTab": "Arena",
+    "raidTab": "Raids"
   },
   "shop": {
     "title": "Shop",
@@ -155,7 +182,8 @@
     "purchaseSuccess": "Purchase Successful!",
     "purchaseFailed": "Purchase Failed",
     "close": "Close",
-    "insufficientLumens": "Insufficient Lumens"
+    "insufficientLumens": "Insufficient Lumens",
+    "fetchError": "Failed to load shop"
   },
   "events": {
     "awakening": "Awakening Hour",
@@ -321,5 +349,67 @@
     "winner": "Winner",
     "participantCount": "{count} participants",
     "warBonus": "War bonus: +{multiplier}x Lumens"
+  },
+  "boss": {
+    "title": "Void Incursion",
+    "attackBoss": "Attack Boss",
+    "hitPoints": "Hit Points",
+    "damageRanking": "Damage Ranking",
+    "selectSpirits": "Select 3 spirits to attack",
+    "energyCost": "Cost: {cost} Energy",
+    "yourDamage": "Your damage",
+    "totalDamage": "Total damage",
+    "bossDefeated": "Boss Defeated!",
+    "bossExpired": "The boss has escaped",
+    "noBoss": "No active boss. Come back soon!",
+    "attacking": "Attacking...",
+    "damageDealt": "{damage} damage dealt!",
+    "elementAdvantage": "Elemental advantage! x2",
+    "reward": "Reward",
+    "rank": "Rank #{rank}"
+  },
+  "arena": {
+    "title": "The Coliseum",
+    "setDefense": "Set Defense",
+    "findOpponent": "Find Opponent",
+    "arenaPoints": "Arena Points",
+    "victory": "Victory!",
+    "defeat": "Defeat",
+    "rating": "ELO: {rating}",
+    "ratingChange": "{change} points",
+    "selectAttackTeam": "Select 3 attack spirits",
+    "fight": "Fight!",
+    "fighting": "Fighting...",
+    "defenseSet": "Defense set",
+    "noDefense": "Set up your defense team",
+    "opponents": "Available opponents",
+    "noOpponents": "No opponents available",
+    "ranking": "Arena Ranking",
+    "power": "Power: {power}"
+  },
+  "raid": {
+    "title": "Sanctuary Raids",
+    "attackSanctuary": "Raid",
+    "lumensStolen": "{amount} Lumens stolen!",
+    "shielded": "Shielded",
+    "shieldActive": "Shield active until {time}",
+    "raidTargets": "Vulnerable Sanctuaries",
+    "noTargets": "No vulnerable sanctuaries right now",
+    "raiding": "Raiding...",
+    "idleLumens": "Idle Lumens: {amount}",
+    "autoShield": "2h auto-shield activated",
+    "recentRaids": "Recent raids"
+  },
+  "race": {
+    "title": "Spin Race",
+    "active": "Active Race",
+    "points": "{points} pts",
+    "position": "Position: #{pos}",
+    "endsIn": "Ends in {time}",
+    "noRace": "No active race",
+    "yourScore": "Your score",
+    "ranking": "Ranking",
+    "finished": "Race finished!",
+    "nextRace": "Next race in {time}"
   }
 }

@@ -317,7 +317,44 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return updated;
+      // Spin Race: add payout to active race score
+      if (spinResult.totalPayout > 0) {
+        const activeRace = await tx.spinRace.findFirst({
+          where: { status: 'active', endsAt: { gt: new Date() } },
+        });
+        if (activeRace) {
+          await tx.spinRaceEntry.upsert({
+            where: {
+              raceId_playerId: { raceId: activeRace.id, playerId: player.id },
+            },
+            create: {
+              raceId: activeRace.id,
+              playerId: player.id,
+              score: spinResult.totalPayout,
+            },
+            update: {
+              score: { increment: spinResult.totalPayout },
+            },
+          });
+        }
+      }
+
+      // Chest drop on wins (1% chance)
+      let chestDrop: { rarity: string } | null = null;
+      if (spinResult.totalPayout > 0 && Math.random() < 0.01) {
+        const chestRarity = Math.random() < 0.2 ? 'rare' : 'common';
+        await (tx as any).playerChest.create({
+          data: {
+            playerId: player.id,
+            type: 'spin',
+            rarity: chestRarity,
+            unlocksAt: new Date(Date.now() + (chestRarity === 'rare' ? 4 : 1) * 60 * 60 * 1000),
+          },
+        });
+        chestDrop = { rarity: chestRarity };
+      }
+
+      return { updated, chestDrop };
     });
 
     // Return full spin result
@@ -359,9 +396,10 @@ export async function POST(request: NextRequest) {
         lumens: newLumens,
         energy: newEnergy,
         maxEnergy: player.maxEnergy,
-        level: updatedPlayer.level,
-        experience: updatedPlayer.experience,
+        level: updatedPlayer.updated.level,
+        experience: updatedPlayer.updated.experience,
       },
+      chestDrop: updatedPlayer.chestDrop,
       // Guild war contribution info
       warContribution: warContribution ? {
         contributed: warContribution.contributed,

@@ -26,56 +26,23 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Determine sort field based on category
-    let orderBy: any;
-    let selectFields: any;
+    const orderBy: any =
+      category === 'level' ? { level: 'desc' as const }
+      : category === 'spirits' ? { spirits: { _count: 'desc' as const } }
+      : category === 'sanctuary' ? { sanctuaryLevel: 'desc' as const }
+      : { lumens: 'desc' as const };
 
-    switch (category) {
-      case 'level':
-        orderBy = { level: 'desc' as const };
-        selectFields = {
-          id: true,
-          displayName: true,
-          level: true,
-          experience: true,
-          sanctuaryLevel: true,
-          user: { select: { image: true } },
-        };
-        break;
-      case 'spirits':
-        orderBy = { spirits: { _count: 'desc' as const } };
-        selectFields = {
-          id: true,
-          displayName: true,
-          level: true,
-          sanctuaryLevel: true,
-          spirits: { select: { id: true } },
-          user: { select: { image: true } },
-        };
-        break;
-      case 'sanctuary':
-        orderBy = { sanctuaryLevel: 'desc' as const };
-        selectFields = {
-          id: true,
-          displayName: true,
-          level: true,
-          sanctuaryLevel: true,
-          lumens: true,
-          user: { select: { image: true } },
-        };
-        break;
-      case 'lumens':
-      default:
-        orderBy = { lumens: 'desc' as const };
-        selectFields = {
-          id: true,
-          displayName: true,
-          level: true,
-          lumens: true,
-          sanctuaryLevel: true,
-          user: { select: { image: true } },
-        };
-        break;
-    }
+    // Common base select (always safe to access)
+    const selectFields = {
+      id: true,
+      displayName: true,
+      level: true,
+      lumens: true,
+      sanctuaryLevel: true,
+      spirits: category === 'spirits' ? { select: { id: true } } : undefined,
+      experience: category === 'level' ? true : undefined,
+      user: { select: { image: true } },
+    } as const;
 
     // Get top players
     const players = await db.playerProfile.findMany({
@@ -92,73 +59,58 @@ export async function GET(request: NextRequest) {
     });
 
     // Get current player's rank
-    let myRank = null;
+    let myRank: number | null = null;
     if (currentPlayerId) {
-      let rankQuery: any;
       const currentPlayer = await db.playerProfile.findUnique({
         where: { id: currentPlayerId },
-        select: selectFields,
+        select: {
+          id: true,
+          level: true,
+          lumens: true,
+          sanctuaryLevel: true,
+          _count: { select: { spirits: true } },
+        },
       });
 
       if (currentPlayer) {
-        switch (category) {
-          case 'level':
-            rankQuery = await db.playerProfile.count({
-              where: {
-                level: { gt: currentPlayer.level },
-                displayName: { not: '' },
-              },
-            });
-            break;
-          case 'spirits':
-            rankQuery = await db.playerProfile.count({
-              where: {
-                spirits: { some: {} },
-                displayName: { not: '' },
-                id: { not: currentPlayerId },
-              },
-            });
-            // More accurate: count players with more spirits
-            const mySpiritCount = currentPlayer.spirits?.length || 0;
-            const playersWithMore = await db.$queryRaw`
-              SELECT COUNT(*) as count FROM player_profiles pp
-              LEFT JOIN player_spirits ps ON pp.id = ps."playerId"
-              WHERE pp."displayName" != ''
-              GROUP BY pp.id
-              HAVING COUNT(ps.id) > ${mySpiritCount}
-            `;
-            rankQuery = Number((playersWithMore as any[])?.length || 0);
-            break;
-          case 'sanctuary':
-            rankQuery = await db.playerProfile.count({
-              where: {
-                sanctuaryLevel: { gt: currentPlayer.sanctuaryLevel },
-                displayName: { not: '' },
-              },
-            });
-            break;
-          default:
-            rankQuery = await db.playerProfile.count({
-              where: {
-                lumens: { gt: currentPlayer.lumens },
-                displayName: { not: '' },
-              },
-            });
-            break;
+        let rankCount = 0;
+        if (category === 'level') {
+          rankCount = await db.playerProfile.count({
+            where: { level: { gt: currentPlayer.level }, displayName: { not: '' } },
+          });
+        } else if (category === 'spirits') {
+          const mySpiritCount = currentPlayer._count.spirits;
+          const playersWithMore = await db.$queryRaw<{ count: bigint }[]>`
+            SELECT COUNT(DISTINCT pp.id)::bigint as count
+            FROM "PlayerProfile" pp
+            LEFT JOIN "PlayerSpirit" ps ON pp.id = ps."playerId"
+            WHERE pp."displayName" != ''
+            GROUP BY pp.id
+            HAVING COUNT(ps.id) > ${mySpiritCount}
+          `;
+          rankCount = Number(playersWithMore[0]?.count ?? 0);
+        } else if (category === 'sanctuary') {
+          rankCount = await db.playerProfile.count({
+            where: { sanctuaryLevel: { gt: currentPlayer.sanctuaryLevel }, displayName: { not: '' } },
+          });
+        } else {
+          rankCount = await db.playerProfile.count({
+            where: { lumens: { gt: currentPlayer.lumens }, displayName: { not: '' } },
+          });
         }
-        myRank = rankQuery + 1;
+        myRank = rankCount + 1;
       }
     }
 
     // Format the leaderboard entries
-    const entries = players.map((p, i) => ({
+    const entries = (players as any[]).map((p, i) => ({
       rank: skip + i + 1,
       id: p.id,
       displayName: p.displayName,
       level: p.level,
       sanctuaryLevel: p.sanctuaryLevel,
-      lumens: (p as any).lumens || 0,
-      spiritCount: (p as any).spirits?.length || 0,
+      lumens: p.lumens || 0,
+      spiritCount: p.spirits?.length || 0,
       avatar: p.user?.image || null,
       isMe: p.id === currentPlayerId,
     }));

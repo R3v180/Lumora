@@ -263,6 +263,31 @@ h1, h2, h3 {
   transition: all 0.3s ease;
 }
 
+/* ── Obsidian tile: black bg + subtle golden border ── */
+.slot-cell-altar {
+  background: #000000;
+  border: 1px solid rgba(255, 215, 0, 0.12);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+/* Pulsing background for winning cells */
+@keyframes win-pulse-bg {
+  0%, 100% { opacity: 0.15; }
+  50%       { opacity: 0.45; }
+}
+
+/* Radial glow overlay inside winning cells */
+.slot-cell-altar.is-winning::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, white 0%, transparent 70%);
+  animation: win-pulse-bg 0.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .slot-cell-winning {
   background: rgba(255, 215, 0, 0.12);
   border: 1px solid rgba(255, 215, 0, 0.35);
@@ -270,6 +295,20 @@ h1, h2, h3 {
     0 0 15px rgba(255, 215, 0, 0.3),
     0 0 30px rgba(255, 215, 0, 0.15),
     inset 0 0 12px rgba(255, 215, 0, 0.08);
+}
+
+.slot-cell-altar.is-winning {
+  z-index: 10;
+  border-width: 2px !important;
+}
+
+/* Efecto de luz interior para que la celda negra no se vea tan vacía */
+.slot-cell-altar.is-winning::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 75%);
+  pointer-events: none;
 }
 
 .slot-cell-bonus {
@@ -291,6 +330,48 @@ h1, h2, h3 {
     0 0 30px rgba(155, 89, 182, 0.15),
     0 12px 40px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Altar de Lumora — premium frame */
+.slot-machine-frame-altar {
+  position: relative;
+  background:
+    linear-gradient(160deg, rgba(155, 89, 182, 0.12) 0%, rgba(0, 0, 0, 0.35) 50%, rgba(255, 215, 0, 0.06) 100%);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border-radius: 1.25rem;
+  /* Gradient border via outline technique */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  box-shadow:
+    0 0 0 2px rgba(155, 89, 182, 0.35),
+    0 0 40px rgba(155, 89, 182, 0.2),
+    0 0 80px rgba(255, 215, 0, 0.08),
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 32px rgba(155, 89, 182, 0.05);
+  animation: altar-breathe 4s ease-in-out infinite;
+}
+
+@keyframes altar-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(155, 89, 182, 0.35),
+      0 0 40px rgba(155, 89, 182, 0.2),
+      0 0 80px rgba(255, 215, 0, 0.08),
+      0 16px 48px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 0 32px rgba(155, 89, 182, 0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(255, 215, 0, 0.4),
+      0 0 60px rgba(155, 89, 182, 0.3),
+      0 0 100px rgba(255, 215, 0, 0.12),
+      0 16px 48px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 0 40px rgba(255, 215, 0, 0.04);
+  }
 }
 
 /* ============================================
@@ -425,21 +506,18 @@ h1, h2, h3 {
   animation: float-up 3s ease-out forwards;
 }
 
-/* Radial win flash for slot cells */
+/* Radial win flash for slot cells — continuous pulse */
 @keyframes radial-flash {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.5);
+  0%, 100% {
+    box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.25);
   }
   50% {
-    box-shadow: 0 0 20px 8px rgba(255, 215, 0, 0.3);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+    box-shadow: 0 0 24px 8px rgba(255, 215, 0, 0.5), 0 0 48px 16px rgba(255, 215, 0, 0.15);
   }
 }
 
 .animate-radial-flash {
-  animation: radial-flash 0.8s ease-out;
+  animation: radial-flash 1.4s ease-in-out infinite;
 }
 
 /* PWA standalone mode adjustments */
@@ -447,4 +525,13 @@ h1, h2, h3 {
   body {
     padding-top: env(safe-area-inset-top, 0px);
   }
+}
+
+/* Scrollbar hide utility for horizontal scroll containers */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

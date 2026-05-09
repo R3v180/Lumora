@@ -13,6 +13,7 @@ import { DailyChallengesPanel } from '@/components/progression/DailyChallengesPa
 import { OfflineRewardsDialog } from '@/components/home/OfflineRewardsDialog';
 import { WorldTreeWidget } from '@/components/home/WorldTreeWidget';
 import { toast } from 'sonner';
+import { audioService } from '@/lib/audioService';
 
 // Event Widget component — shows active/upcoming world events
 function EventWidget() {
@@ -135,7 +136,7 @@ export default function HomePage() {
 
           {/* Spin Dream Button */}
           <motion.button
-            onClick={() => router.push('/spins')}
+            onClick={() => router.push('/play')}
             className="relative z-10 group mb-8"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -157,14 +158,20 @@ export default function HomePage() {
             className="relative z-10 flex flex-col items-center gap-4 mb-8"
           >
             <Button
-              onClick={() => router.push('/onboarding')}
+              onClick={() => {
+                audioService.playClick();
+                router.push('/onboarding');
+              }}
               className="rounded-full px-10 py-6 h-auto text-lg bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple text-white font-fantasy font-bold shadow-2xl"
             >
               <Sparkles className="mr-2 h-5 w-5" />
               Comenzar Aventura
             </Button>
             <Button
-              onClick={() => router.push('/auth/login')}
+              onClick={() => {
+                audioService.playClick();
+                router.push('/auth/login');
+              }}
               variant="ghost"
               className="rounded-full gap-2 text-muted-foreground hover:text-foreground"
             >
@@ -180,75 +187,6 @@ export default function HomePage() {
         <EventWidget />
       </div>
 
-      {/* Friends & Community Widget */}
-      <motion.button
-        onClick={() => router.push('/community')}
-        className="relative z-10 w-full max-w-sm"
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
-      >
-        <div className="rounded-2xl border border-lumora-blue/20 bg-card/60 backdrop-blur-sm p-4 hover:border-lumora-blue/40 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-lumora-blue" />
-              <span className="text-sm font-semibold">{t('friendsOnline')}</span>
-            </div>
-            <span className="text-xs text-lumora-blue font-bold">0 conectados</span>
-          </div>
-        </div>
-      </motion.button>
-
-      {/* Sanctuary Widget (when logged in) */}
-      {isAuthenticated && player && player.sanctuary && (
-        <div className="relative z-10 w-full max-w-sm mt-6">
-          <motion.button
-            onClick={() => router.push('/sanctuary')}
-            className="w-full rounded-2xl border border-lumora-emerald/20 bg-card/60 backdrop-blur-sm p-4 text-left hover:border-lumora-emerald/40 transition-colors"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <TreePine className="h-4 w-4 text-lumora-emerald" />
-                <span className="text-sm font-semibold text-lumora-emerald">Mi Santuario</span>
-              </div>
-              <span className="text-xs text-lumora-gold font-medium">
-                ✨ {player.sanctuary.lumensPerHour}/h
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Nivel {player.sanctuaryLevel} · {player.sanctuary.name || 'Isla Flotante'}
-            </p>
-          </motion.button>
-        </div>
-      )}
-
-      {/* Spirit Collection Preview (when logged in) */}
-      {isAuthenticated && player && player.spirits.length > 0 && (
-        <div className="relative z-10 w-full max-w-sm mt-3">
-          <div className="rounded-2xl border border-lumora-emerald/20 bg-card/60 backdrop-blur-sm p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-lumora-emerald">Mis Espíritus</span>
-              <span className="text-xs text-muted-foreground">{player.spirits.length} espíritus</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {player.spirits.slice(0, 5).map((spirit) => (
-                <div
-                  key={spirit.id}
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-muted/30 border border-border/30 flex items-center justify-center"
-                >
-                  <span className="text-lg">
-                    {spirit.spiritType.element === 'fire' ? '🔥' :
-                     spirit.spiritType.element === 'water' ? '💧' :
-                     spirit.spiritType.element === 'dream' ? '🌙' :
-                     spirit.spiritType.element === 'nature' ? '🌿' : '⭐'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Daily Blessing Widget (when logged in) */}
       {isAuthenticated && (

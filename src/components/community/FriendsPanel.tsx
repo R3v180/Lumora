@@ -244,7 +244,7 @@ export function FriendsPanel() {
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 border border-border/30">
-                      <AvatarImage src={player.avatar || undefined} />
+                      <AvatarImage src={player.avatar || undefined} seed={player.displayName} />
                       <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-xs">
                         {player.displayName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
@@ -318,7 +318,7 @@ export function FriendsPanel() {
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8 border border-lumora-emerald/30">
-                    <AvatarImage src={req.avatar || undefined} />
+                    <AvatarImage src={req.avatar || undefined} seed={req.displayName} />
                     <AvatarFallback className="bg-lumora-emerald/20 text-lumora-emerald text-xs">
                       {req.displayName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -357,7 +357,7 @@ export function FriendsPanel() {
               >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8 border border-border/30">
-                    <AvatarImage src={req.avatar || undefined} />
+                    <AvatarImage src={req.avatar || undefined} seed={req.displayName} />
                     <AvatarFallback className="bg-lumora-blue/20 text-lumora-blue text-xs">
                       {req.displayName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
@@ -413,7 +413,7 @@ export function FriendsPanel() {
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Avatar className="h-9 w-9 border border-border/30">
-                    <AvatarImage src={friend.avatar || undefined} />
+                    <AvatarImage src={friend.avatar || undefined} seed={friend.displayName} />
                     <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-xs">
                       {friend.displayName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>

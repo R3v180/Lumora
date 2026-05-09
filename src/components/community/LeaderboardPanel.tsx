@@ -167,7 +167,7 @@ export function LeaderboardPanel() {
                   {/* Avatar + Name */}
                   <div className="flex items-center gap-2.5">
                     <Avatar className="h-7 w-7 border border-border/30">
-                      <AvatarImage src={entry.avatar || undefined} />
+                      <AvatarImage src={entry.avatar || undefined} seed={entry.displayName} />
                       <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-[10px]">
                         {entry.displayName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>

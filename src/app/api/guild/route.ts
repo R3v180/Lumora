@@ -458,6 +458,12 @@ export async function POST(request: NextRequest) {
       }
 
       const updateData: any = {};
+      if (name !== undefined) {
+        const trimmed = name?.trim();
+        if (trimmed.length >= 3 && trimmed.length <= 20) {
+          updateData.name = trimmed;
+        }
+      }
       if (description !== undefined) {
         updateData.description = description?.trim() || null;
       }

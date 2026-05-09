@@ -10,8 +10,6 @@ const WINNER_BONUS_LUMENS = 1000;
 const WINNER_RETURN_MULTIPLIER = 2;
 const LOSER_RETURN_MULTIPLIER = 0.5;
 
-// In-memory lock to prevent race conditions during war resolution
-const resolutionLocks = new Set<string>(); // Set of war IDs currently being resolved
 const RESOLUTION_BUFFER_MS = 10_000; // 10-second buffer to avoid edge-case timing
 
 // Helper: resolve any ended wars for a guild
@@ -22,12 +20,18 @@ async function resolveEndedWars(guildId: string) {
   // Find ended wars for this guild (both upcoming→active and active→completed)
   const endedWars = await db.guildWar.findMany({
     where: {
-      status: { in: ['upcoming', 'active'] },
-      endsAt: { lte: bufferTime },
       OR: [
-        { attackerGuildId: guildId },
-        { defenderGuildId: guildId },
+        { status: 'upcoming', startsAt: { lte: bufferTime } },
+        { status: 'active', endsAt: { lte: bufferTime } },
       ],
+      AND: [
+        {
+          OR: [
+            { attackerGuildId: guildId },
+            { defenderGuildId: guildId },
+          ],
+        }
+      ]
     },
     include: {
       attacker: { select: { id: true, name: true, emblem: true, treasury: true, experience: true, level: true } },
@@ -36,54 +40,54 @@ async function resolveEndedWars(guildId: string) {
   });
 
   for (const war of endedWars) {
-    // Skip if already being resolved by another request
-    if (resolutionLocks.has(war.id)) continue;
-
-    resolutionLocks.add(war.id);
     try {
-      // Re-fetch war to check if it was already resolved
-      const freshWar = await db.guildWar.findUnique({ where: { id: war.id } });
-      if (!freshWar || freshWar.status === 'completed') continue;
-
-      if (freshWar.status === 'active') {
+      if (war.status === 'active') {
         // Active war has ended — resolve it with rewards
         let winnerId: string | null = null;
 
-        if (freshWar.attackerScore > freshWar.defenderScore) {
-          winnerId = freshWar.attackerGuildId;
-        } else if (freshWar.defenderScore > freshWar.attackerScore) {
-          winnerId = freshWar.defenderGuildId;
+        if (war.attackerScore > war.defenderScore) {
+          winnerId = war.attackerGuildId;
+        } else if (war.defenderScore > war.attackerScore) {
+          winnerId = war.defenderGuildId;
         }
         // draw: winnerId stays null
 
         // Calculate rewards
-        const attackerIsWinner = winnerId === freshWar.attackerGuildId;
-        const defenderIsWinner = winnerId === freshWar.defenderGuildId;
+        const attackerIsWinner = winnerId === war.attackerGuildId;
+        const defenderIsWinner = winnerId === war.defenderGuildId;
 
         const attackerReward = attackerIsWinner
-          ? Math.floor(freshWar.attackerScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
-          : Math.floor(freshWar.attackerScore * LOSER_RETURN_MULTIPLIER);
+          ? Math.floor(war.attackerScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
+          : Math.floor(war.attackerScore * LOSER_RETURN_MULTIPLIER);
 
         const defenderReward = defenderIsWinner
-          ? Math.floor(freshWar.defenderScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
-          : Math.floor(freshWar.defenderScore * LOSER_RETURN_MULTIPLIER);
+          ? Math.floor(war.defenderScore * WINNER_RETURN_MULTIPLIER) + WINNER_BONUS_LUMENS
+          : Math.floor(war.defenderScore * LOSER_RETURN_MULTIPLIER);
 
         const attackerXpGain = attackerIsWinner ? 500 : 100;
         const defenderXpGain = defenderIsWinner ? 500 : 100;
 
         await db.$transaction(async (tx) => {
-          // Update war status
-          await tx.guildWar.update({
-            where: { id: freshWar.id },
+          // Attempt atomic update to lock/resolve the war
+          const updatedWar = await tx.guildWar.updateMany({
+            where: { 
+              id: war.id,
+              status: 'active'
+            },
             data: {
               status: 'completed',
               winnerId,
             },
           });
 
+          // If no rows were updated, another process already resolved it.
+          if (updatedWar.count === 0) {
+            return;
+          }
+
           // Reward attacker guild
           await tx.guild.update({
-            where: { id: freshWar.attackerGuildId },
+            where: { id: war.attackerGuildId },
             data: {
               treasury: { increment: attackerReward },
               experience: { increment: attackerXpGain },
@@ -92,25 +96,25 @@ async function resolveEndedWars(guildId: string) {
 
           // Reward defender guild
           await tx.guild.update({
-            where: { id: freshWar.defenderGuildId },
+            where: { id: war.defenderGuildId },
             data: {
               treasury: { increment: defenderReward },
               experience: { increment: defenderXpGain },
             },
           });
         });
-      } else if (freshWar.status === 'upcoming') {
+      } else if (war.status === 'upcoming') {
         // Upcoming war should start — transition to active
-        // Only transition if startsAt has passed (with buffer)
-        if (freshWar.startsAt <= bufferTime) {
-          await db.guildWar.update({
-            where: { id: freshWar.id },
-            data: { status: 'active' },
-          });
-        }
+        await db.guildWar.updateMany({
+          where: { 
+            id: war.id,
+            status: 'upcoming'
+          },
+          data: { status: 'active' },
+        });
       }
-    } finally {
-      resolutionLocks.delete(war.id);
+    } catch (err) {
+      console.error('Error resolving war:', war.id, err);
     }
   }
 }
@@ -382,7 +386,7 @@ export async function POST(request: NextRequest) {
 
     const userId = (session.user as any).id;
     const body = await request.json();
-    const { action, targetGuildId, spiritId } = body;
+    const { action, targetGuildId, spiritId, spiritIds } = body;
 
     const player = await db.playerProfile.findUnique({
       where: { userId },
@@ -527,21 +531,26 @@ export async function POST(request: NextRequest) {
       }
 
       // Player can sacrifice a spirit for war points
-      if (!spiritId) {
+      // Player can sacrifice a spirit for war points
+      const idsToProcess = spiritIds || (spiritId ? [spiritId] : []);
+      if (idsToProcess.length === 0) {
         return NextResponse.json(
-          { error: 'Debes seleccionar un espíritu para sacrificar' },
+          { error: 'Debes seleccionar al menos un espíritu para sacrificar' },
           { status: 400 }
         );
       }
 
-      const spirit = await db.playerSpirit.findUnique({
-        where: { id: spiritId },
+      const spirits = await db.playerSpirit.findMany({
+        where: {
+          id: { in: idsToProcess },
+          playerId: player.id,
+        },
         include: { spiritType: true },
       });
 
-      if (!spirit || spirit.playerId !== player.id) {
+      if (spirits.length === 0) {
         return NextResponse.json(
-          { error: 'Espíritu no encontrado' },
+          { error: 'Espíritus no encontrados o no te pertenecen' },
           { status: 404 }
         );
       }
@@ -554,45 +563,52 @@ export async function POST(request: NextRequest) {
         epic: 100,
         legendary: 250,
       };
-      const warPoints = (rarityMultiplier[spirit.spiritType.rarity] || 10) * spirit.level;
+
+      let totalWarPoints = 0;
+      for (const spirit of spirits) {
+        totalWarPoints += (rarityMultiplier[spirit.spiritType.rarity] || 10) * spirit.level;
+      }
 
       const isAttacker = activeWar.attackerGuildId === guildId;
 
       await db.$transaction(async (tx) => {
-        // Remove the spirit
-        await tx.playerSpirit.delete({ where: { id: spirit.id } });
+        // Remove the spirits
+        await tx.playerSpirit.deleteMany({ where: { id: { in: spirits.map(s => s.id) } } });
 
         // Add to war score
         await tx.guildWar.update({
           where: { id: activeWar.id },
           data: {
-            attackerScore: isAttacker ? { increment: warPoints } : undefined,
-            defenderScore: !isAttacker ? { increment: warPoints } : undefined,
+            attackerScore: isAttacker ? { increment: totalWarPoints } : undefined,
+            defenderScore: !isAttacker ? { increment: totalWarPoints } : undefined,
           },
         });
 
-        // Log transaction
-        await tx.transaction.create({
-          data: {
-            playerId: player.id,
-            type: 'war_contribution',
-            amount: warPoints,
-            currency: 'war_points',
-            metadata: {
-              warId: activeWar.id,
-              spiritId: spirit.id,
-              spiritType: spirit.spiritType.name,
-              rarity: spirit.spiritType.rarity,
-              level: spirit.level,
+        // Log transactions
+        for (const spirit of spirits) {
+          const spiritPoints = (rarityMultiplier[spirit.spiritType.rarity] || 10) * spirit.level;
+          await tx.transaction.create({
+            data: {
+              playerId: player.id,
+              type: 'war_contribution',
+              amount: spiritPoints,
+              currency: 'war_points',
+              metadata: {
+                warId: activeWar.id,
+                spiritId: spirit.id,
+                spiritType: spirit.spiritType.name,
+                rarity: spirit.spiritType.rarity,
+                level: spirit.level,
+              },
             },
-          },
-        });
+          });
+        }
       });
 
       return NextResponse.json({
         success: true,
-        warPoints,
-        spiritName: spirit.spiritType.name,
+        warPoints: totalWarPoints,
+        spiritCount: spirits.length,
       });
     }
 

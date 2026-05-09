@@ -8,6 +8,9 @@ import { SlotMachine } from '@/components/game/SlotMachine';
 import { MergePanel } from '@/components/game/MergePanel';
 import { Button } from '@/components/ui/button';
 
+import { SpinsHelpDialog } from '@/components/game/SpinsHelpDialog';
+import { RaceWidget } from '@/components/game/RaceWidget';
+
 export default function SpinsPage() {
   const t = useTranslations('spins');
   const [showMerge, setShowMerge] = useState(false);
@@ -18,15 +21,21 @@ export default function SpinsPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-4"
+        className="text-center mb-4 flex flex-col items-center"
       >
-        <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent">
+        <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent mb-1">
           {t('title')}
         </h1>
-        <p className="text-xs text-muted-foreground mt-1">
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <SpinsHelpDialog />
+        </div>
+        <p className="text-xs text-muted-foreground">
           Cada giro planta semillas en Lumora
         </p>
       </motion.div>
+
+      {/* Spin Race Widget */}
+      <RaceWidget />
 
       {/* Slot Machine */}
       <SlotMachine />

@@ -11,3 +11,5 @@ export const db =
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+
+// Forced update to reload Prisma types in IDE

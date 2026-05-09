@@ -20,6 +20,27 @@ export async function GET() {
       grouped[item.category].push(item);
     }
 
+    // Inject virtual energy potion if not already in DB
+    const hasEnergyPotion = items.some(i => (i.content as any)?.energy);
+    if (!hasEnergyPotion) {
+      if (!grouped['boost']) grouped['boost'] = [];
+      grouped['boost'].unshift({
+        id: 'virtual_energy_potion',
+        name: 'Poción Menor de Energía',
+        nameEn: 'Minor Energy Potion',
+        description: 'Restaura 10 de energía (2 giros extra)',
+        descEn: 'Restores 10 energy (2 extra spins)',
+        category: 'boost',
+        price: 2000,
+        currency: 'lumens',
+        content: { energy: 10 },
+        imageUrl: null,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+    }
+
     return NextResponse.json({
       categories: Object.entries(grouped).map(([key, items]) => ({
         key,
@@ -87,6 +108,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
     }
 
+    // Handle virtual items (energy potion)
+    if (itemId === 'virtual_energy_potion') {
+      if (player.lumens < 2000) {
+        return NextResponse.json({ error: 'Lumens insuficientes', required: 2000, current: player.lumens }, { status: 400 });
+      }
+      await db.$transaction([
+        db.playerProfile.update({ where: { id: player.id }, data: { lumens: { decrement: 2000 }, energy: { increment: 10 } } }),
+        db.transaction.create({ data: { playerId: player.id, type: 'purchase', amount: -2000, currency: 'lumens', metadata: { itemName: 'Poción Menor de Energía' } } }),
+      ]);
+      return NextResponse.json({ success: true, itemName: 'Poción Menor de Energía', rewards: ['+10 Energía'], newLumens: player.lumens - 2000 });
+    }
+
     const item = await db.shopItem.findUnique({
       where: { id: itemId },
     });
@@ -151,6 +184,15 @@ export async function POST(request: NextRequest) {
           data: { energy: player.maxEnergy },
         });
         rewards.push('Energía al máximo');
+      }
+
+      // Energy increment (potion)
+      if (content.energy && !content.energyRefill) {
+        await tx.playerProfile.update({
+          where: { id: player.id },
+          data: { energy: { increment: content.energy } },
+        });
+        rewards.push(`+${content.energy} Energía`);
       }
 
       // Spirit bundles

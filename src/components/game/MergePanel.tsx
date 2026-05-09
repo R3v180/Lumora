@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ELEMENT_EMOJIS } from '@/game/engine/symbols';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
+import { audioService } from '@/lib/audioService';
 
 interface PlayerSpirit {
   id: string;
@@ -143,6 +144,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
       });
 
       if (res.ok) {
+        audioService.playMerge();
         setMergeSuccess(true);
         useGameStore.getState().triggerRefresh();
         setTimeout(() => {
@@ -193,7 +195,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
               {mergeGroups.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground text-sm">
-                    ¡Gira para conseguir espíritus que fusionar!
+                    {t('emptyMerge')}
                   </p>
                 </div>
               ) : (
@@ -212,7 +214,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
                     >
                       {/* Spirit icon */}
                       <div className="w-12 h-12 rounded-xl bg-background/50 flex items-center justify-center text-2xl">
-                        {ELEMENT_EMOJIS[group.element as keyof typeof ELEMENT_EMOJIS] || '✨'}
+                        <img src={`/assets/symbols/sym_${group.element}_${group.rarity}.png`} className="w-8 h-8 object-contain" />
                       </div>
 
                       {/* Info */}
@@ -241,7 +243,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
                       {/* Merge badge */}
                       {group.canMerge && (
                         <div className="px-2 py-1 rounded-full bg-lumora-purple/20 text-xs text-lumora-purple font-semibold">
-                          ¡Fusionar!
+                          {t('mergeButton')}
                         </div>
                       )}
                     </motion.button>

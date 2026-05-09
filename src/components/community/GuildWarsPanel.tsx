@@ -115,7 +115,7 @@ export function GuildWarsPanel() {
   // Contribute state
   const [showContributeDialog, setShowContributeDialog] = useState(false);
   const [playerSpirits, setPlayerSpirits] = useState<PlayerSpiritInfo[]>([]);
-  const [selectedSpirit, setSelectedSpirit] = useState<string | null>(null);
+  const [selectedSpirits, setSelectedSpirits] = useState<string[]>([]);
   const [isContributing, setIsContributing] = useState(false);
 
   // Surrender state
@@ -249,7 +249,7 @@ export function GuildWarsPanel() {
 
   // Contribute spirit
   const handleContribute = async () => {
-    if (!selectedSpirit || isContributing) return;
+    if (selectedSpirits.length === 0 || isContributing) return;
     setIsContributing(true);
     try {
       const res = await fetch('/api/guild-wars', {
@@ -257,14 +257,14 @@ export function GuildWarsPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'contribute',
-          spiritId: selectedSpirit,
+          spiritIds: selectedSpirits,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
         setShowContributeDialog(false);
-        setSelectedSpirit(null);
+        setSelectedSpirits([]);
         fetchWarData();
         useGameStore.getState().triggerRefresh();
       } else {
@@ -594,9 +594,13 @@ export function GuildWarsPanel() {
                   return (
                     <button
                       key={spirit.id}
-                      onClick={() => setSelectedSpirit(spirit.id === selectedSpirit ? null : spirit.id)}
+                      onClick={() => {
+                        setSelectedSpirits(prev => 
+                          prev.includes(spirit.id) ? prev.filter(id => id !== spirit.id) : [...prev, spirit.id]
+                        );
+                      }}
                       className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${
-                        selectedSpirit === spirit.id
+                        selectedSpirits.includes(spirit.id)
                           ? 'border-orange-500/50 bg-orange-950/30'
                           : 'glass-card-subtle hover:border-orange-500/20'
                       }`}
@@ -628,10 +632,10 @@ export function GuildWarsPanel() {
               {playerSpirits.length > 0 && (
                 <Button
                   onClick={handleContribute}
-                  disabled={!selectedSpirit || isContributing}
-                  className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white"
+                  disabled={selectedSpirits.length === 0 || isContributing}
+                  className="rounded-xl bg-gradient-to-r from-orange-600 to-red-600 text-white mt-2"
                 >
-                  {isContributing ? '...' : t('contribute')}
+                  {isContributing ? '...' : `Sacrificar ${selectedSpirits.length} espíritu(s)`}
                 </Button>
               )}
             </div>

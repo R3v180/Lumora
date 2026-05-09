@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AuthProvider } from '@/components/layout/AuthProvider';
 import { ServiceWorkerRegistrar } from '@/components/layout/ServiceWorkerRegistrar';
 import { Toaster } from '@/components/ui/sonner';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 
 import { Sora, Inter } from "next/font/google";
 
@@ -40,26 +41,25 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body
-        className={`${sora.variable} ${inter.variable} antialiased bg-background text-foreground font-body`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <NextIntlClientProvider messages={messages}>
-              <div className="bg-noise" aria-hidden="true" />
-              <ServiceWorkerRegistrar />
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem={false}
+      disableTransitionOnChange
+    >
+      <NextIntlClientProvider messages={messages}>
+        <AuthProvider>
+          <div className={`${sora.variable} ${inter.variable} antialiased bg-background text-foreground font-body min-h-screen`}>
+            <div className="bg-noise" aria-hidden="true" />
+            <ServiceWorkerRegistrar />
+            <QueryProvider>
               <AppShell>{children}</AppShell>
               <Toaster />
-            </NextIntlClientProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+            </QueryProvider>
+          </div>
+        </AuthProvider>
+      </NextIntlClientProvider>
+    </ThemeProvider>
   );
+
 }

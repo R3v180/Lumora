@@ -220,7 +220,7 @@ async function generateDailyChallenges(date: Date) {
     },
   ];
 
-  const challenges = [];
+  const challenges: Array<any> = [];
   for (let i = 0; i < challengeTemplates.length; i++) {
     const template = challengeTemplates[i];
     const challenge = await db.dailyChallenge.create({

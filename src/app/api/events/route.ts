@@ -20,8 +20,10 @@ export async function GET() {
     const upcomingEvents = await db.worldEvent.findMany({
       where: {
         isActive: true,
-        startsAt: { gt: now },
-        startsAt: { lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) },
+        startsAt: {
+          gt: now,
+          lte: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000),
+        },
       },
       orderBy: { startsAt: 'asc' },
       take: 5,

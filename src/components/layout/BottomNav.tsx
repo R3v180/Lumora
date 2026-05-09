@@ -1,12 +1,15 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { Home, RotateCcw, TreePine, Users, ShoppingBag } from 'lucide-react';
+import { Home, Compass, TreePine, Users, ShoppingBag } from 'lucide-react';
+import { audioService } from '@/lib/audioService';
 
 const navItems = [
   { key: 'home', href: '/', icon: Home },
-  { key: 'spins', href: '/spins', icon: RotateCcw },
+  { key: 'play', href: '/play', icon: Compass },
   { key: 'sanctuary', href: '/sanctuary', icon: TreePine },
   { key: 'community', href: '/community', icon: Users },
   { key: 'shop', href: '/shop', icon: ShoppingBag },
@@ -22,6 +25,18 @@ export function BottomNav() {
     return pathname.startsWith(href);
   };
 
+  useEffect(() => {
+    let scene: 'home' | 'spins' | 'sanctuary' | 'community' | 'shop' | 'battle' = 'home';
+    if (pathname.includes('/spins')) scene = 'spins';
+    else if (pathname.includes('/sanctuary')) scene = 'sanctuary';
+    else if (pathname.includes('/community')) scene = 'community';
+    else if (pathname.includes('/shop')) scene = 'shop';
+    else if (pathname.includes('/play/boss') || pathname.includes('/play/arena') || pathname.includes('/play/raid')) scene = 'battle';
+    else if (pathname.includes('/play')) scene = 'home';
+
+    audioService.playBGM(scene as any);
+  }, [pathname]);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/5 bg-background/70 backdrop-blur-xl safe-area-bottom">
       <div className="flex items-center justify-around px-2 py-1">
@@ -32,7 +47,10 @@ export function BottomNav() {
           return (
             <button
               key={item.key}
-              onClick={() => router.push(item.href as '/')}
+              onClick={() => {
+                audioService.playClick();
+                router.push(item.href as '/');
+              }}
               className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 ${
                 active
                   ? 'text-lumora-gold scale-105'

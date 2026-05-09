@@ -14,7 +14,7 @@
   },
   "nav": {
     "home": "Inicio",
-    "spins": "Giros",
+    "play": "Jugar",
     "sanctuary": "Santuario",
     "community": "Comunidad",
     "shop": "Tienda"
@@ -22,12 +22,34 @@
   "home": {
     "welcome": "Bienvenido a Lumora",
     "spinDream": "Giro Onírico",
+    "chooseAdventure": "Elige tu Aventura",
+    "exploreModes": "Explora los diferentes modos de juego y gana recompensas.",
+    "travelerProfile": "Perfil de Viajero",
     "lumens": "Lumens",
     "energy": "Energía",
     "sanctuaryLevel": "Nivel Santuario",
     "currentEvent": "Evento Actual",
     "friendsOnline": "Amigos Online",
     "worldTree": "Árbol del Mundo"
+  },
+  "help": {
+    "spinsTitle": "Guía del Giro Onírico",
+    "sanctuaryTitle": "Guía del Santuario",
+    "howToWin": "¿Cómo ganar?",
+    "paylines": "Líneas de Pago",
+    "paylinesDesc": "Consigue 3 o más símbolos idénticos en una de las 20 líneas, siempre empezando desde el primer rodillo a la izquierda.",
+    "elementalSurge": "Oleada Elemental",
+    "elementalSurgeDesc": "Si aparecen 6 o más símbolos del mismo elemento (fuego, agua, etc.) en cualquier posición, recibes un bonus de Lumens.",
+    "spiritUnlock": "Captura de Espíritus",
+    "spiritUnlockDesc": "Al obtener 3 o más símbolos de un elemento, tienes una probabilidad de obtener un Espíritu de ese tipo para tu Santuario.",
+    "wildSymbol": "Comodín (Wild)",
+    "wildSymbolDesc": "El símbolo 🌀 sustituye a cualquier elemento y multiplica los premios de esa línea.",
+    "generation": "Generación Pasiva",
+    "generationDesc": "Cada espíritu colocado genera Lumens cada hora. Los espíritus más raros y de mayor nivel producen mucho más.",
+    "limit": "Límite de Población",
+    "limitDesc": "Tu capacidad depende del nivel del Santuario. Fórmula: (Nivel × 3) + 2.",
+    "collect": "Recolección",
+    "collectDesc": "Los Lumens se acumulan hasta un máximo de 8 horas. ¡No olvides recolectar antes de que se llene el cofre!"
   },
   "spins": {
     "title": "Giro Onírico",
@@ -51,7 +73,9 @@
       "rare": "Raro",
       "epic": "Épico",
       "legendary": "Legendario"
-    }
+    },
+    "emptyMerge": "No tienes suficientes espíritus del mismo tipo para fusionar.",
+    "mergeButton": "Fusionar (x3)"
   },
   "sanctuary": {
     "title": "Santuario",
@@ -138,7 +162,10 @@
     "chatPlaceholder": "Escribe un mensaje...",
     "chatDisclaimer": "Chat simulado · Próximamente chat en tiempo real",
     "achievements": "Logros",
-    "warTab": "Guerra"
+    "warTab": "Guerra",
+    "bossTab": "Jefes",
+    "arenaTab": "Coliseo",
+    "raidTab": "Saqueos"
   },
   "shop": {
     "title": "Tienda",
@@ -155,7 +182,8 @@
     "purchaseSuccess": "¡Compra Exitosa!",
     "purchaseFailed": "Error en la Compra",
     "close": "Cerrar",
-    "insufficientLumens": "Lumens insuficientes"
+    "insufficientLumens": "Lumens insuficientes",
+    "fetchError": "Error al cargar la tienda"
   },
   "events": {
     "awakening": "Hora del Despertar",
@@ -321,5 +349,67 @@
     "winner": "Ganador",
     "participantCount": "{count} participantes",
     "warBonus": "Bonus de guerra: +{multiplier}x Lumens"
+  },
+  "boss": {
+    "title": "Incursión del Vacío",
+    "attackBoss": "Atacar Jefe",
+    "hitPoints": "Puntos de Vida",
+    "damageRanking": "Ranking de Daño",
+    "selectSpirits": "Selecciona 3 espíritus para atacar",
+    "energyCost": "Coste: {cost} Energía",
+    "yourDamage": "Tu daño",
+    "totalDamage": "Daño total",
+    "bossDefeated": "¡Jefe Derrotado!",
+    "bossExpired": "El jefe ha escapado",
+    "noBoss": "No hay jefe activo. ¡Vuelve pronto!",
+    "attacking": "Atacando...",
+    "damageDealt": "¡{damage} de daño infligido!",
+    "elementAdvantage": "¡Ventaja elemental! x2",
+    "reward": "Recompensa",
+    "rank": "Puesto #{rank}"
+  },
+  "arena": {
+    "title": "El Coliseo",
+    "setDefense": "Configurar Defensa",
+    "findOpponent": "Buscar Oponente",
+    "arenaPoints": "Puntos de Arena",
+    "victory": "¡Victoria!",
+    "defeat": "Derrota",
+    "rating": "ELO: {rating}",
+    "ratingChange": "{change} puntos",
+    "selectAttackTeam": "Selecciona 3 espíritus de ataque",
+    "fight": "¡Luchar!",
+    "fighting": "Luchando...",
+    "defenseSet": "Defensa configurada",
+    "noDefense": "Configura tu equipo de defensa",
+    "opponents": "Oponentes disponibles",
+    "noOpponents": "No hay oponentes disponibles",
+    "ranking": "Clasificación Arena",
+    "power": "Poder: {power}"
+  },
+  "raid": {
+    "title": "Saqueo de Santuarios",
+    "attackSanctuary": "Saquear",
+    "lumensStolen": "¡{amount} Lumens robados!",
+    "shielded": "Protegido por Escudo",
+    "shieldActive": "Escudo activo hasta {time}",
+    "raidTargets": "Santuarios vulnerables",
+    "noTargets": "No hay santuarios vulnerables ahora",
+    "raiding": "Saqueando...",
+    "idleLumens": "Lumens inactivos: {amount}",
+    "autoShield": "Escudo automático de 2h activado",
+    "recentRaids": "Saqueos recientes"
+  },
+  "race": {
+    "title": "Carrera de Giros",
+    "active": "Carrera Activa",
+    "points": "{points} pts",
+    "position": "Posición: #{pos}",
+    "endsIn": "Finaliza en {time}",
+    "noRace": "No hay carrera activa",
+    "yourScore": "Tu puntuación",
+    "ranking": "Clasificación",
+    "finished": "¡Carrera terminada!",
+    "nextRace": "Próxima carrera en {time}"
   }
 }

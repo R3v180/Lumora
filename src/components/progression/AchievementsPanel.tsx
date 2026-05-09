@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
+import { audioService } from '@/lib/audioService';
 
 interface AchievementData {
   id: string;
@@ -106,6 +107,7 @@ export function AchievementsPanel() {
         body: JSON.stringify({ action: 'claim', achievementId }),
       });
       if (res.ok) {
+        audioService.playClaimReward();
         setClaimedIds((prev) => new Set(prev).add(achievementId));
         fetchAchievements();
         useGameStore.getState().triggerRefresh();

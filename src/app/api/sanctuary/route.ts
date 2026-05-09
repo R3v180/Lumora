@@ -384,6 +384,77 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // === AUTO-PLACE ===
+    if (action === 'auto_place') {
+      const maxPlacedSpirits = player.sanctuaryLevel * 3 + 2;
+      const decorations = await db.sanctuaryDecoration.findMany({
+        where: { sanctuaryId: player.sanctuary.id },
+      });
+      const currentPlacedCount = decorations.filter(d => d.type === 'spirit').length;
+
+      if (currentPlacedCount >= maxPlacedSpirits) {
+        return NextResponse.json({ error: 'Santuario lleno' }, { status: 400 });
+      }
+
+      const placedSpiritIds = new Set(decorations.filter(d => d.spiritId).map(d => d.spiritId!));
+      let unplacedSpirits = player.spirits
+        .filter(s => !placedSpiritIds.has(s.id))
+        .sort((a, b) => b.spiritType.lumensPerHour - a.spiritType.lumensPerHour);
+
+      if (unplacedSpirits.length === 0) {
+        return NextResponse.json({ error: 'No tienes espíritus para colocar' }, { status: 400 });
+      }
+
+      // Build grid occupancy map
+      const occupied = new Set<string>();
+      decorations.forEach(d => occupied.add(`${d.positionX},${d.positionY}`));
+
+      // Function to get terrain (same as client)
+      const getTerrain = (x: number, y: number, level: number) => {
+        const distFromCenter = Math.sqrt(Math.pow(x - 3.5, 2) + Math.pow(y - 3.5, 2));
+        if (distFromCenter > 4.5 - Math.min(level * 0.2, 1.5)) return 'water';
+        return 'grass';
+      };
+
+      const spots: {x: number, y: number}[] = [];
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          if (!occupied.has(`${x},${y}`) && getTerrain(x, y, player.sanctuaryLevel) !== 'water') {
+            spots.push({x, y});
+          }
+        }
+      }
+
+      let placedCount = 0;
+
+      // Collect placements to execute
+      const placements: { spiritId: string; x: number; y: number }[] = [];
+      for (const spirit of unplacedSpirits) {
+        if (currentPlacedCount + placedCount >= maxPlacedSpirits) break;
+        if (spots.length === 0) break;
+
+        const spot = spots.shift()!;
+        placements.push({ spiritId: spirit.id, x: spot.x, y: spot.y });
+        placedCount++;
+      }
+
+      if (placedCount > 0) {
+        await db.$transaction(async (tx) => {
+          for (const p of placements) {
+            await tx.sanctuaryDecoration.create({
+              data: { sanctuaryId: player.sanctuary!.id, type: 'spirit', spiritId: p.spiritId, positionX: p.x, positionY: p.y, level: 1 }
+            });
+            await tx.playerSpirit.update({
+              where: { id: p.spiritId },
+              data: { isPlaced: true, placedX: p.x, placedY: p.y }
+            });
+          }
+        });
+      }
+
+      return NextResponse.json({ success: true, placedCount });
+    }
+
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });
   } catch (error) {
     console.error('Sanctuary action error:', error);

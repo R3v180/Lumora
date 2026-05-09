@@ -342,10 +342,12 @@ export class DreamSpinScene extends Phaser.Scene {
       });
       // Set emit zone if the API supports it
       if (emitter && typeof emitter.setEmitZone === 'function') {
-        emitter.setEmitZone({
-          type: 'random' as const,
-          source: zone as unknown as Phaser.GameObjects.Particles.Zones.RandomZoneSource,
-        });
+        try {
+          const randomZone = new Phaser.GameObjects.Particles.Zones.RandomZone(zone as any);
+          emitter.setEmitZone(randomZone as any);
+        } catch {
+          // Zone API not available in this Phaser build
+        }
       }
       emitter.setDepth(-1);
     } catch {

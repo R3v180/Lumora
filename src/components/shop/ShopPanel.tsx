@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,6 +16,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useGameStore } from '@/lib/store';
+import { audioService } from '@/lib/audioService';
 
 interface ShopItem {
   id: string;
@@ -52,83 +55,82 @@ const ITEM_EMOJIS: Record<string, string> = {
 
 export function ShopPanel() {
   const t = useTranslations('shop');
-  const [categories, setCategories] = useState<ShopCategory[]>([]);
+  const queryClient = useQueryClient();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [lumens, setLumens] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [purchaseDialog, setPurchaseDialog] = useState<ShopItem | null>(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseResult, setPurchaseResult] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
 
-  const fetchShop = useCallback(async () => {
-    setError(null);
-    try {
+  const { data: categories = [], isLoading, error: shopError } = useQuery({
+    queryKey: ['shopCategories'],
+    queryFn: async () => {
       const res = await fetch('/api/shop');
-      if (res.ok) {
-        const data = await res.json();
-        setCategories(data.categories || []);
-        if (data.categories?.length > 0 && !activeCategory) {
-          setActiveCategory(data.categories[0].key);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch shop:', err);
-      setError('Error al cargar la tienda');
-      toast.error('Error al cargar la tienda');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      if (!res.ok) throw new Error(t('fetchError'));
+      const data = await res.json();
+      return data.categories || [];
+    },
+  });
 
-  const fetchLumens = useCallback(async () => {
-    try {
+  const { data: lumens = 0 } = useQuery({
+    queryKey: ['playerLumens'],
+    queryFn: async () => {
       const res = await fetch('/api/player');
-      if (res.ok) {
-        const data = await res.json();
-        setLumens(data.lumens);
-      }
-    } catch (err) {
-      console.error('Failed to fetch lumens:', err);
-      toast.error('Error al cargar Lumens');
-    }
-  }, []);
+      if (!res.ok) throw new Error('Error al cargar Lumens');
+      const data = await res.json();
+      return data.lumens;
+    },
+  });
 
   useEffect(() => {
-    fetchShop();
-    fetchLumens();
-  }, [fetchShop, fetchLumens]);
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].key);
+    }
+  }, [categories, activeCategory]);
 
-  const handlePurchase = async (item: ShopItem) => {
-    setIsPurchasing(true);
-    try {
+  const purchaseMutation = useMutation({
+    mutationFn: async (itemId: string) => {
       const res = await fetch('/api/shop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id }),
+        body: JSON.stringify({ itemId }),
       });
-
       const data = await res.json();
-
-      if (res.ok) {
-        setPurchaseResult(data);
-        setShowResult(true);
-        fetchLumens();
-      } else {
-        setPurchaseResult({ error: data.error });
-        setShowResult(true);
-      }
-    } catch (err) {
-      console.error('Purchase failed:', err);
-      setPurchaseResult({ error: 'Error de conexión' });
+      if (!res.ok) throw new Error(data.error || 'Error de conexión');
+      return data;
+    },
+    onSuccess: (data) => {
+      audioService.playClaimReward();
+      setPurchaseResult(data);
       setShowResult(true);
-      toast.error('Error de conexión');
-    } finally {
-      setIsPurchasing(false);
+      queryClient.invalidateQueries({ queryKey: ['playerLumens'] });
+
+      // Instant update for the TopBar
+      if (data.newLumens !== undefined) {
+        useGameStore.getState().syncPlayerStats({
+          lumens: data.newLumens,
+          energy: useGameStore.getState().energy,
+          maxEnergy: useGameStore.getState().maxEnergy,
+        });
+        useGameStore.getState().triggerRefresh();
+      }
+    },
+    onError: (error: Error) => {
+      audioService.playError();
+      setPurchaseResult({ error: error.message });
+      setShowResult(true);
+      toast.error(error.message);
+    },
+    onSettled: () => {
       setPurchaseDialog(null);
     }
+  });
+
+  const handlePurchase = (item: ShopItem) => {
+    purchaseMutation.mutate(item.id);
   };
+  
+  const isPurchasing = purchaseMutation.isPending;
+  const error = shopError ? shopError.message : null;
 
   const activeItems = categories.find((c) => c.key === activeCategory)?.items || [];
 
@@ -137,7 +139,7 @@ export function ShopPanel() {
       <div className="flex flex-col items-center py-12">
         <ShoppingBag className="h-12 w-12 text-lumora-gold/20 mb-4" />
         <p className="text-sm text-destructive mb-2">{error}</p>
-        <Button variant="outline" onClick={() => { setIsLoading(true); fetchShop(); fetchLumens(); }} className="rounded-xl">
+        <Button variant="outline" onClick={() => { queryClient.invalidateQueries({ queryKey: ['shopCategories'] }); queryClient.invalidateQueries({ queryKey: ['playerLumens'] }); }} className="rounded-xl">
           Reintentar
         </Button>
       </div>
@@ -158,7 +160,7 @@ export function ShopPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-24">
       {/* Lumens display */}
       <div className="flex items-center justify-between px-4 py-2.5 rounded-xl glass-card-subtle">
         <div className="flex items-center gap-2">
@@ -169,7 +171,7 @@ export function ShopPanel() {
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x">
         {categories.map((cat) => {
           const meta = CATEGORY_META[cat.key] || CATEGORY_META.lumens;
           const Icon = meta.icon;
@@ -198,7 +200,7 @@ export function ShopPanel() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          className="grid grid-cols-2 gap-2.5"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
         >
           {activeItems.map((item) => {
             const canAfford = lumens >= item.price;

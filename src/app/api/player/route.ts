@@ -16,6 +16,7 @@ export async function GET() {
     const player = await db.playerProfile.findUnique({
       where: { userId },
       include: {
+        user: { select: { image: true } },
         sanctuary: true,
         spirits: {
           include: { spiritType: true },
@@ -76,6 +77,7 @@ export async function GET() {
 
     return NextResponse.json({
       ...player,
+      avatar: (player as any).user?.image || null,
       sanctuary: player.sanctuary ? {
         ...player.sanctuary,
         lumensPerHour: sanctuaryLPH,

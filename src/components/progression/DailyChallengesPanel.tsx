@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { audioService } from '@/lib/audioService';
 
 interface ChallengeData {
   id: string;
@@ -124,6 +125,7 @@ export function DailyChallengesPanel() {
         body: JSON.stringify({ challengeId }),
       });
       if (res.ok) {
+        audioService.playClaimReward();
         setClaimedIds((prev) => new Set(prev).add(challengeId));
         fetchChallenges();
         useGameStore.getState().triggerRefresh();

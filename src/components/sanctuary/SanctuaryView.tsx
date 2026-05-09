@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf } from 'lucide-react';
 
@@ -125,24 +126,11 @@ function getTerrainForPosition(x: number, y: number, level: number): TerrainType
   return 'grass';
 }
 
-function getTerrainStyle(terrain: TerrainType): string {
-  switch (terrain) {
-    case 'grass': return 'bg-emerald-900/30 border-emerald-700/20 backdrop-blur-sm';
-    case 'water': return 'bg-blue-900/30 border-blue-600/20 backdrop-blur-sm';
-    case 'rock': return 'bg-stone-800/30 border-stone-600/20 backdrop-blur-sm';
-    case 'flower': return 'bg-emerald-900/35 border-pink-500/15 backdrop-blur-sm';
-    case 'sand': return 'bg-amber-900/25 border-amber-700/15 backdrop-blur-sm';
-  }
-}
-
-function getTerrainEmoji(terrain: TerrainType): string {
-  switch (terrain) {
-    case 'grass': return '';
-    case 'water': return '〰️';
-    case 'rock': return '🪨';
-    case 'flower': return '🌸';
-    case 'sand': return '';
-  }
+function getTerrainStyle(terrain: TerrainType): any {
+  return {
+    backgroundImage: `url('/assets/sanctuary/iso_${terrain}.png')`,
+    backgroundSize: 'cover',
+  };
 }
 
 export function SanctuaryView({
@@ -152,6 +140,7 @@ export function SanctuaryView({
   selectedSpiritId,
   isPlacingMode,
 }: SanctuaryViewProps) {
+  const t = useTranslations('sanctuary');
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
 
   // Create a map of positions to placed items
@@ -184,28 +173,27 @@ export function SanctuaryView({
     const terrain = getTerrainForPosition(x, y, level);
     const isOccupied = !!placedItem;
     const isHovered = hoveredTile?.x === x && hoveredTile?.y === y;
-    const isSelected = isPlacingMode && !isOccupied;
+    const isSelected = isPlacingMode && !isOccupied && !!selectedSpiritId;
 
     // Find spirit details if placed
     const spiritInfo = placedItem?.spiritId
       ? spiritDetailsMap.get(placedItem.spiritId)
       : null;
 
-    const terrainClass = getTerrainStyle(terrain);
-    const terrainEmoji = getTerrainEmoji(terrain);
+    const terrainStyle = getTerrainStyle(terrain);
 
     return (
       <motion.div
         key={key}
         className={`
-          relative aspect-square rounded-lg border cursor-pointer
+          relative aspect-square w-10 sm:w-12 md:w-14 cursor-pointer
           transition-all duration-200 select-none
-          ${terrainClass}
+          ${terrain === 'water' ? 'cursor-not-allowed opacity-50 border-0' : 'border border-white/5'}
           ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-105 z-10' : ''}
-          ${isSelected && !isHovered ? 'tile-placement-border' : ''}
-          ${isOccupied ? 'z-5 ring-1 ring-lumora-gold/40' : ''}
-          ${terrain === 'water' ? 'cursor-not-allowed opacity-60' : ''}
+          ${isSelected && !isHovered ? 'ring-2 ring-lumora-gold animate-pulse shadow-[0_0_15px_rgba(255,215,0,0.5)] z-10' : ''}
+          ${isOccupied ? 'z-5' : ''}
         `}
+        style={terrainStyle}
         onMouseEnter={() => setHoveredTile({ x, y })}
         onMouseLeave={() => setHoveredTile(null)}
         onClick={() => {
@@ -219,12 +207,6 @@ export function SanctuaryView({
         whileHover={isSelected ? { scale: 1.05 } : {}}
         whileTap={isSelected ? { scale: 0.95 } : {}}
       >
-        {/* Terrain emoji */}
-        {terrainEmoji && !isOccupied && (
-          <span className="absolute inset-0 flex items-center justify-center text-sm opacity-50">
-            {terrainEmoji}
-          </span>
-        )}
 
         {/* Placed spirit */}
         {isOccupied && spiritInfo && (
@@ -232,25 +214,17 @@ export function SanctuaryView({
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            className={`
-              absolute inset-1 rounded-md border-2 flex items-center justify-center
-              glass-card-subtle
-              ${RARITY_COLORS[spiritInfo.spiritType.rarity]}
-              ${RARITY_GLOW[spiritInfo.spiritType.rarity]}
-              spirit-float-shadow
-            `}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.6) translateY(-25%)', transformOrigin: 'bottom center' }}
           >
-            <span className="text-lg sm:text-xl">
-              {ELEMENT_ICONS[spiritInfo.spiritType.element]
-                ? (() => {
-                    const ElIcon = ELEMENT_ICONS[spiritInfo.spiritType.element].icon;
-                    return <ElIcon className={`h-5 w-5 sm:h-6 w-6 ${ELEMENT_ICONS[spiritInfo.spiritType.element].color}`} />;
-                  })()
-                : ELEMENT_EMOJIS[spiritInfo.spiritType.element]
-              }
-            </span>
+            <img 
+              src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
+              alt={spiritInfo.spiritType.name} 
+              className="w-full h-full object-contain" 
+              style={{ filter: 'drop-shadow(0px 8px 4px rgba(0,0,0,0.6))' }}
+            />
             {/* Level badge */}
-            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-lumora-purple/80 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-lumora-purple/90 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-md">
               {spiritInfo.level}
             </span>
           </motion.div>
@@ -258,22 +232,18 @@ export function SanctuaryView({
 
         {/* Placed decoration (non-spirit) */}
         {isOccupied && placedItem && !placedItem.spiritId && (
-          <div className="absolute inset-1 rounded-md border border-border/30 flex items-center justify-center bg-card/50">
-            <span className="text-lg">
-              {placedItem.type === 'tree' ? '🌳' :
-               placedItem.type === 'fountain' ? '⛲' :
-               placedItem.type === 'lamp' ? '🏮' :
-               placedItem.type === 'crystal' ? '💎' :
-               placedItem.type === 'flower_bed' ? '🌺' :
-               '✨'}
-            </span>
+          <div 
+            className="absolute inset-1 flex items-center justify-center pointer-events-none"
+            style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.5) translateY(-20%)', transformOrigin: 'bottom center' }}
+          >
+            <img src={`/assets/sanctuary/deco_${placedItem.type}.png`} className="w-full h-full object-contain filter drop-shadow-lg" />
           </div>
         )}
 
         {/* Hover tooltip for placing */}
         {isSelected && isHovered && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-lumora-gold/90 text-[10px] font-bold text-black whitespace-nowrap z-20">
-            Colocar aquí
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-lumora-gold/90 text-[10px] font-bold text-black whitespace-nowrap z-20" style={{ transform: 'rotateZ(45deg) rotateX(-60deg)' }}>
+            {t('placeHere')}
           </div>
         )}
       </motion.div>
@@ -341,18 +311,43 @@ export function SanctuaryView({
           </div>
         )}
 
-        {/* Isometric grid */}
-        <div className="grid grid-cols-8 gap-1 p-1">
-          {Array.from({ length: GRID_SIZE }).map((_, y) =>
-            Array.from({ length: GRID_SIZE }).map((_, x) => renderTile(x, y))
-          )}
+        {/* Isometric grid — horizontally scrollable on narrow screens */}
+        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-hide px-2 pt-4 pb-12">
+          <div className="relative min-w-[320px] mx-auto w-fit">
+            {/* Floating island base */}
+            <div 
+              className="absolute pointer-events-none z-0"
+              style={{
+                bottom: '-30%',
+                left: '10%',
+                right: '10%',
+                height: '60%',
+                clipPath: 'polygon(20% 0%, 80% 0%, 100% 30%, 50% 100%, 0% 30%)',
+                background: 'linear-gradient(180deg, rgba(60,35,15,0.6) 0%, rgba(30,18,8,0.8) 40%, rgba(10,5,2,0.9) 100%)',
+                filter: 'blur(1px)',
+              }}
+            />
+            <div 
+              className="grid grid-cols-8 gap-0 relative z-10"
+              style={{ transform: 'rotateX(60deg) rotateZ(-45deg)', transformStyle: 'preserve-3d', width: 'fit-content', margin: '0 auto' }}
+            >
+              {Array.from({ length: GRID_SIZE }).map((_, y) =>
+                Array.from({ length: GRID_SIZE }).map((_, x) => renderTile(x, y))
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Cloud decoration at bottom */}
-        <div className="flex justify-center gap-4 mt-2 opacity-30">
-          <span className="text-sm">☁️</span>
-          <span className="text-xs">☁️</span>
-          <span className="text-sm">☁️</span>
+        {/* Wisps below the island */}
+        <div className="flex justify-center gap-6 mt-3 pointer-events-none">
+          {[0.3, 0.5, 0.2].map((opacity, i) => (
+            <motion.div
+              key={i}
+              className="w-8 h-2 rounded-full bg-lumora-blue/20"
+              animate={{ opacity: [opacity, opacity + 0.2, opacity], scaleX: [1, 1.3, 1] }}
+              transition={{ duration: 3 + i, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          ))}
         </div>
       </div>
     </div>

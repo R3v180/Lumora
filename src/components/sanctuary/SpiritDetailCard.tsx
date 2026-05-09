@@ -116,7 +116,7 @@ export function SpiritDetailCard({
             {/* Spirit visual */}
             <div className="relative pt-8 pb-4 px-6 text-center">
               <div className="w-20 h-20 mx-auto rounded-2xl bg-background/50 border-2 border-border/20 flex items-center justify-center text-5xl mb-3">
-                {ELEMENT_EMOJIS[spirit.spiritType.element]}
+                <img src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} className="w-16 h-16 object-contain" />
               </div>
 
               <h3 className="text-lg font-fantasy font-title font-bold text-foreground">

@@ -115,6 +115,155 @@ function TreeParticle({ delay, x, duration }: { delay: number; x: number; durati
   );
 }
 
+// ─── Procedural SVG Tree ───────────────────────────────────────────
+const ELEMENT_COLORS: Record<ElementKey, { leaf: string; glow: string; accent: string }> = {
+  fire:   { leaf: '#ff6b35', glow: '#ff4500', accent: '#ffd700' },
+  water:  { leaf: '#3498db', glow: '#2980b9', accent: '#85e0ff' },
+  dream:  { leaf: '#dda0dd', glow: '#9b59b6', accent: '#e8b4f8' },
+  nature: { leaf: '#27ae60', glow: '#2ecc71', accent: '#a8e6cf' },
+  star:   { leaf: '#f1c40f', glow: '#f39c12', accent: '#fff9c4' },
+};
+
+function ProceduralTree({ level, dominantElement }: { level: number; dominantElement: ElementKey }) {
+  const ec = ELEMENT_COLORS[dominantElement];
+  const branches = Math.min(Math.floor(level / 2) + 2, 12);
+  const leafRadius = Math.min(20 + level * 3, 65);
+  const glowRadius = leafRadius + 15;
+  const trunkH = Math.min(30 + level * 2, 60);
+  const leafClusters = Math.min(3 + Math.floor(level / 3), 10);
+  const sparkles = Math.min(Math.floor(level / 4), 8);
+
+  return (
+    <svg viewBox="0 0 200 200" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="treeGlow">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="leafGlow">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <radialGradient id="coreGlow" cx="50%" cy="45%" r="50%">
+          <stop offset="0%" stopColor={ec.glow} stopOpacity="0.4" />
+          <stop offset="100%" stopColor={ec.glow} stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="trunkGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5a3a1a" />
+          <stop offset="50%" stopColor="#3d2510" />
+          <stop offset="100%" stopColor="#2a1a08" />
+        </linearGradient>
+      </defs>
+
+      {/* Ambient glow */}
+      <circle cx="100" cy={100 - trunkH * 0.3} r={glowRadius} fill="url(#coreGlow)" />
+
+      {/* Trunk */}
+      <path
+        d={`M94,${160} Q92,${160 - trunkH * 0.5} 96,${160 - trunkH} L104,${160 - trunkH} Q108,${160 - trunkH * 0.5} 106,${160} Z`}
+        fill="url(#trunkGrad)"
+        stroke="#4a2a0a"
+        strokeWidth="0.5"
+      />
+
+      {/* Roots */}
+      {level >= 3 && (
+        <>
+          <path d={`M94,160 Q80,162 72,168`} fill="none" stroke="#3d2510" strokeWidth="3" strokeLinecap="round" />
+          <path d={`M106,160 Q120,162 128,168`} fill="none" stroke="#3d2510" strokeWidth="3" strokeLinecap="round" />
+          {level >= 10 && <path d={`M98,162 Q85,170 78,174`} fill="none" stroke="#3d2510" strokeWidth="2" strokeLinecap="round" />}
+        </>
+      )}
+
+      {/* Branches */}
+      {Array.from({ length: branches }).map((_, i) => {
+        const angle = (i / branches) * Math.PI * 1.4 - Math.PI * 0.7;
+        const len = 15 + Math.random() * 20 + level;
+        const startY = 160 - trunkH * (0.3 + (i / branches) * 0.6);
+        const endX = 100 + Math.cos(angle) * len;
+        const endY = startY + Math.sin(angle) * len * 0.5 - 10;
+        const cpX = 100 + Math.cos(angle) * len * 0.5;
+        const cpY = startY - 5;
+        return (
+          <path
+            key={`b${i}`}
+            d={`M100,${startY} Q${cpX},${cpY} ${endX},${endY}`}
+            fill="none"
+            stroke="#4a2a0a"
+            strokeWidth={Math.max(1, 3 - i * 0.2)}
+            strokeLinecap="round"
+            opacity={0.8}
+          />
+        );
+      })}
+
+      {/* Leaf clusters */}
+      {Array.from({ length: leafClusters }).map((_, i) => {
+        const angle = (i / leafClusters) * Math.PI * 2;
+        const dist = leafRadius * (0.4 + Math.random() * 0.6);
+        const cx = 100 + Math.cos(angle) * dist;
+        const cy = (100 - trunkH * 0.3) + Math.sin(angle) * dist * 0.7;
+        const r = 8 + Math.random() * 12 + level * 0.5;
+        return (
+          <circle
+            key={`l${i}`}
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill={ec.leaf}
+            opacity={0.25 + Math.random() * 0.2}
+            filter="url(#leafGlow)"
+          />
+        );
+      })}
+
+      {/* Main canopy */}
+      <ellipse
+        cx="100"
+        cy={100 - trunkH * 0.3}
+        rx={leafRadius}
+        ry={leafRadius * 0.8}
+        fill={ec.leaf}
+        opacity="0.18"
+        filter="url(#leafGlow)"
+      />
+
+      {/* Sparkle orbs */}
+      {Array.from({ length: sparkles }).map((_, i) => {
+        const angle = (i / sparkles) * Math.PI * 2 + 0.3;
+        const dist = leafRadius * 0.6;
+        const cx = 100 + Math.cos(angle) * dist;
+        const cy = (100 - trunkH * 0.3) + Math.sin(angle) * dist * 0.7;
+        return (
+          <circle
+            key={`s${i}`}
+            cx={cx}
+            cy={cy}
+            r={2 + Math.random() * 2}
+            fill={ec.accent}
+            opacity={0.6 + Math.random() * 0.4}
+            filter="url(#treeGlow)"
+          />
+        );
+      })}
+
+      {/* Crown gem for high levels */}
+      {level >= 16 && (
+        <>
+          <circle cx="100" cy={100 - trunkH * 0.3 - leafRadius * 0.5} r="5" fill={ec.accent} filter="url(#treeGlow)" opacity="0.9" />
+          <circle cx="100" cy={100 - trunkH * 0.3 - leafRadius * 0.5} r="2" fill="white" opacity="0.8" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 // Element Orb component orbiting the tree
 function ElementOrb({
   element,
@@ -266,14 +415,11 @@ export function WorldTreeWidget() {
     }
   };
 
-  // Tree visual based on level
-  const getTreeEmoji = (level: number) => {
-    if (level >= 21) return '🌳';
-    if (level >= 16) return '🌲';
-    if (level >= 11) return '🌳';
-    if (level >= 6) return '🌲';
-    if (level >= 3) return '🌿';
-    return '🌱';
+  const getTreeImage = (level: number) => {
+    if (level >= 21) return '/assets/world_tree/tree_lvl_max.png';
+    if (level >= 11) return '/assets/world_tree/tree_lvl3.png';
+    if (level >= 6) return '/assets/world_tree/tree_lvl2.png';
+    return '/assets/world_tree/tree_lvl1.png';
   };
 
   const getTreeSize = (level: number) => {
@@ -375,14 +521,8 @@ export function WorldTreeWidget() {
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             />
 
-            {/* Tree icon */}
-            {level >= 6 ? (
-              <TreePine className={`h-full w-full text-lumora-emerald drop-shadow-[0_0_20px_rgba(16,185,129,0.3)]`} />
-            ) : (
-              <span className="text-6xl" role="img" aria-label="World Tree">
-                {getTreeEmoji(level)}
-              </span>
-            )}
+            {/* Procedural SVG Tree */}
+            <ProceduralTree level={level} dominantElement={dominant} />
 
             {/* Branch sparkles for higher levels */}
             {level >= 10 && (
