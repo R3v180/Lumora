@@ -12,10 +12,8 @@ import { Input } from '@/components/ui/input';
 import { useSession } from 'next-auth/react';
 import { useRouter } from '@/i18n/navigation';
 import { SanctuaryView } from '@/components/sanctuary/SanctuaryView';
-import { SpiritPlacementPanel } from '@/components/sanctuary/SpiritPlacementPanel';
+import { SanctuaryManager } from '@/components/sanctuary/SanctuaryManager';
 import { audioService } from '@/lib/audioService';
-import { LumensCollector } from '@/components/sanctuary/LumensCollector';
-import { SpiritDetailCard } from '@/components/sanctuary/SpiritDetailCard';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -96,9 +94,7 @@ export default function SanctuaryPage() {
   // Interaction state
   const [isPlacingMode, setIsPlacingMode] = useState(false);
   const [selectedSpiritId, setSelectedSpiritId] = useState<string | null>(null);
-  const [showPlacementPanel, setShowPlacementPanel] = useState(false);
-  const [selectedSpiritDetail, setSelectedSpiritDetail] = useState<PlacedSpirit | null>(null);
-  const [showSpiritDetail, setShowSpiritDetail] = useState(false);
+  const [showManager, setShowManager] = useState(false);
   const refreshKey = useGameStore(s => s.refreshKey);
 
   // Player lumens (for collector display)
@@ -284,8 +280,7 @@ export default function SanctuaryPage() {
   // Start placing mode
   const startPlacingMode = () => {
     if (!sanctuary) return;
-    setIsPlacingMode(true);
-    setShowPlacementPanel(true);
+    setShowManager(true);
   };
 
   // Rename sanctuary
@@ -471,25 +466,23 @@ export default function SanctuaryPage() {
         />
       </div>
 
-      {/* Spirit Placement Panel */}
-      <SpiritPlacementPanel
-        isOpen={showPlacementPanel}
-        onClose={() => setShowPlacementPanel(false)}
-        spirits={sanctuary?.unplacedSpirits || []}
-        onSelectSpirit={(id) => setSelectedSpiritId(id)}
-        selectedSpiritId={selectedSpiritId}
-        onAutoPlace={handleAutoPlace}
-      />
-
-      {/* Spirit Detail Card */}
-      <SpiritDetailCard
-        spirit={selectedSpiritDetail}
-        isOpen={showSpiritDetail}
+      {/* Unified Sanctuary Manager (The practical way) */}
+      <SanctuaryManager
+        isOpen={showManager}
         onClose={() => {
-          setShowSpiritDetail(false);
-          setSelectedSpiritDetail(null);
+          setShowManager(false);
+          setIsPlacingMode(false);
         }}
+        placedSpirits={sanctuary?.placedSpirits || []}
+        unplacedSpirits={sanctuary?.unplacedSpirits || []}
+        maxSlots={sanctuary?.maxPlacedSpirits || 5}
         onRemove={handleRemoveSpirit}
+        onPlace={async (id) => {
+          setSelectedSpiritId(id);
+          setIsPlacingMode(true);
+          setShowManager(false);
+          toast.info('Toca una casilla para colocar al espíritu');
+        }}
       />
     </div>
   );
