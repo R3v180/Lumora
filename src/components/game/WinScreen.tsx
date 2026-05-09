@@ -1,13 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Trophy, Zap, Box, ChevronRight, X } from 'lucide-react';
+import { Sparkles, Trophy, Zap, Box, ChevronRight, X, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { audioService } from '@/lib/audioService';
 import { useEffect } from 'react';
 
 interface Reward {
-  type: 'lumens' | 'energy' | 'spirit' | 'chest';
+  type: 'lumens' | 'energy' | 'spirit' | 'chest' | 'experience';
   amount: number | string;
   rarity?: string;
 }
@@ -105,9 +105,10 @@ export function WinScreen({ isOpen, onClose, title = "¡Victoria!", subtitle = "
                       {reward.type === 'lumens' && <Sparkles className="h-5 w-5 text-lumora-gold" />}
                       {reward.type === 'energy' && <Zap className="h-5 w-5 text-lumora-blue" />}
                       {reward.type === 'chest' && <Box className="h-5 w-5 text-lumora-purple" />}
+                      {reward.type === 'experience' && <Star className="h-5 w-5 text-lumora-emerald" />}
                     </div>
                     <span className="text-xs font-bold whitespace-nowrap">
-                      +{reward.amount} {reward.type === 'lumens' ? 'Lumens' : reward.type === 'energy' ? '⚡' : ''}
+                      +{reward.amount} {reward.type === 'lumens' ? 'Lumens' : reward.type === 'energy' ? '⚡' : reward.type === 'experience' ? 'XP' : ''}
                     </span>
                   </motion.div>
                 ))}

@@ -8,6 +8,7 @@ import {
   ENERGY_COST,
 } from '@/game/engine/spinEngine';
 import { GameSymbol } from '@/game/engine/symbols';
+import { updateChallengeProgress } from '@/lib/challenges';
 
 // World Tree buff helpers
 interface TreeBuff {
@@ -181,6 +182,16 @@ export async function POST(request: NextRequest) {
           contributed: spinResult.totalPayout,
         };
       }
+    }
+
+    // Update challenge progress
+    await updateChallengeProgress(player.id, 'spin_combo', 1);
+    if (spiritRewards.length > 0) {
+      await updateChallengeProgress(player.id, 'collect_spirit', spiritRewards.length);
+    }
+    const elementalTotal = Object.values(spinResult.elementContributions).reduce((a, b) => a + b, 0);
+    if (elementalTotal > 0) {
+      await updateChallengeProgress(player.id, 'world_contribution', Math.floor(elementalTotal / 2));
     }
 
     // Update player data in a transaction

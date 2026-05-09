@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { audioService } from '@/lib/audioService';
+import { WinScreen } from '@/components/game/WinScreen';
 
 interface ChallengeData {
   id: string;
@@ -93,6 +94,7 @@ export function DailyChallengesPanel() {
   const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
+  const [showReward, setShowReward] = useState<any | null>(null);
   const timeLeft = useCountdownToMidnight();
 
   const fetchChallenges = useCallback(async () => {
@@ -127,6 +129,14 @@ export function DailyChallengesPanel() {
       if (res.ok) {
         audioService.playClaimReward();
         setClaimedIds((prev) => new Set(prev).add(challengeId));
+        const data = await res.json();
+        if (data.reward) {
+          const rewards: any[] = [];
+          if (data.reward.lumens) rewards.push({ type: 'lumens', amount: data.reward.lumens });
+          if (data.reward.energy) rewards.push({ type: 'energy', amount: data.reward.energy });
+          if (data.reward.experience) rewards.push({ type: 'experience', amount: data.reward.experience });
+          setShowReward({ rewards, title: "¡Desafío Completado!" });
+        }
         fetchChallenges();
         useGameStore.getState().triggerRefresh();
       }
@@ -349,7 +359,18 @@ export function DailyChallengesPanel() {
             </motion.div>
           );
         })}
-      </motion.div>
+            </motion.div>
+
+      {/* Reward Popup */}
+      {showReward && (
+        <WinScreen 
+          isOpen={!!showReward}
+          onClose={() => setShowReward(null)}
+          title={showReward.title}
+          subtitle="Tus esfuerzos en Lumora han sido recompensados"
+          rewards={showReward.rewards}
+        />
+      )}
     </div>
   );
 }
