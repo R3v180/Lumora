@@ -20,7 +20,6 @@ export async function GET() {
         sanctuary: true,
         spirits: {
           include: { spiritType: true },
-          take: 20,
           orderBy: { acquiredAt: 'desc' },
         },
         guild: { include: { guild: true } },
@@ -55,6 +54,20 @@ export async function GET() {
       player.energy += energyRegenerated;
     }
 
+    // Calculate collection power
+    const POWER_MAP: Record<string, number> = {
+      common: 10,
+      uncommon: 25,
+      rare: 60,
+      epic: 150,
+      legendary: 400
+    };
+
+    const totalPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
+    // Multiplier: 1.0 + 0.01 per 100 power (logarithmic or linear? let's go linear for now, but capped)
+    // Example: 1000 power = 1.1x, 5000 power = 1.5x
+    const collectionMultiplier = 1.0 + (totalPower / 10000); 
+
     // Calculate sanctuary lumens per hour including placed spirits
     let sanctuaryLPH = player.sanctuary?.lumensPerHour || 0;
     if (player.sanctuary) {
@@ -78,10 +91,13 @@ export async function GET() {
     return NextResponse.json({
       ...player,
       avatar: (player as any).user?.image || null,
+      totalPower,
+      collectionMultiplier,
       sanctuary: player.sanctuary ? {
         ...player.sanctuary,
         lumensPerHour: sanctuaryLPH,
       } : null,
+      spirits: player.spirits.slice(0, 20), // Keep response small for normal fetch
     });
   } catch (error) {
     console.error('Player fetch error:', error);

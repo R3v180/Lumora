@@ -6,7 +6,9 @@ import { Sparkles, GitMerge, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SlotMachine } from '@/components/game/SlotMachine';
 import { MergePanel } from '@/components/game/MergePanel';
+import { CollectionPanel } from '@/components/collection/CollectionPanel';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import { SpinsHelpDialog } from '@/components/game/SpinsHelpDialog';
 import { RaceWidget } from '@/components/game/RaceWidget';
@@ -14,6 +16,7 @@ import { RaceWidget } from '@/components/game/RaceWidget';
 export default function SpinsPage() {
   const t = useTranslations('spins');
   const [showMerge, setShowMerge] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
 
   return (
     <div className="flex flex-col items-center px-4 pt-4 pb-8 min-h-[70vh]">
@@ -54,12 +57,20 @@ export default function SpinsPage() {
         <Button
           variant="outline"
           size="sm"
+          onClick={() => setShowCollection(true)}
           className="rounded-xl gap-1.5 border-lumora-gold/30 hover:bg-lumora-gold/10"
         >
           <BookOpen className="h-4 w-4 text-lumora-gold" />
           Colección
         </Button>
       </div>
+
+      {/* Collection Sheet */}
+      <Sheet open={showCollection} onOpenChange={setShowCollection}>
+        <SheetContent side="bottom" className="h-[90vh] p-0 border-t-lumora-gold/20 overflow-hidden">
+          <CollectionPanel />
+        </SheetContent>
+      </Sheet>
 
       {/* Element legend */}
       <div className="mt-6 w-full max-w-sm">

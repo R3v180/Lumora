@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import { useTranslations } from 'next-intl';
-import { Sparkles, Zap, Shield, Globe } from 'lucide-react';
+import { Sparkles, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { usePlayer } from '@/hooks/usePlayer';
 import { useGameStore } from '@/lib/store';
@@ -24,11 +24,13 @@ export function TopBar() {
   const storeEnergy = useGameStore((s) => s.energy);
   const storeMaxEnergy = useGameStore((s) => s.maxEnergy);
   const storeSanctuaryLevel = useGameStore((s) => s.sanctuaryLevel);
+  const storeTotalPower = useGameStore((s) => s.totalPower);
 
   const lumens = player !== null ? storeLumens : 100;
   const energy = player !== null ? storeEnergy : 100;
   const maxEnergy = player !== null ? storeMaxEnergy : 100;
   const sanctuaryLevel = player !== null ? storeSanctuaryLevel : 1;
+  const totalPower = player !== null ? storeTotalPower : 0;
 
   // Chest notification
   const [chestCount, setChestCount] = useState(0);
@@ -96,6 +98,10 @@ export function TopBar() {
           <div className="flex items-center gap-1 rounded-full bg-lumora-purple/10 px-2 py-1 border border-lumora-purple/15">
             <Shield className="h-3 w-3 text-lumora-purple" />
             <span className="text-[11px] font-semibold text-lumora-purple font-title">{sanctuaryLevel}</span>
+          </div>
+          <div className="hidden xs:flex items-center gap-1 rounded-full bg-lumora-pink/10 px-2 py-1 border border-lumora-pink/15">
+            <TrendingUp className="h-3 w-3 text-lumora-pink" />
+            <span className="text-[11px] font-semibold text-lumora-pink font-title">{totalPower >= 1000 ? `${(totalPower/1000).toFixed(1)}k` : totalPower}</span>
           </div>
         </div>
       </div>

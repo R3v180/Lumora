@@ -18,6 +18,8 @@ export interface PlayerState {
   energy: number;
   maxEnergy: number;
   sanctuaryLevel: number;
+  totalPower: number;
+  collectionMultiplier: number;
 
   // Game state
   isSpinning: boolean;
@@ -54,7 +56,16 @@ export interface PlayerState {
   setOfflineRewardsClaimed: () => void;
   triggerRefresh: () => void;
   // Instant sync from server responses (no API re-fetch needed)
-  syncPlayerStats: (stats: { lumens: number; energy: number; maxEnergy: number; level?: number; experience?: number; sanctuaryLevel?: number }) => void;
+  syncPlayerStats: (stats: { 
+    lumens: number; 
+    energy: number; 
+    maxEnergy: number; 
+    level?: number; 
+    experience?: number; 
+    sanctuaryLevel?: number;
+    totalPower?: number;
+    collectionMultiplier?: number;
+  }) => void;
 }
 
 export const useGameStore = create<PlayerState>((set, get) => ({
@@ -66,6 +77,8 @@ export const useGameStore = create<PlayerState>((set, get) => ({
   energy: 100,
   maxEnergy: 100,
   sanctuaryLevel: 1,
+  totalPower: 0,
+  collectionMultiplier: 1.0,
 
   isSpinning: false,
   autoSpin: false,
@@ -148,5 +161,7 @@ export const useGameStore = create<PlayerState>((set, get) => ({
       ...(stats.level !== undefined ? { level: stats.level } : {}),
       ...(stats.experience !== undefined ? { experience: stats.experience } : {}),
       ...(stats.sanctuaryLevel !== undefined ? { sanctuaryLevel: stats.sanctuaryLevel } : {}),
+      ...(stats.totalPower !== undefined ? { totalPower: stats.totalPower } : {}),
+      ...(stats.collectionMultiplier !== undefined ? { collectionMultiplier: stats.collectionMultiplier } : {}),
     }),
 }));

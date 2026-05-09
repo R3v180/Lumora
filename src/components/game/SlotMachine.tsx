@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX, Video } from 'lucide-react';
+import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX, Video, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -203,6 +203,7 @@ export function SlotMachine() {
   const [lumens, setLumens] = useState(100);
   const [energy, setEnergy] = useState(100);
   const [maxEnergy, setMaxEnergy] = useState(100);
+  const collectionMultiplier = useGameStore(s => s.collectionMultiplier);
   const [spinCount, setSpinCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   // All reels start as 'stopped' so the initial grid renders without animation
@@ -390,6 +391,8 @@ export function SlotMachine() {
           maxEnergy: spinResult.player.maxEnergy,
           level: spinResult.player.level,
           experience: spinResult.player.experience,
+          totalPower: spinResult.player.totalPower,
+          collectionMultiplier: spinResult.player.collectionMultiplier,
         });
         useGameStore.getState().triggerRefresh();
         window.dispatchEvent(new Event('player-update'));
@@ -658,6 +661,18 @@ export function SlotMachine() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Collection Multiplier Badge */}
+        {collectionMultiplier > 1 && !isSpinning && (
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute top-2 right-2 z-10 px-2 py-1 rounded-lg bg-lumora-pink/20 border border-lumora-pink/30 backdrop-blur-sm flex items-center gap-1.5"
+          >
+            <TrendingUp className="h-3 w-3 text-lumora-pink" />
+            <span className="text-[10px] font-bold text-lumora-pink">x{collectionMultiplier.toFixed(3)}</span>
+          </motion.div>
+        )}
 
         {/* ── Win overlay — anchored TOP of grid ── */}
         <AnimatePresence>

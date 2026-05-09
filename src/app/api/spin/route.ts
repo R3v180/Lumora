@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
     // Get player profile
     const player = await db.playerProfile.findUnique({
       where: { userId },
-      include: { sanctuary: true, guild: true },
+      include: { 
+        sanctuary: true, 
+        guild: true,
+        spirits: { include: { spiritType: true } }
+      },
     });
 
     if (!player) {
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Energía insuficiente',
           energy: currentEnergy,
-          maxEnergy: player.maxEnergy,
+          maxEnergy: player.maxEnergy, totalPower: updatedPlayer.totalPower, collectionMultiplier: updatedPlayer.collectionMultiplier,
           nextRefillMinutes: 5 - (minutesPassed % 5),
         },
         { status: 400 }
@@ -86,9 +90,20 @@ export async function POST(request: NextRequest) {
     // Execute spin
     const spinResult: ReelResult = executeSpin();
 
-    // Apply World Tree buffs
-    // 1. Lumens multiplier
-    const buffedPayout = Math.floor(spinResult.totalPayout * treeBuffs.lumensMultiplier);
+    // Apply Multipliers
+    // 1. Collection Multiplier
+    const POWER_MAP: Record<string, number> = {
+      common: 10,
+      uncommon: 25,
+      rare: 60,
+      epic: 150,
+      legendary: 400
+    };
+    const totalPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
+    const collectionMultiplier = 1.0 + (totalPower / 10000); 
+
+    // 2. World Tree buffs
+    const buffedPayout = Math.floor(spinResult.totalPayout * treeBuffs.lumensMultiplier * collectionMultiplier);
 
     // 2. Energy regen bonus: effectively give back some energy
     const energyDiscount = treeBuffs.energyRegenBonus;
@@ -354,7 +369,7 @@ export async function POST(request: NextRequest) {
         chestDrop = { rarity: chestRarity };
       }
 
-      return { updated, chestDrop };
+      return { updated, chestDrop, totalPower, collectionMultiplier };
     });
 
     // Return full spin result
@@ -395,7 +410,7 @@ export async function POST(request: NextRequest) {
       player: {
         lumens: newLumens,
         energy: newEnergy,
-        maxEnergy: player.maxEnergy,
+        maxEnergy: player.maxEnergy, totalPower: updatedPlayer.totalPower, collectionMultiplier: updatedPlayer.collectionMultiplier,
         level: updatedPlayer.updated.level,
         experience: updatedPlayer.updated.experience,
       },

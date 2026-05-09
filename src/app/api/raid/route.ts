@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     const player = await db.playerProfile.findUnique({
       where: { userId },
-      include: { sanctuary: true },
+      include: { sanctuary: true, spirits: { include: { spiritType: true } } },
     });
 
     if (!player) {
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     const target = await db.playerProfile.findUnique({
       where: { id: targetId },
-      include: { sanctuary: true },
+      include: { sanctuary: true, spirits: { include: { spiritType: true } } },
     });
 
     if (!target || !target.sanctuary) {
@@ -150,13 +150,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Objetivo protegido por escudo' }, { status: 400 });
     }
 
+    // Calculate Power
+    const POWER_MAP: Record<string, number> = {
+      common: 10,
+      uncommon: 25,
+      rare: 60,
+      epic: 150,
+      legendary: 400
+    };
+    const attackerPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
+    const defenderPower = target.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
+
+    // Success chance: base 70%, modified by power difference
+    // If attacker power is double defender power, chance is 100%
+    // If defender power is double attacker power, chance is 20%
+    const powerRatio = attackerPower / (defenderPower || 1);
+    const successChance = Math.max(0.1, Math.min(1.0, 0.7 * powerRatio));
+
+    if (Math.random() > successChance) {
+      // Failed raid: still costs energy but awards less or nothing
+      await db.playerProfile.update({
+        where: { id: player.id },
+        data: { energy: { decrement: RAID_ENERGY_COST } },
+      });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Tus espíritus no fueron lo suficientemente fuertes para romper las defensas.',
+        attackerPower,
+        defenderPower,
+        newEnergy: player.energy - RAID_ENERGY_COST 
+      });
+    }
+
     // Calculate stealable lumens
     const now = new Date();
     const hoursSinceCollect = Math.min(8,
       (now.getTime() - target.sanctuary.lastCollectAt.getTime()) / 3600000
     );
     const idleLumens = Math.floor(target.sanctuary.lumensPerHour * hoursSinceCollect);
-    const stolenLumens = Math.floor(idleLumens * STEAL_PERCENTAGE);
+    
+    // Reduce stolen percentage if defender is stronger
+    const effectiveStealPercentage = STEAL_PERCENTAGE * Math.min(1.0, powerRatio);
+    const stolenLumens = Math.floor(idleLumens * effectiveStealPercentage);
 
     if (stolenLumens <= 0) {
       return NextResponse.json({ error: 'No hay lumens que robar' }, { status: 400 });
