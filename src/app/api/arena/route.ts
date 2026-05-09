@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
 
 const ARENA_ENERGY_COST = 15;
 const K_FACTOR = 32; // ELO K-factor
@@ -281,6 +282,14 @@ export async function POST(request: NextRequest) {
           newLumens: player.lumens + lumensReward,
         };
       });
+
+      // Update challenge progress (Social/Arena)
+      await updateChallengeProgress(player.id, 'arena_battles', 1);
+      
+      // Update achievement progress (Combat)
+      if (result.victory) {
+        await updateAchievementProgress(player.id, 'combat', 1);
+      }
 
       return NextResponse.json(result);
     }

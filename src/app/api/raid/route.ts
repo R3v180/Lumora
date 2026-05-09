@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
 
 const RAID_ENERGY_COST = 20;
 const STEAL_PERCENTAGE = 0.2; // 20% of idle lumens
@@ -243,6 +244,12 @@ export async function POST(request: NextRequest) {
         shieldUntil: new Date(now.getTime() + AUTO_SHIELD_HOURS * 60 * 60 * 1000).toISOString(),
       };
     });
+
+    // Update challenge progress (Exploration/Raid)
+    await updateChallengeProgress(player.id, 'raid_sanctuaries', 1);
+    
+    // Update achievement progress (Exploration)
+    await updateAchievementProgress(player.id, 'exploration', 1);
 
     return NextResponse.json(result);
   } catch (error) {
