@@ -185,9 +185,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update challenge progress
-    await updateChallengeProgress(player.id, 'spin_combo', 1);
+    await updateChallengeProgress(player.id, 'spins', 1);
+    await updateChallengeProgress(player.id, 'spin_combo', 1); // Keep for backwards compatibility if needed
     if (spiritRewards.length > 0) {
       await updateChallengeProgress(player.id, 'collect_spirit', spiritRewards.length);
+      await updateChallengeProgress(player.id, 'spirits', spiritRewards.length);
     }
     const elementalTotal = Object.values(spinResult.elementContributions).reduce((a, b) => a + b, 0);
     if (elementalTotal > 0) {

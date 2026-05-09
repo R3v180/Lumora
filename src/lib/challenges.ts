@@ -13,9 +13,9 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
 
     // --- DAILY CHALLENGE UPDATE (Wrapped in try-catch) ---
     try {
-      // Find the challenge for today
-      const dailyModel = (db as any).dailyChallenge;
-      const playerDailyModel = (db as any).playerDailyChallenge;
+      // Find the challenge for today using dynamic access to avoid type issues
+      const dailyModel = (db as any)['dailyChallenge'];
+      const playerDailyModel = (db as any)['playerDailyChallenge'];
 
       if (dailyModel && playerDailyModel) {
         const challenge = await dailyModel.findFirst({
@@ -30,7 +30,7 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
 
         if (challenge) {
           // Get or create player challenge
-          const playerChallenge = await playerDailyModel.upsert({
+          await playerDailyModel.upsert({
             where: {
               playerId_challengeId: {
                 playerId,
@@ -38,34 +38,35 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
               },
             },
             update: {
-              progress: { increment: amount },
+              progress: { increment: amount || 0 },
             },
             create: {
               playerId,
               challengeId: challenge.id,
-              progress: amount,
+              progress: amount || 0,
             },
           });
 
           // Check for completion
-          if (!playerChallenge.completed && playerChallenge.progress + amount >= challenge.requirement) {
-            const current = await playerDailyModel.findUnique({
-              where: { id: playerChallenge.id }
+          const playerChallenge = await playerDailyModel.findUnique({
+            where: { playerId_challengeId: { playerId, challengeId: challenge.id } }
+          });
+
+          if (playerChallenge && !playerChallenge.completed && playerChallenge.progress >= challenge.requirement) {
+            await playerDailyModel.update({
+              where: { id: playerChallenge.id },
+              data: { completed: true },
             });
-            if (current && current.progress >= challenge.requirement) {
-              await playerDailyModel.update({
-                where: { id: playerChallenge.id },
-                data: { completed: true },
-              });
-            }
           }
         }
+      } else {
+        console.warn("Daily challenge models not found in Prisma Client");
       }
     } catch (e) {
       console.error("Failed to update daily challenge progress:", e);
     }
 
-    // --- WEEKLY CHALLENGE UPDATE (Wrapped in try-catch to prevent game crashes) ---
+    // --- WEEKLY CHALLENGE UPDATE ---
     try {
       const now = new Date();
       // Week number helper (ISO-8601)
@@ -75,9 +76,9 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
       const weekNumber = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
       const year = d.getUTCFullYear();
 
-      // Use safe access to avoid crashes if prisma types are missing
-      const weeklyChallengeModel = (db as any).weeklyChallenge;
-      const playerWeeklyModel = (db as any).playerWeeklyChallenge;
+      // Dynamic access to weekly models
+      const weeklyChallengeModel = (db as any)['weeklyChallenge'];
+      const playerWeeklyModel = (db as any)['playerWeeklyChallenge'];
 
       if (weeklyChallengeModel && playerWeeklyModel) {
         const weeklyChallenge = await weeklyChallengeModel.findFirst({
@@ -89,36 +90,38 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
         });
 
         if (weeklyChallenge) {
-          const playerWeekly = await playerWeeklyModel.upsert({
+          await playerWeeklyModel.upsert({
             where: {
               playerId_challengeId: {
                 playerId,
                 challengeId: weeklyChallenge.id
               }
             },
-            update: { progress: { increment: amount } },
+            update: { progress: { increment: amount || 0 } },
             create: {
               playerId,
               challengeId: weeklyChallenge.id,
-              progress: amount
+              progress: amount || 0
             }
           });
 
-          if (!playerWeekly.completed && playerWeekly.progress + amount >= weeklyChallenge.requirement) {
-            const currentW = await playerWeeklyModel.findUnique({
-              where: { id: playerWeekly.id }
+          // Check for completion
+          const playerWeekly = await playerWeeklyModel.findUnique({
+            where: { playerId_challengeId: { playerId, challengeId: weeklyChallenge.id } }
+          });
+
+          if (playerWeekly && !playerWeekly.completed && playerWeekly.progress >= weeklyChallenge.requirement) {
+            await playerWeeklyModel.update({
+              where: { id: playerWeekly.id },
+              data: { completed: true }
             });
-            if (currentW && currentW.progress >= weeklyChallenge.requirement) {
-              await playerWeeklyModel.update({
-                where: { id: playerWeekly.id },
-                data: { completed: true }
-              });
-            }
           }
         }
+      } else {
+        console.warn("Weekly challenge models not found in Prisma Client");
       }
     } catch (e) {
-      console.error("Critical: Failed to update weekly challenge progress but continuing spin:", e);
+      console.error("Critical: Failed to update weekly challenge progress:", e);
     }
   } catch (error) {
     console.error(`Error updating challenge progress (${challengeType}):`, error);
