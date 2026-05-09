@@ -14,6 +14,8 @@ interface PlayerData {
   energy: number;
   maxEnergy: number;
   sanctuaryLevel: number;
+  totalPower: number;
+  collectionMultiplier: number;
   language: string;
   avatar: string | null;
   sanctuary: {
@@ -87,6 +89,8 @@ export function usePlayer() {
         level: data.level,
         experience: data.experience,
         sanctuaryLevel: data.sanctuaryLevel,
+        totalPower: data.totalPower,
+        collectionMultiplier: data.collectionMultiplier,
       });
       // Also sync display name
       useGameStore.getState().setDisplayName(data.displayName);

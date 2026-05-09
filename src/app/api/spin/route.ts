@@ -73,23 +73,6 @@ export async function POST(request: NextRequest) {
     }
     const treeBuffs = getBuffsForLevel(worldState.treeLevel);
 
-    // Check if enough energy (accounting for tree buff energy regen discount)
-    const effectiveEnergyCost = Math.max(0, ENERGY_COST - treeBuffs.energyRegenBonus);
-    if (currentEnergy < effectiveEnergyCost) {
-      return NextResponse.json(
-        {
-          error: 'Energía insuficiente',
-          energy: currentEnergy,
-          maxEnergy: player.maxEnergy, totalPower: updatedPlayer.totalPower, collectionMultiplier: updatedPlayer.collectionMultiplier,
-          nextRefillMinutes: 5 - (minutesPassed % 5),
-        },
-        { status: 400 }
-      );
-    }
-
-    // Execute spin
-    const spinResult: ReelResult = executeSpin();
-
     // Apply Multipliers
     // 1. Collection Multiplier
     const POWER_MAP: Record<string, number> = {
@@ -102,8 +85,27 @@ export async function POST(request: NextRequest) {
     const totalPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
     const collectionMultiplier = 1.0 + (totalPower / 10000); 
 
-    // 2. World Tree buffs
-    const buffedPayout = Math.floor(spinResult.totalPayout * treeBuffs.lumensMultiplier * collectionMultiplier);
+    // Check if enough energy (accounting for tree buff energy regen discount)
+    const effectiveEnergyCost = Math.max(0, ENERGY_COST - treeBuffs.energyRegenBonus);
+    if (currentEnergy < effectiveEnergyCost) {
+      return NextResponse.json(
+        {
+          error: 'Energía insuficiente',
+          energy: currentEnergy,
+          maxEnergy: player.maxEnergy, 
+          totalPower, 
+          collectionMultiplier,
+          nextRefillMinutes: 5 - (minutesPassed % 5),
+        },
+        { status: 400 }
+      );
+    }
+
+    const spinResult = executeSpin();
+
+    // 1. Apply Collection Multiplier to payout
+    const basePayout = spinResult.totalPayout;
+    const buffedPayout = Math.floor(basePayout * collectionMultiplier * treeBuffs.lumensMultiplier);
 
     // 2. Energy regen bonus: effectively give back some energy
     const energyDiscount = treeBuffs.energyRegenBonus;

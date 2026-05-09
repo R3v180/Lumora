@@ -156,7 +156,7 @@ export function CollectionPanel() {
                          symbolType: 'spirit',
                          element: spirit.spiritType.element as any,
                          rarity: spirit.spiritType.rarity as any,
-                         emoji: spirit.spiritType.emoji || '👻'
+                         emoji: (spirit.spiritType as any).emoji || '👻'
                        } as any}
                        size="md"
                      />
