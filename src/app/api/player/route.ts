@@ -101,7 +101,7 @@ export async function GET() {
         ...player.sanctuary,
         lumensPerHour: sanctuaryLPH,
       } : null,
-      spirits: player.spirits.slice(0, 20), // Keep response small for normal fetch
+      spirits: player.spirits, // Keep response small for normal fetch
     });
   } catch (error) {
     console.error('Player fetch error:', error);

@@ -14,6 +14,7 @@ import { usePlayer } from '@/hooks/usePlayer';
 import { useGameStore } from '@/lib/store';
 import { ELEMENT_EMOJIS, ELEMENT_COLORS } from '@/game/engine/symbols';
 import { SymbolIcon } from '@/components/game/SymbolIcon';
+import { SpiritDetailView } from './SpiritDetailView';
 
 type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 type Element = 'fire' | 'water' | 'dream' | 'nature' | 'star';
@@ -29,6 +30,7 @@ export function CollectionPanel() {
   const [filterElement, setFilterElement] = useState<Element | 'all'>('all');
   const [filterRarity, setFilterRarity] = useState<Rarity | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [selectedSpirit, setSelectedSpirit] = useState<any | null>(null);
 
   if (isLoading) return <div className="p-8 text-center animate-pulse">Cargando colección...</div>;
   if (!player) return null;
@@ -144,6 +146,7 @@ export function CollectionPanel() {
                   exit={{ opacity: 0, scale: 0.8 }}
                   whileTap={{ scale: 0.95 }}
                   className={`relative flex flex-col items-center p-2 rounded-xl border aspect-square justify-center glass-card-subtle transition-all cursor-pointer group`}
+                  onClick={() => setSelectedSpirit(spirit)}
                   style={{ 
                     borderColor: spirit.spiritType.rarity === 'legendary' ? '#F1C40F60' : 
                                  spirit.spiritType.rarity === 'epic' ? '#9B59B660' : 'rgba(255,255,255,0.05)'
@@ -178,7 +181,7 @@ export function CollectionPanel() {
                         spirit.spiritType.rarity === 'uncommon' ? 'bg-lumora-emerald' : 'bg-muted-foreground'
                       }`}
                       initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, (spirit.experience / (spirit.level * 50)) * 100)}%` }}
+                      animate={{ width: `${Math.min(100, ((spirit as any).experience / (spirit.level * 50)) * 100)}%` }}
                       transition={{ duration: 1 }}
                     />
                   </div>
@@ -196,7 +199,26 @@ export function CollectionPanel() {
         <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-lumora-blue rounded-full" /> 60</div>
         <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-lumora-purple rounded-full" /> 150</div>
         <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-lumora-gold rounded-full" /> 400</div>
-      </div>
+            </div>
+
+      {/* Spirit Detail Bottom Sheet */}
+      <AnimatePresence>
+        {selectedSpirit && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSpirit(null)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <SpiritDetailView 
+              spirit={selectedSpirit} 
+              onClose={() => setSelectedSpirit(null)} 
+            />
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

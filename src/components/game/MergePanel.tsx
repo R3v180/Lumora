@@ -9,6 +9,7 @@ import { ELEMENT_EMOJIS } from '@/game/engine/symbols';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
 import { audioService } from '@/lib/audioService';
+import { SpiritDetailView } from '@/components/collection/SpiritDetailView';
 
 interface PlayerSpirit {
   id: string;
@@ -161,6 +162,7 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
   };
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -280,5 +282,31 @@ export function MergePanel({ isOpen, onClose }: MergePanelProps) {
         </motion.div>
       )}
     </AnimatePresence>
+    
+    <AnimatePresence>
+      {selectedGroup && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedGroup(null)}
+            className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm"
+          />
+          <SpiritDetailView 
+            spirit={selectedGroup.spirits[0]} 
+            onClose={() => setSelectedGroup(null)}
+            isPreview={selectedGroup.canMerge}
+            nextSpirit={selectedGroup.canMerge ? {
+              name: selectedGroup.name, // Evolution name usually same or fixed per element
+              element: selectedGroup.element,
+              rarity: selectedGroup.evolvedRarity,
+              emoji: (selectedGroup.spirits[0].spiritType as any).emoji // Fallback to same emoji
+            } : null}
+          />
+        </>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
