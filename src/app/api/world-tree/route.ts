@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-// Tree level formula: each level requires level * 10000 total spins
+// Tree level formula: each level requires level * 10 total spins (TESTING MODE)
 function spinsForLevel(level: number): number {
-  return level * 10000;
+  return level * 10;
 }
 
 // Calculate total spins needed to reach a given level from level 1
