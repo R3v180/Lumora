@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { usePlayer } from '@/hooks/usePlayer';
 import { toast } from 'sonner';
-import { useGameStore } from '@/lib/store';
+import { useGameStore, PlayerState } from '@/lib/store';
 
 type ElementKey = 'fire' | 'water' | 'dream' | 'nature' | 'star';
 
