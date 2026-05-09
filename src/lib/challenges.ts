@@ -11,93 +11,114 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find the challenge for today
-    const challenge = await db.dailyChallenge.findFirst({
-      where: {
-        challengeType,
-        date: {
-          gte: today,
-          lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
-        },
-      },
-    });
+    // --- DAILY CHALLENGE UPDATE (Wrapped in try-catch) ---
+    try {
+      // Find the challenge for today
+      const dailyModel = (db as any).dailyChallenge;
+      const playerDailyModel = (db as any).playerDailyChallenge;
 
-    if (challenge) {
-      // Get or create player challenge
-      const playerChallenge = await db.playerDailyChallenge.upsert({
-        where: {
-          playerId_challengeId: {
-            playerId,
-            challengeId: challenge.id,
+      if (dailyModel && playerDailyModel) {
+        const challenge = await dailyModel.findFirst({
+          where: {
+            challengeType,
+            date: {
+              gte: today,
+              lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+            },
           },
-        },
-        update: {
-          progress: { increment: amount },
-        },
-        create: {
-          playerId,
-          challengeId: challenge.id,
-          progress: amount,
-        },
-      });
-
-      // Check for completion
-      if (!playerChallenge.completed && playerChallenge.progress + amount >= challenge.requirement) {
-        const current = await db.playerDailyChallenge.findUnique({
-          where: { id: playerChallenge.id }
         });
-        if (current && current.progress >= challenge.requirement) {
-          await db.playerDailyChallenge.update({
-            where: { id: playerChallenge.id },
-            data: { completed: true },
+
+        if (challenge) {
+          // Get or create player challenge
+          const playerChallenge = await playerDailyModel.upsert({
+            where: {
+              playerId_challengeId: {
+                playerId,
+                challengeId: challenge.id,
+              },
+            },
+            update: {
+              progress: { increment: amount },
+            },
+            create: {
+              playerId,
+              challengeId: challenge.id,
+              progress: amount,
+            },
           });
+
+          // Check for completion
+          if (!playerChallenge.completed && playerChallenge.progress + amount >= challenge.requirement) {
+            const current = await playerDailyModel.findUnique({
+              where: { id: playerChallenge.id }
+            });
+            if (current && current.progress >= challenge.requirement) {
+              await playerDailyModel.update({
+                where: { id: playerChallenge.id },
+                data: { completed: true },
+              });
+            }
+          }
         }
       }
+    } catch (e) {
+      console.error("Failed to update daily challenge progress:", e);
     }
 
-    // --- WEEKLY CHALLENGE UPDATE ---
-    const now = new Date();
-    // Week number helper (ISO-8601)
-    const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    const weekNumber = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    // --- WEEKLY CHALLENGE UPDATE (Wrapped in try-catch to prevent game crashes) ---
+    try {
+      const now = new Date();
+      // Week number helper (ISO-8601)
+      const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const weekNumber = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+      const year = d.getUTCFullYear();
 
-    const weeklyChallenge = await db.weeklyChallenge.findFirst({
-      where: {
-        challengeType,
-        weekNumber,
-        year: now.getFullYear()
-      }
-    });
+      // Use safe access to avoid crashes if prisma types are missing
+      const weeklyChallengeModel = (db as any).weeklyChallenge;
+      const playerWeeklyModel = (db as any).playerWeeklyChallenge;
 
-    if (weeklyChallenge) {
-      const playerWeekly = await db.playerWeeklyChallenge.upsert({
-        where: {
-          playerId_challengeId: {
-            playerId,
-            challengeId: weeklyChallenge.id
+      if (weeklyChallengeModel && playerWeeklyModel) {
+        const weeklyChallenge = await weeklyChallengeModel.findFirst({
+          where: {
+            challengeType,
+            weekNumber,
+            year
           }
-        },
-        update: { progress: { increment: amount } },
-        create: {
-          playerId,
-          challengeId: weeklyChallenge.id,
-          progress: amount
-        }
-      });
-
-      if (!playerWeekly.completed && playerWeekly.progress + amount >= weeklyChallenge.requirement) {
-        const currentW = await db.playerWeeklyChallenge.findUnique({
-          where: { id: playerWeekly.id }
         });
-        if (currentW && currentW.progress >= weeklyChallenge.requirement) {
-          await db.playerWeeklyChallenge.update({
-            where: { id: playerWeekly.id },
-            data: { completed: true }
+
+        if (weeklyChallenge) {
+          const playerWeekly = await playerWeeklyModel.upsert({
+            where: {
+              playerId_challengeId: {
+                playerId,
+                challengeId: weeklyChallenge.id
+              }
+            },
+            update: { progress: { increment: amount } },
+            create: {
+              playerId,
+              challengeId: weeklyChallenge.id,
+              progress: amount
+            }
           });
+
+          if (!playerWeekly.completed && playerWeekly.progress + amount >= weeklyChallenge.requirement) {
+            const currentW = await playerWeeklyModel.findUnique({
+              where: { id: playerWeekly.id }
+            });
+            if (currentW && currentW.progress >= weeklyChallenge.requirement) {
+              await playerWeeklyModel.update({
+                where: { id: playerWeekly.id },
+                data: { completed: true }
+              });
+            }
+          }
         }
       }
+    } catch (e) {
+      console.error("Critical: Failed to update weekly challenge progress but continuing spin:", e);
     }
   } catch (error) {
     console.error(`Error updating challenge progress (${challengeType}):`, error);
