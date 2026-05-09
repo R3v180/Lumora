@@ -14,6 +14,7 @@ import { useRouter } from '@/i18n/navigation';
 import { SanctuaryView } from '@/components/sanctuary/SanctuaryView';
 import { SanctuaryManager } from '@/components/sanctuary/SanctuaryManager';
 import { audioService } from '@/lib/audioService';
+import { LumensCollector } from '@/components/sanctuary/LumensCollector';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -195,7 +196,7 @@ export default function SanctuaryPage() {
         toast.success(`¡${data.placedCount} espíritus colocados automáticamente!`);
         fetchSanctuary();
         useGameStore.getState().triggerRefresh();
-        setShowPlacementPanel(false);
+        setShowManager(false);
       } else {
         const err = await res.json();
         toast.error(err.error || 'Error al colocar');
@@ -230,7 +231,7 @@ export default function SanctuaryPage() {
         setActionMessage(`${data.spiritName} colocado en (${x}, ${y})`);
         setSelectedSpiritId(null);
         setIsPlacingMode(false);
-        setShowPlacementPanel(false);
+        setShowManager(false);
         fetchSanctuary();
         useGameStore.getState().triggerRefresh();
         setTimeout(() => setActionMessage(null), 3000);
@@ -251,8 +252,7 @@ export default function SanctuaryPage() {
     if (isPlacingMode) return;
     const spirit = sanctuary?.placedSpirits.find(s => s.id === spiritId);
     if (spirit) {
-      setSelectedSpiritDetail(spirit);
-      setShowSpiritDetail(true);
+      setShowManager(true);
     }
   }, [sanctuary, isPlacingMode]);
 
@@ -308,7 +308,7 @@ export default function SanctuaryPage() {
   const cancelPlacingMode = () => {
     setIsPlacingMode(false);
     setSelectedSpiritId(null);
-    setShowPlacementPanel(false);
+    setShowManager(false);
   };
 
   // Not logged in state
