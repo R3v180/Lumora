@@ -4,12 +4,13 @@ import { useEffect } from 'react';
 
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter } from '@/i18n/navigation';
-import { Home, Compass, TreePine, Users, ShoppingBag } from 'lucide-react';
+import { Home, Compass, TreePine, Users, ShoppingBag, Sparkles } from 'lucide-react';
 import { audioService } from '@/lib/audioService';
 
 const navItems = [
   { key: 'home', href: '/', icon: Home },
   { key: 'play', href: '/play', icon: Compass },
+  { key: 'collection', href: '/collection', icon: Sparkles },
   { key: 'sanctuary', href: '/sanctuary', icon: TreePine },
   { key: 'community', href: '/community', icon: Users },
   { key: 'shop', href: '/shop', icon: ShoppingBag },

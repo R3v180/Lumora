@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
+import { EnergyRefillDialog } from '@/components/game/EnergyRefillDialog';
+import { CombatResultModal } from '@/components/game/CombatResultModal';
+import { HelpCircle, X } from 'lucide-react';
 
 interface Spirit {
   id: string;
@@ -50,6 +53,8 @@ export function ArenaPanel() {
   const [spinResults, setSpinResults] = useState<string[]>([]);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showEnergyRefill, setShowEnergyRefill] = useState(false);
+  
+  const [showResultModal, setShowResultModal] = useState(false);
   
   const energy = useGameStore(s => s.energy);
   const ARENA_COST = 15;
@@ -107,6 +112,10 @@ export function ArenaPanel() {
 
   const handleAttack = async () => {
     if (!attackTarget) return;
+    if (energy < ARENA_COST) {
+      setShowEnergyRefill(true);
+      return;
+    }
     setIsFighting(true);
     setSpinResults([]);
     try {
@@ -121,13 +130,6 @@ export function ArenaPanel() {
         audioService.playSpinStart();
 
         setTimeout(() => {
-          if (data.victory) {
-            audioService.playSurge();
-            toast.success(t('victory'));
-          } else {
-            audioService.playError();
-            toast(t('defeat'));
-          }
           setLastResult(data);
           setRating(data.newRating);
           useGameStore.getState().syncPlayerStats({
@@ -136,6 +138,9 @@ export function ArenaPanel() {
             maxEnergy: useGameStore.getState().maxEnergy,
           });
           useGameStore.getState().triggerRefresh();
+          
+          setShowResultModal(true);
+
           setAttackTarget(null);
           setMode('overview');
           fetchArena();
@@ -143,11 +148,8 @@ export function ArenaPanel() {
         }, 1500);
       } else {
         audioService.playError();
-        if (data.error === 'Energía insuficiente') {
-          setShowEnergyRefill(true);
-        } else {
-          toast.error(data.error);
-        }
+        if (data.error === 'Energía insuficiente') setShowEnergyRefill(true);
+        else toast.error(data.error);
         setIsFighting(false);
       }
     } catch (err) {
@@ -155,6 +157,7 @@ export function ArenaPanel() {
       setIsFighting(false);
     }
   };
+
 
   if (isLoading) {
     return (
@@ -338,21 +341,60 @@ export function ArenaPanel() {
         </div>
       )}
 
+      {/* Combat Result Modal */}
+      <CombatResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        type={lastResult?.victory ? 'victory' : 'defeat'}
+        title={lastResult?.victory ? '¡VICTORIA ESTELAR!' : 'DERROTA'}
+        subtitle={lastResult?.victory ? `Has vencido a ${lastResult.opponentName}` : 'Tu equipo ha caído en combate'}
+        rewards={lastResult?.victory ? [
+          { type: 'lumens', amount: lastResult.lumensReward || 0 },
+          { type: 'exp', amount: 25 }
+        ] : []}
+        stats={[
+          { label: 'PUNTOS ELO', value: `${lastResult?.ratingChange > 0 ? '+' : ''}${lastResult?.ratingChange || 0}` },
+          { label: 'TU RATING', value: rating }
+        ]}
+      />
+
       {/* Help Dialog */}
       {showHelpDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card border border-border/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
-            <h3 className="font-fantasy font-bold text-lg mb-2">Arena Interactiva</h3>
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              En la Arena, el combate ahora se define mediante <strong className="text-lumora-gold">3 Giros de Combate</strong>. 
-              Selecciona tu equipo de Defensa y ataca a otros jugadores girando los símbolos para superar su defensa con ventajas elementales.
-            </p>
-            <Button onClick={() => setShowHelpDialog(false)} className="w-full rounded-xl bg-lumora-blue text-white font-bold">
-              Entendido
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border/30 p-6 rounded-3xl max-w-sm w-full shadow-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <HelpCircle className="h-5 w-5 text-lumora-blue" />
+              <h3 className="font-fantasy font-bold text-lg">Arena Estelar</h3>
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              <p className="text-muted-foreground leading-relaxed">
+                El combate PvP se decide por <strong className="text-white">3 Giros de Combate</strong>. Gana quien obtenga mejores combinaciones elementales.
+              </p>
+
+              <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                <p className="text-[10px] font-black uppercase text-lumora-gold mb-2">Sistema ELO</p>
+                <ul className="space-y-1 text-[10px] text-muted-foreground">
+                  <li>• Gana para subir en el Ranking.</li>
+                  <li>• Pierde y tu Rating bajará.</li>
+                  <li>• Los 10 mejores reciben cofres semanales.</li>
+                </ul>
+              </div>
+            </div>
+
+            <Button onClick={() => setShowHelpDialog(false)} className="w-full mt-6 rounded-xl bg-lumora-blue text-white font-bold">
+              ¡ENTENDIDO!
             </Button>
           </div>
         </div>
       )}
+
+      {/* Energy Refill Dialog */}
+      <EnergyRefillDialog 
+        isOpen={showEnergyRefill} 
+        onClose={() => setShowEnergyRefill(false)}
+        onSuccess={() => fetchArena()}
+      />
     </div>
   );
 }

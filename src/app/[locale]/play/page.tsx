@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
-import { Sparkles, Skull, Swords, Target, ChevronRight } from 'lucide-react';
+import { Sparkles, Skull, Swords, Target, ChevronRight, HelpCircle, X, Zap, Shield, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { audioService } from '@/lib/audioService';
 
 export default function PlayHubPage() {
   const t = useTranslations('home');
+  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
 
   const handleNavigate = (path: string) => {
@@ -16,13 +19,73 @@ export default function PlayHubPage() {
   };
 
   return (
-    <div className="flex flex-col px-4 pt-6 pb-24 min-h-screen">
-      <h1 className="text-3xl font-fantasy font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent mb-2 text-center">
-        {t('chooseAdventure')}
-      </h1>
+    <div className="flex flex-col px-4 pt-6 pb-24 min-h-screen relative">
+      <div className="flex items-center justify-center gap-2 mb-2 relative">
+        <h1 className="text-3xl font-fantasy font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent text-center">
+          {t('chooseAdventure')}
+        </h1>
+        <button 
+          onClick={() => setShowHelp(true)}
+          className="absolute right-0 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/5"
+        >
+          <HelpCircle className="h-5 w-5 text-lumora-gold" />
+        </button>
+      </div>
       <p className="text-sm text-muted-foreground text-center mb-8">
         {t('exploreModes')}
       </p>
+
+      {/* Help Modal */}
+      <AnimatePresence>
+        {showHelp && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowHelp(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-md bg-card border border-white/10 rounded-3xl p-8 shadow-2xl overflow-y-auto max-h-[80vh]">
+              <button onClick={() => setShowHelp(false)} className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10"><X className="h-5 w-5 text-muted-foreground" /></button>
+              
+              <h2 className="text-2xl font-fantasy font-bold text-lumora-gold mb-6 flex items-center gap-2">
+                <Sparkles className="h-6 w-6" /> El Camino del Viajero
+              </h2>
+
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-lumora-blue/20 flex items-center justify-center border border-lumora-blue/30 text-lumora-blue font-bold">1</div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-tight mb-1">Gira y Cosecha</h3>
+                    <p className="text-xs text-muted-foreground">Usa tu <strong className="text-lumora-blue">Energía ⚡</strong> en el Giro Onírico para ganar <strong className="text-lumora-gold">Lumens ✨</strong> y experiencia.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-lumora-purple/20 flex items-center justify-center border border-lumora-purple/30 text-lumora-purple font-bold">2</div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-tight mb-1">Mejora tu Santuario</h3>
+                    <p className="text-xs text-muted-foreground">Sube de nivel tu <strong className="text-lumora-purple">Rango 🛡️</strong> para desbloquear nuevas zonas y aumentar tu energía máxima.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-lumora-pink/20 flex items-center justify-center border border-lumora-pink/30 text-lumora-pink font-bold">3</div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-tight mb-1">Colecciona Espíritus</h3>
+                    <p className="text-xs text-muted-foreground">Consigue <strong className="text-lumora-pink">Poder 📈</strong> derrotando Jefes y abriendo cofres. ¡Los espíritus multiplican tus ganancias en el Altar!</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center border border-red-500/30 text-red-400 font-bold">4</div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-tight mb-1">Domina la Arena</h3>
+                    <p className="text-xs text-muted-foreground">Enfréntate a otros jugadores para robar sus tesoros y subir en el ranking mundial.</p>
+                  </div>
+                </div>
+              </div>
+
+              <Button onClick={() => setShowHelp(false)} className="w-full mt-8 py-6 rounded-2xl bg-lumora-gold text-black font-black hover:scale-[1.02] transition-transform">¡EMPEZAR MI VIAJE!</Button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col gap-4 max-w-md mx-auto w-full">
         {/* Giant Main Card - Spins */}

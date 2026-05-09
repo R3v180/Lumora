@@ -450,6 +450,7 @@ model WorldBoss {
   name       String
   nameEn     String
   element    String
+  type       String          @default("void")
   maxHp      Int
   currentHp  Int
   startsAt   DateTime        @default(now())

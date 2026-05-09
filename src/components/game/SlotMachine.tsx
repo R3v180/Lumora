@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX, Video, TrendingUp } from 'lucide-react';
+import { Sparkles, Zap, RotateCcw, Play, Square, Volume2, VolumeX, Video, TrendingUp, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import { SymbolIcon } from '@/components/game/SymbolIcon';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
 import { EnergyRefillDialog } from './EnergyRefillDialog';
+import { SlotHelpDialog } from './SlotHelpDialog';
 import { RewardedVideoAd } from '@/components/ads/RewardedVideoAd';
 import confetti from 'canvas-confetti';
 import { SYMBOLS } from '@/game/engine/symbols';
@@ -138,7 +139,9 @@ export function SlotMachine() {
     setShowEnergyDialog,
     doSpin,
     setEnergy,
-    isLoaded
+    isLoaded,
+    multiplier,
+    setMultiplier
   } = useSlotMachine();
 
   // Initial grid so it doesn't look empty
@@ -150,6 +153,7 @@ export function SlotMachine() {
     }
   }, []);
 
+  const [showHelp, setShowHelp] = useState(false);
   const [showWin, setShowWin] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [showSpiritReward, setShowSpiritReward] = useState(false);
@@ -336,12 +340,27 @@ export function SlotMachine() {
             <span className="text-sm font-semibold text-lumora-blue">{energy}/{maxEnergy}</span>
           </div>
         </div>
-        <div className="w-full h-2.5 bg-muted/20 rounded-full overflow-hidden border border-white/5">
+        <div className="w-full h-2.5 bg-muted/20 rounded-full overflow-hidden border border-white/5 relative">
           <motion.div
-            className="h-full rounded-full bar-animated"
-            style={{ background: 'linear-gradient(90deg, #5DADE2, #9B59B6, #FF69B4, #5DADE2)', backgroundSize: '200% 100%' }}
-            animate={{ width: `${energyPercent}%` }}
-            transition={{ duration: 0.5 }}
+            className={`h-full rounded-full ${energy > maxEnergy ? 'shadow-[0_0_15px_rgba(255,215,0,0.4)]' : 'bar-animated'}`}
+            style={{ 
+              background: energy > maxEnergy 
+                ? 'linear-gradient(90deg, #FFD700, #FFA500, #FFD700)' 
+                : 'linear-gradient(90deg, #5DADE2, #9B59B6, #FF69B4, #5DADE2)',
+              backgroundSize: '200% 100%'
+            }}
+            animate={energy > maxEnergy ? {
+              width: '100%',
+              filter: ['brightness(1)', 'brightness(1.3)', 'brightness(1)']
+            } : {
+              width: `${energyPercent}%`
+            }}
+            transition={energy > maxEnergy ? {
+              filter: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+              width: { duration: 0.5 }
+            } : {
+              duration: 0.5
+            }}
           />
         </div>
       </div>
@@ -358,6 +377,16 @@ export function SlotMachine() {
           <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-0" />
           
           <div className="relative z-10">
+            {/* Header with Help */}
+            <div className="flex justify-between items-center px-1 mb-2">
+              <span className="text-[10px] font-black text-lumora-gold/60 uppercase tracking-widest">Altar de Lumora</span>
+              <button 
+                onClick={() => setShowHelp(true)}
+                className="p-1 rounded-full bg-white/5 hover:bg-white/10 transition-all border border-white/5"
+              >
+                <HelpCircle className="h-3.5 w-3.5 text-lumora-gold" />
+              </button>
+            </div>
 
           {/* Corner decorations */}
           <div className="absolute -top-3 -left-3 z-10"><CornerDiamond /></div>
@@ -523,44 +552,78 @@ export function SlotMachine() {
         </div>
       )}
 
+      {/* Multiplier Selector */}
+      <div className="flex items-center gap-1.5 mb-6 bg-black/40 p-1.5 rounded-2xl border border-white/5 backdrop-blur-sm">
+        {[1, 3, 5, 10].map((m) => (
+          <button
+            key={m}
+            onClick={() => {
+              if (isSpinning) return;
+              setMultiplier(m);
+              audioService.playClick();
+            }}
+            disabled={isSpinning}
+            className={`relative px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+              multiplier === m 
+                ? 'text-white' 
+                : 'text-muted-foreground hover:text-white'
+            }`}
+          >
+            {multiplier === m && (
+              <motion.div
+                layoutId="bet-bg"
+                className="absolute inset-0 bg-gradient-to-r from-lumora-blue to-lumora-purple rounded-xl -z-10 shadow-[0_0_15px_rgba(59,130,246,0.4)]"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            x{m}
+          </button>
+        ))}
+      </div>
+
       {/* Controls */}
       <div className="flex items-center gap-4 mb-4">
         <Button
           variant={autoSpin ? 'default' : 'outline'}
           size="sm"
           onClick={() => setAutoSpin(!autoSpin)}
-          className={`rounded-xl gap-1.5 ${autoSpin ? 'bg-lumora-blue text-white hover:bg-lumora-blue/80' : 'border-border/50'}`}
+          className={`rounded-xl gap-1.5 h-12 px-4 ${autoSpin ? 'bg-lumora-blue text-white hover:bg-lumora-blue/80' : 'border-border/50'}`}
           disabled={isSpinning && !autoSpin}
         >
-          {autoSpin ? <Square className="h-3.5 w-3.5" /> : <RotateCcw className="h-3.5 w-3.5" />}
-          {autoSpin ? t('stop') : t('autoSpin')}
+          {autoSpin ? <Square className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+          <span className="hidden sm:inline">{autoSpin ? t('stop') : t('autoSpin')}</span>
         </Button>
 
         <motion.button
           onClick={doSpin}
-          disabled={isSpinning || energy < 5}
+          disabled={isSpinning}
           className="relative group"
-          whileHover={{ scale: isSpinning ? 1 : 1.08 }}
-          whileTap={{ scale: isSpinning ? 1 : 0.92 }}
+          whileHover={{ scale: isSpinning ? 1 : 1.05 }}
+          whileTap={{ scale: isSpinning ? 1 : 0.95 }}
         >
           <div className={`absolute -inset-2 rounded-full blur-xl transition-opacity duration-300 ${isSpinning ? 'opacity-20' : 'opacity-50 group-hover:opacity-80'} bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple`} />
-          <div className={`relative flex items-center gap-2 rounded-full px-8 py-3.5 font-fantasy font-bold text-lg text-white shadow-xl transition-all ${isSpinning ? 'bg-muted cursor-not-allowed' : energy < 5 ? 'bg-muted/50 cursor-not-allowed' : 'btn-lumora'}`}>
+          <div className={`relative flex flex-col items-center justify-center rounded-full w-24 h-24 shadow-xl transition-all border-4 ${isSpinning ? 'bg-muted border-muted-foreground/30 cursor-not-allowed' : 'btn-lumora border-lumora-gold/30'}`}>
             {isSpinning ? (
               <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                <Sparkles className="h-5 w-5" />
+                <Sparkles className="h-6 w-6" />
               </motion.div>
-            ) : <Play className="h-5 w-5" />}
-            {isSpinning ? 'Girando...' : t('spin')}
+            ) : (
+              <>
+                <Play className="h-6 w-6" />
+                <span className="text-[10px] font-black mt-1">GIRAR</span>
+                <span className="text-[9px] opacity-80">-{5 * multiplier}⚡</span>
+              </>
+            )}
           </div>
         </motion.button>
 
-        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="rounded-xl h-9 w-9">
-          {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="rounded-xl h-12 w-12 bg-card/30 border border-white/5">
+          {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </Button>
       </div>
 
       <div className="flex flex-col items-center gap-2">
-        <p className="text-xs text-muted-foreground">Coste: 5 energía por giro · 1 energía cada 5 min</p>
+        <p className="text-xs text-muted-foreground">Coste: {5 * multiplier} energía por giro · 1 energía cada 5 min</p>
         
         {isLoaded && energy < 5 && !isSpinning && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 mt-2">
@@ -599,6 +662,11 @@ export function SlotMachine() {
         onSuccess={() => {
           // Stats are synced via useGameStore in the dialog
         }}
+      />
+
+      <SlotHelpDialog 
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
       />
 
       {/* Bonus Game Full-Screen Overlay */}

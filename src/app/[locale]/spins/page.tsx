@@ -43,28 +43,6 @@ export default function SpinsPage() {
       {/* Slot Machine */}
       <SlotMachine />
 
-      {/* Action buttons below machine */}
-      <div className="flex items-center gap-3 mt-6">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowMerge(true)}
-          className="rounded-xl gap-1.5 border-lumora-purple/30 hover:bg-lumora-purple/10"
-        >
-          <GitMerge className="h-4 w-4 text-lumora-purple" />
-          {t('merge')}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowCollection(true)}
-          className="rounded-xl gap-1.5 border-lumora-gold/30 hover:bg-lumora-gold/10"
-        >
-          <BookOpen className="h-4 w-4 text-lumora-gold" />
-          Colección
-        </Button>
-      </div>
-
       {/* Collection Sheet */}
       <Sheet open={showCollection} onOpenChange={setShowCollection}>
         <SheetContent side="bottom" className="h-[90vh] p-0 border-t-lumora-gold/20 overflow-hidden">

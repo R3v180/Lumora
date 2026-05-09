@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
 import { EnergyRefillDialog } from '@/components/game/EnergyRefillDialog';
-import { Zap, Play, Square } from 'lucide-react';
+import { CombatResultModal } from '@/components/game/CombatResultModal';
+import { Zap, Play, Square, HelpCircle, X } from 'lucide-react';
 
 interface RaidTarget {
   id: string;
@@ -28,6 +29,8 @@ export function RaidPanel() {
   const [raidingId, setRaidingId] = useState<string | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showEnergyRefill, setShowEnergyRefill] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
   const [autoRaid, setAutoRaid] = useState(false);
   const [sessionLoot, setSessionLoot] = useState(0);
   const autoRaidRef = useRef(false);
@@ -84,7 +87,6 @@ export function RaidPanel() {
     fetchRaids();
   }, [fetchRaids]);
 
-  // Auto-raid logic
   useEffect(() => {
     if (autoRaid && !raidingId) {
       if (energy < RAID_COST) {
@@ -93,16 +95,11 @@ export function RaidPanel() {
         setShowEnergyRefill(true);
         return;
       }
-      
-      // If no targets or all have 0 lumens, refresh
       const viableTargets = targets.filter(t => t.stealable > 0);
-      
       if (viableTargets.length === 0) {
         const timer = setTimeout(() => handleRefresh(true), 1200);
         return () => clearTimeout(timer);
       }
-
-      // Attack the target with most lumens
       const sorted = [...viableTargets].sort((a, b) => b.stealable - a.stealable);
       const timer = setTimeout(() => handleRaid(sorted[0].id), 1500);
       return () => clearTimeout(timer);
@@ -110,6 +107,12 @@ export function RaidPanel() {
   }, [autoRaid, raidingId, targets, energy]);
 
   const handleRaid = async (targetId: string) => {
+    if (energy < RAID_COST) {
+      setShowEnergyRefill(true);
+      setAutoRaid(false);
+      autoRaidRef.current = false;
+      return;
+    }
     if (raidingId) return;
     setRaidingId(targetId);
     try {
@@ -120,35 +123,28 @@ export function RaidPanel() {
       });
       const data = await res.json();
       if (res.ok) {
-        if (data.success !== false) {
+        const isSuccess = data.success !== false;
+        setLastResult({ ...data, success: isSuccess, targetName: targets.find(t => t.id === targetId)?.displayName });
+        if (isSuccess) {
           audioService.playCollect();
-          toast.success(`¡Éxito! Has robado ${data.lumensStolen} Lumens`);
           setSessionLoot(prev => prev + data.lumensStolen);
-          useGameStore.getState().syncPlayerStats({
-            lumens: data.newLumens,
-            energy: data.newEnergy,
-            maxEnergy: useGameStore.getState().maxEnergy,
-          });
-          useGameStore.getState().triggerRefresh();
-          setMyShield(data.shieldUntil);
-          fetchRaids();
         } else {
           audioService.playError();
-          toast.error(data.error || 'Ataque fallido');
-          // Still cost energy on failure
-          useGameStore.getState().syncPlayerStats({
-            lumens: useGameStore.getState().lumens,
-            energy: data.newEnergy,
-            maxEnergy: useGameStore.getState().maxEnergy,
-          });
-          fetchRaids();
         }
+        useGameStore.getState().syncPlayerStats({
+          lumens: data.newLumens || useGameStore.getState().lumens,
+          energy: data.newEnergy,
+          maxEnergy: useGameStore.getState().maxEnergy,
+        });
+        useGameStore.getState().triggerRefresh();
+        setShowResultModal(true);
+        setMyShield(data.shieldUntil);
+        fetchRaids();
       } else {
         audioService.playError();
         if (data.error === 'Energía insuficiente') {
           setShowEnergyRefill(true);
           setAutoRaid(false);
-          autoRaidRef.current = false;
         } else {
           toast.error(data.error);
         }
@@ -294,16 +290,49 @@ export function RaidPanel() {
         )}
       </div>
 
+      {/* Combat Result Modal */}
+      <CombatResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        type={lastResult?.success ? 'victory' : 'defeat'}
+        title={lastResult?.success ? '¡SAQUEO EXITOSO!' : 'INCURSIÓN FALLIDA'}
+        subtitle={lastResult?.success ? `Has asaltado el santuario de ${lastResult.targetName}` : 'El escudo enemigo ha repelido tu ataque'}
+        rewards={lastResult?.success ? [
+          { type: 'lumens', amount: lastResult.lumensStolen || 0 },
+          { type: 'exp', amount: 15 }
+        ] : []}
+        stats={[
+          { label: 'ESCUDO ACTIVO', value: '30 min' },
+          { label: 'BOTÍN TOTAL', value: sessionLoot }
+        ]}
+      />
+
       {/* Help Dialog */}
       {showHelpDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card border border-border/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
-            <h3 className="font-fantasy font-bold text-lg mb-2">Saqueos de Santuario</h3>
-            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              Ataca los Santuarios de otros jugadores para robar Lumens inactivos. Cada ataque consume <strong className="text-lumora-gold">Energía</strong>, y al realizar un ataque o ser atacado, se activa un <strong className="text-lumora-blue">Escudo Automático</strong> que te protege temporalmente.
-            </p>
-            <Button onClick={() => setShowHelpDialog(false)} className="w-full rounded-xl bg-lumora-pink text-white font-bold">
-              Entendido
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border/30 p-6 rounded-3xl max-w-sm w-full shadow-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="h-5 w-5 text-lumora-pink" />
+              <h3 className="font-fantasy font-bold text-lg">Saqueos Oníricos</h3>
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              <p className="text-muted-foreground leading-relaxed">
+                Asalta santuarios de otros jugadores para robar sus <strong className="text-white">Lumens</strong> acumulados.
+              </p>
+
+              <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                <p className="text-[10px] font-black uppercase text-lumora-gold mb-2">Reglas de Asalto</p>
+                <ul className="space-y-1 text-[10px] text-muted-foreground">
+                  <li>• Solo puedes robar Lumens "inactivos" (no reclamados).</li>
+                  <li>• Atacar activa un <strong className="text-lumora-blue">Escudo 🛡️</strong> de 30 min para ti.</li>
+                  <li>• Si el enemigo tiene escudo activo, no aparecerá en tu lista.</li>
+                </ul>
+              </div>
+            </div>
+
+            <Button onClick={() => setShowHelpDialog(false)} className="w-full mt-6 rounded-xl bg-lumora-pink text-white font-bold">
+              ¡ENTENDIDO!
             </Button>
           </div>
         </div>

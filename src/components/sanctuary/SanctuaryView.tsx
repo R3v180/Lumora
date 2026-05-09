@@ -109,6 +109,14 @@ const RARITY_COLORS: Record<string, string> = {
   legendary: 'border-lumora-gold/60',
 };
 
+const ELEMENT_COLORS = {
+  fire: '#ff4d4d',
+  water: '#4da6ff',
+  dream: '#a64dff',
+  nature: '#4dff88',
+  star: '#ffcc00',
+};
+
 const RARITY_GLOW: Record<string, string> = {
   common: '',
   uncommon: 'shadow-[0_0_8px_rgba(46,204,113,0.3)]',
@@ -222,13 +230,17 @@ export function SanctuaryView({
         key={key}
         className={`
           relative aspect-square w-10 sm:w-12 md:w-14 cursor-pointer
-          transition-all duration-200 select-none
-          ${terrain === 'water' ? 'cursor-not-allowed opacity-50 border-0' : 'border border-white/5'}
-          ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-105 z-10' : ''}
-          ${isSelected && !isHovered ? 'ring-2 ring-lumora-gold animate-pulse shadow-[0_0_15px_rgba(255,215,0,0.5)] z-10' : ''}
-          ${isOccupied ? 'z-5' : ''}
+          transition-all duration-300 select-none group/tile
+          ${terrain === 'water' ? 'cursor-not-allowed opacity-30' : 'border border-white/10'}
+          ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-110 z-30' : ''}
+          ${isSelected && !isHovered ? 'ring-2 ring-lumora-gold/30 animate-pulse z-20' : ''}
+          ${isOccupied ? 'z-10' : 'z-5'}
         `}
-        style={terrainStyle}
+        style={{
+          ...terrainStyle,
+          boxShadow: isOccupied && spiritInfo ? `0 0 25px ${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}40` : 'none',
+          backgroundColor: isOccupied && spiritInfo ? `${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}10` : 'transparent'
+        }}
         onMouseEnter={() => setHoveredTile({ x, y })}
         onMouseLeave={() => setHoveredTile(null)}
         onClick={() => {
@@ -239,46 +251,64 @@ export function SanctuaryView({
             onTileClick(x, y);
           }
         }}
-        whileHover={isSelected ? { scale: 1.05 } : {}}
-        whileTap={isSelected ? { scale: 0.95 } : {}}
       >
+        {/* Ground Glow for Spirits */}
+        {isOccupied && spiritInfo && (
+          <motion.div 
+            className="absolute inset-0 z-0 blur-xl opacity-40 rounded-full"
+            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+            transition={{ duration: 3, repeat: Infinity }}
+            style={{ backgroundColor: ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS] }}
+          />
+        )}
 
         {/* Placed spirit */}
         {isOccupied && spiritInfo && (
           <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            initial={{ scale: 0, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.6) translateY(-25%)', transformOrigin: 'bottom center' }}
+            style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.8) translateY(-35%)', transformOrigin: 'bottom center' }}
           >
-            <img 
-              src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
-              alt={spiritInfo.spiritType.name} 
-              className="w-full h-full object-contain" 
-              style={{ filter: 'drop-shadow(0px 8px 4px rgba(0,0,0,0.6))' }}
-            />
+             <motion.div
+               animate={{ y: [0, -4, 0] }}
+               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+             >
+                <img 
+                  src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
+                  alt={spiritInfo.spiritType.name} 
+                  className="w-full h-full object-contain" 
+                  style={{ 
+                    filter: `drop-shadow(0px 10px 8px rgba(0,0,0,0.8)) drop-shadow(0px 0px 12px ${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}40)` 
+                  }} 
+                />
+             </motion.div>
+            
             {/* Level badge */}
-            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-lumora-purple/90 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center shadow-md">
-              {spiritInfo.level}
-            </span>
+            <div className="absolute -top-1 -right-1 flex items-center justify-center">
+              <div className="absolute inset-0 bg-white blur-[2px] opacity-20 rounded-full animate-ping" />
+              <span className="relative text-[8px] font-black bg-gradient-to-br from-lumora-purple to-lumora-blue text-white rounded-full w-4 h-4 flex items-center justify-center border border-white/30 shadow-lg">
+                {spiritInfo.level}
+              </span>
+            </div>
           </motion.div>
         )}
 
-        {/* Placed decoration (non-spirit) */}
+        {/* Placed decoration */}
         {isOccupied && placedItem && !placedItem.spiritId && (
           <div 
             className="absolute inset-1 flex items-center justify-center pointer-events-none"
             style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.5) translateY(-20%)', transformOrigin: 'bottom center' }}
           >
-            <img src={`/assets/sanctuary/deco_${placedItem.type}.png`} className="w-full h-full object-contain filter drop-shadow-lg" />
+            <img src={`/assets/sanctuary/deco_${placedItem.type}.png`} className="w-full h-full object-contain filter drop-shadow-xl" />
           </div>
         )}
 
-        {/* Hover tooltip for placing */}
-        {isSelected && isHovered && (
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-md bg-lumora-gold/90 text-[10px] font-bold text-black whitespace-nowrap z-20" style={{ transform: 'rotateZ(45deg) rotateX(-60deg)' }}>
-            {t('placeHere')}
+        {/* Selection Marker */}
+        {isSelected && (
+          <div className="absolute inset-0 border-2 border-lumora-gold/50 rounded-sm animate-pulse flex items-center justify-center">
+            <Plus className="h-4 w-4 text-lumora-gold" />
           </div>
         )}
       </motion.div>
@@ -287,186 +317,191 @@ export function SanctuaryView({
 
   return (
     <div className="relative w-full max-w-lg mx-auto">
-      {/* Island frame with ethereal glow */}
-      <div className="sanctuary-frame p-3 overflow-hidden">
-        {/* Floating particles (decorative) */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-lumora-gold/40"
-              animate={{
-                y: [-10, -60],
-                x: [0, Math.sin(i) * 20],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: 3 + i,
-                repeat: Infinity,
-                delay: i * 0.7,
-                ease: 'easeOut',
-              }}
-              style={{
-                left: `${15 + i * 14}%`,
-                bottom: '10%',
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Sanctuary name, level & upgrade */}
-        <div className="flex items-center justify-between px-4 mb-4">
-          <div className="flex-1">
-            <h2 className="text-sm font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
-              {sanctuary?.name || 'Mi Santuario'}
-            </h2>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-[9px] text-muted-foreground">
-                Nivel {level} · {sanctuary?.lumensPerHour || 0} L/h
-              </p>
-              <span className="text-[9px] text-muted-foreground/40">·</span>
-              <p className={`text-[9px] font-medium ${
-                sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits
-                  ? 'text-lumora-gold'
-                  : 'text-muted-foreground'
-              }`}>
-                ✨ {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
-              </p>
-            </div>
-          </div>
-
-          <Button 
-            onClick={handleUpgrade}
-            disabled={playerLumens < upgradeCost || isUpgrading}
-            size="sm"
-            className="h-8 rounded-xl bg-gradient-to-r from-lumora-purple to-lumora-blue border-0 shadow-lg text-[10px] font-bold px-3 gap-1.5"
-          >
-            <ArrowUp className="h-3 w-3" />
-            {isUpgrading ? '...' : `SUBIR LV (${upgradeCost.toLocaleString()} ✨)`}
-          </Button>
-        </div>
-
-        {/* Element balance bar */}
-        {sanctuary && (
-          <div className="flex items-center justify-center gap-3 mb-3 px-2">
-            {Object.entries(sanctuary.elements).map(([element, count]) => (
-              <div key={element} className="flex items-center gap-0.5">
-                <span className="text-xs">{ELEMENT_EMOJIS[element]}</span>
-                <span className="text-[10px] text-muted-foreground">{count}</span>
+      {/* HUD Info Floating */}
+      <div className="relative z-50 flex flex-col gap-4 px-4 mb-8">
+         <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <motion.h2 
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="text-2xl font-fantasy font-black italic tracking-tighter text-white drop-shadow-lg"
+              >
+                {sanctuary?.name || 'Mi Santuario'}
+              </motion.h2>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 text-[10px] font-black bg-lumora-purple/40 px-2 py-0.5 rounded-full border border-lumora-purple/30 text-lumora-purple-light uppercase">
+                  Nivel {level}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-black bg-lumora-gold/20 px-2 py-0.5 rounded-full border border-lumora-gold/30 text-lumora-gold uppercase">
+                  <Coins className="h-2.5 w-2.5" />
+                  {sanctuary?.lumensPerHour || 0} L/H
+                </span>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Isometric grid — horizontally scrollable on narrow screens */}
-        <div className="w-full overflow-x-auto overflow-y-visible scrollbar-hide px-2 pt-4 pb-12">
-          <div className="relative min-w-[320px] mx-auto w-fit">
-            {/* Floating island base */}
-            <div 
-              className="absolute pointer-events-none z-0"
-              style={{
-                bottom: '-30%',
-                left: '10%',
-                right: '10%',
-                height: '60%',
-                clipPath: 'polygon(20% 0%, 80% 0%, 100% 30%, 50% 100%, 0% 30%)',
-                background: 'linear-gradient(180deg, rgba(60,35,15,0.6) 0%, rgba(30,18,8,0.8) 40%, rgba(10,5,2,0.9) 100%)',
-                filter: 'blur(1px)',
-              }}
-            />
-            <div 
-              className="grid grid-cols-8 gap-0 relative z-10"
-              style={{ transform: 'rotateX(60deg) rotateZ(-45deg)', transformStyle: 'preserve-3d', width: 'fit-content', margin: '0 auto' }}
-            >
-              {Array.from({ length: GRID_SIZE }).map((_, y) =>
-                Array.from({ length: GRID_SIZE }).map((_, x) => renderTile(x, y))
-              )}
             </div>
-          </div>
-        </div>
 
-        {/* Wisps below the island */}
-        <div className="flex justify-center gap-6 mt-3 pointer-events-none">
-          {[0.3, 0.5, 0.2].map((opacity, i) => (
-            <motion.div
-              key={i}
-              className="w-8 h-2 rounded-full bg-lumora-blue/20"
-              animate={{ opacity: [opacity, opacity + 0.2, opacity], scaleX: [1, 1.3, 1] }}
-              transition={{ duration: 3 + i, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          ))}
-        </div>
+            <Button 
+              onClick={handleUpgrade}
+              disabled={playerLumens < upgradeCost || isUpgrading}
+              className="group h-10 rounded-2xl bg-gradient-to-br from-lumora-purple to-lumora-blue-dark border border-white/20 shadow-[0_4px_15px_rgba(0,0,0,0.4)] hover:scale-105 transition-all"
+            >
+              <div className="flex flex-col items-center leading-tight">
+                <span className="text-[10px] font-black text-white/70 uppercase">Mejorar</span>
+                <span className="text-[11px] font-bold text-lumora-gold">{upgradeCost.toLocaleString()} ✨</span>
+              </div>
+            </Button>
+         </div>
+
+         <div className="flex justify-center gap-2 overflow-x-auto py-2 no-scrollbar">
+            {sanctuary && Object.entries(sanctuary.elements).map(([element, count]) => {
+              const IconData = ELEMENT_ICONS[element];
+              const Icon = IconData?.icon;
+              return (
+                <motion.div 
+                  key={element} 
+                  whileHover={{ scale: 1.1 }}
+                  className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 shadow-inner"
+                >
+                  <div className="p-1 rounded-lg bg-black/40 border border-white/5 shadow-lg">
+                    {Icon ? (
+                      <Icon className={`h-3 w-3 ${IconData.color}`} />
+                    ) : (
+                      <span className="text-xs">{ELEMENT_EMOJIS[element]}</span>
+                    )}
+                  </div>
+                  <span className="text-xs font-black font-title text-white">{count}</span>
+                </motion.div>
+              );
+            })}
+         </div>
       </div>
 
-      {/* NEW: Placed Spirits Management Section */}
-      <div className="mt-6 space-y-4 px-2">
-        {/* Element Summary Cards */}
-        <div className="grid grid-cols-5 gap-2">
-          {Object.entries(ELEMENT_EMOJIS).map(([element, emoji]) => (
-            <div key={element} className="glass-card-subtle p-2 rounded-xl border border-white/5 flex flex-col items-center justify-center">
-              <span className="text-lg">{emoji}</span>
-              <span className="text-[10px] font-bold text-muted-foreground">{sanctuary?.elements[element] || 0}</span>
-            </div>
-          ))}
+      {/* Main Island Scene */}
+      <div className="relative py-12">
+        {/* Atmosphere: Cloud/Mist */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div 
+            animate={{ x: [-100, 100], opacity: [0.1, 0.2, 0.1] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute top-1/4 left-0 w-full h-32 bg-gradient-to-r from-transparent via-lumora-blue/10 to-transparent blur-3xl"
+          />
         </div>
 
-        {/* Placed Spirits Horizontal List */}
-        <div className="bg-card/40 rounded-2xl border border-border/20 p-3">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Espíritus Colocados ({sanctuary?.currentPlacedCount}/{sanctuary?.maxPlacedSpirits})
-            </h3>
-            <div className="flex items-center gap-2">
-              {sanctuary && sanctuary.currentPlacedCount < sanctuary.maxPlacedSpirits && (
-                <Button 
-                  onClick={onAutoPlace}
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-6 text-[9px] text-lumora-gold hover:text-lumora-gold hover:bg-lumora-gold/10 px-2 rounded-lg border border-lumora-gold/20"
-                >
-                  COLOCAR TODOS
-                </Button>
-              )}
-              <Button 
-                onClick={onStartPlacing}
-                variant="ghost" 
-                size="sm" 
-                className="h-6 text-[9px] text-lumora-blue hover:text-lumora-blue hover:bg-lumora-blue/10 px-2 rounded-lg border border-lumora-blue/20"
+        {/* Floating Island Container */}
+        <motion.div 
+          animate={{ y: [0, -15, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          className="relative z-20"
+        >
+          {/* The Grid */}
+          <div className="w-full overflow-visible flex justify-center">
+            <div 
+              className="relative"
+              style={{ width: 'fit-content' }}
+            >
+              {/* Island Base (3D Effect) */}
+              <div 
+                className="absolute pointer-events-none z-0 transition-all duration-700"
+                style={{
+                  bottom: '-25%',
+                  left: '-10%',
+                  right: '-10%',
+                  height: '70%',
+                  clipPath: 'polygon(50% 100%, 100% 30%, 85% 0%, 15% 0%, 0% 30%)',
+                  background: 'linear-gradient(180deg, rgba(80,60,100,0.4) 0%, rgba(40,30,60,0.8) 40%, rgba(10,5,30,0.95) 100%)',
+                  boxShadow: 'inset 0 0 40px rgba(155,89,182,0.3)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              />
+              
+              <div 
+                className="grid grid-cols-8 gap-0 relative z-10"
+                style={{ 
+                  transform: 'rotateX(60deg) rotateZ(-45deg)', 
+                  transformStyle: 'preserve-3d',
+                  width: 'fit-content'
+                }}
               >
-                <Plus className="h-3 w-3 mr-1" /> GESTIONAR
-              </Button>
+                {Array.from({ length: GRID_SIZE }).map((_, y) =>
+                  Array.from({ length: GRID_SIZE }).map((_, x) => renderTile(x, y))
+                )}
+              </div>
             </div>
           </div>
+        </motion.div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {/* Dynamic Island Shadow on "ground" */}
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-48 h-12 bg-black/60 blur-3xl rounded-full scale-150 pointer-events-none" />
+      </div>
+
+      {/* Management Footer */}
+      <div className="mt-4 px-4 pb-12">
+        <div className="glass-card rounded-3xl border border-white/10 p-5 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-lumora-emerald animate-pulse" />
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-white/60">
+                   Espíritus en Armonía
+                </h3>
+             </div>
+             <div className="flex items-center gap-1 text-[10px] font-black text-lumora-gold">
+                <span>{sanctuary?.currentPlacedCount ?? 0}</span>
+                <span className="text-white/20">/</span>
+                <span>{sanctuary?.maxPlacedSpirits ?? 5}</span>
+             </div>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
             {sanctuary?.placedSpirits.map((spirit) => (
               <motion.button
                 key={spirit.id}
                 onClick={() => onSpiritClick(spirit.id)}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ scale: 1.1, y: -5 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex-shrink-0 w-12 h-12 rounded-xl bg-background/60 border border-white/10 flex items-center justify-center relative group"
+                className="flex-shrink-0 relative w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group overflow-hidden"
               >
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ backgroundColor: `${ELEMENT_COLORS[spirit.spiritType.element as keyof typeof ELEMENT_COLORS]}20` }}
+                />
                 <img 
                   src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} 
-                  className="w-9 h-9 object-contain"
+                  className="w-10 h-10 object-contain relative z-10"
                   alt={spirit.spiritType.name}
                 />
-                <div className="absolute -top-1 -right-1 bg-lumora-purple text-[8px] font-bold px-1 rounded-full border border-white/20">
-                  {spirit.level}
+                <div className="absolute top-1 right-1 bg-black/60 text-[8px] font-black px-1.5 py-0.5 rounded-lg border border-white/10 z-20">
+                  L{spirit.level}
                 </div>
               </motion.button>
             ))}
             
             {/* Empty Slots */}
             {sanctuary && Array.from({ length: Math.max(0, sanctuary.maxPlacedSpirits - sanctuary.currentPlacedCount) }).map((_, i) => (
-              <div 
+              <motion.button 
                 key={`empty-${i}`}
-                className="flex-shrink-0 w-12 h-12 rounded-xl border-2 border-dashed border-white/5 bg-white/2 flex items-center justify-center"
+                onClick={onStartPlacing}
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.08)' }}
+                className="flex-shrink-0 w-14 h-14 rounded-2xl border-2 border-dashed border-white/5 bg-white/2 flex items-center justify-center transition-colors"
               >
-                <Plus className="h-4 w-4 text-white/10" />
-              </div>
+                <Plus className="h-5 w-5 text-white/10" />
+              </motion.button>
             ))}
+          </div>
+
+          {/* Action Row */}
+          <div className="mt-5 flex gap-2">
+             <Button 
+               onClick={onAutoPlace}
+               className="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase hover:bg-white/10 transition-all"
+             >
+               Auto-Colocar
+             </Button>
+             <Button 
+               onClick={onStartPlacing}
+               className="flex-1 h-10 rounded-xl bg-lumora-blue text-white text-[10px] font-black uppercase shadow-lg shadow-lumora-blue/20"
+             >
+               Gestionar
+             </Button>
           </div>
         </div>
       </div>

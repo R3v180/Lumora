@@ -107,6 +107,7 @@ export function useSlotMachine() {
   const [reelsStopped, setReelsStopped] = useState<boolean[]>([true, true, true, true, true]);
   const [showEnergyDialog, setShowEnergyDialog] = useState(false);
 
+  const [multiplier, setMultiplier] = useState(1);
   const autoSpinRef = useRef(false);
   useEffect(() => { autoSpinRef.current = autoSpin; }, [autoSpin]);
 
@@ -147,6 +148,7 @@ export function useSlotMachine() {
       const res = await fetch('/api/spin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ multiplier }),
       });
       const data = await res.json();
 
@@ -229,7 +231,7 @@ export function useSlotMachine() {
       setAutoSpin(false);
       autoSpinRef.current = false;
     }
-  }, [isSpinning, session, router, syncPlayerStats, triggerRefresh]);
+  }, [isSpinning, session, router, syncPlayerStats, triggerRefresh, multiplier]);
 
   return {
     isSpinning,
@@ -248,6 +250,8 @@ export function useSlotMachine() {
     setShowEnergyDialog,
     doSpin,
     setEnergy,
-    setLumens
+    setLumens,
+    multiplier,
+    setMultiplier
   };
 }

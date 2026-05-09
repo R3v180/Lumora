@@ -17,7 +17,7 @@ interface Chest {
   id: string;
   type: string;
   rarity: string;
-  state: 'locked' | 'unlocking' | 'ready' | 'opened';
+  status: 'locked' | 'unlocking' | 'ready' | 'opened';
   durationMs: number;
   startedUnlockAt: string | null;
   unlocksAt: string;
@@ -148,10 +148,10 @@ export function ChestPanel() {
             const unlocksAt = new Date(chest.unlocksAt).getTime();
             const startedAt = chest.startedUnlockAt ? new Date(chest.startedUnlockAt).getTime() : 0;
             const totalMs = chest.durationMs;
-            const elapsed = chest.state === 'unlocking' ? Math.max(0, now - startedAt) : 0;
+            const elapsed = chest.status === 'unlocking' ? Math.max(0, now - startedAt) : 0;
             const progress = Math.min(100, (elapsed / totalMs) * 100);
             
-            const isReady = chest.state === 'ready' || (chest.state === 'unlocking' && now >= unlocksAt);
+            const isReady = chest.status === 'ready' || (chest.status === 'unlocking' && now >= unlocksAt);
             const remainingMs = Math.max(0, unlocksAt - now);
             
             // Format time
@@ -177,20 +177,36 @@ export function ChestPanel() {
                 </div>
 
                 {/* Chest Icon */}
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${RARITY_COLORS[chest.rarity]} flex items-center justify-center relative shadow-inner overflow-hidden`}>
-                  <Box className="h-9 w-9 text-white drop-shadow-lg relative z-10" />
-                  <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className={`w-24 h-24 rounded-2xl flex items-center justify-center relative group-hover:scale-110 transition-transform duration-500`}>
+                  {/* Outer Glow based on rarity */}
+                  <div className={`absolute inset-2 rounded-full blur-2xl opacity-40 bg-gradient-to-br ${RARITY_COLORS[chest.rarity]}`} />
                   
-                  {chest.state === 'locked' && (
-                    <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center">
-                      <Lock className="h-6 w-6 text-white/50" />
+                  <img 
+                    src={`/assets/chests/chest_${chest.rarity}.png`} 
+                    alt={chest.rarity} 
+                    className={`w-20 h-20 object-contain relative z-10 drop-shadow-[0_0_10px_rgba(0,0,0,0.5)] ${chest.status === 'locked' ? 'grayscale opacity-60' : ''}`} 
+                  />
+                  
+                  {chest.status === 'locked' && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center">
+                      <div className="bg-black/40 backdrop-blur-[2px] p-2 rounded-full border border-white/20">
+                        <Lock className="h-5 w-5 text-white shadow-lg" />
+                      </div>
                     </div>
+                  )}
+
+                  {isReady && (
+                    <motion.div 
+                      animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className={`absolute inset-0 z-0 rounded-full blur-3xl bg-gradient-to-br ${RARITY_COLORS[chest.rarity]}`}
+                    />
                   )}
                 </div>
                 
                 {/* Status & Progress */}
                 <div className="w-full space-y-2">
-                  {chest.state === 'unlocking' && !isReady && (
+                  {chest.status === 'unlocking' && !isReady && (
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono">
                         <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {timeStr}</span>
@@ -200,7 +216,7 @@ export function ChestPanel() {
                     </div>
                   )}
 
-                  {chest.state === 'locked' && (
+                  {chest.status === 'locked' && (
                     <div className="text-center py-1">
                       <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Esperando</span>
                     </div>
@@ -216,7 +232,7 @@ export function ChestPanel() {
 
                 {/* Actions */}
                 <div className="w-full mt-1">
-                  {chest.state === 'locked' && (
+                  {chest.status === 'locked' && (
                     <Button
                       size="sm"
                       onClick={() => handleStartUnlock(chest.id)}
@@ -226,7 +242,7 @@ export function ChestPanel() {
                     </Button>
                   )}
 
-                  {chest.state === 'unlocking' && !isReady && (
+                  {chest.status === 'unlocking' && !isReady && (
                     <Button
                       size="sm"
                       variant="outline"

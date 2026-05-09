@@ -38,10 +38,14 @@ export async function GET() {
     const now = new Date();
     const refillAt = player.energyRefillAt;
     const minutesPassed = Math.floor((now.getTime() - refillAt.getTime()) / 60000);
-    const energyRegenerated = Math.min(
-      Math.floor(minutesPassed / 5), // 1 energy every 5 minutes
-      player.maxEnergy - player.energy
-    );
+    
+    let energyRegenerated = 0;
+    if (player.energy < player.maxEnergy) {
+      energyRegenerated = Math.min(
+        Math.floor(minutesPassed / 5),
+        player.maxEnergy - player.energy
+      );
+    }
 
     if (energyRegenerated > 0) {
       await db.playerProfile.update({

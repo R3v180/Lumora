@@ -216,7 +216,7 @@ export function ShopPanel() {
           {activeItems.map((item) => {
             const canAfford = lumens >= item.price;
             const emoji = ITEM_EMOJIS[item.category] || '🎁';
-            const meta = CATEGORY_META[item.category] || CATEGORY_META.lumens;
+            const meta = CATEGORY_META[item.category] || CATEGORY_META.energy;
 
             return (
               <motion.button

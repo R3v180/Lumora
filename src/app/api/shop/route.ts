@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (!item || !item.isActive) {
+      const allItems = await db.shopItem.findMany({ select: { id: true, isActive: true } });
+      console.log('DEBUG SHOP 404:', { requested: itemId, dbItems: allItems });
       return NextResponse.json(
         { error: 'Item no disponible' },
         { status: 404 }
@@ -222,7 +224,17 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return { rewards, newLumens: item.currency === 'lumens' ? player.lumens - item.price + (content.lumens || 0) + (content.bonus || 0) : player.lumens };
+      // Fetch final stats to return
+      const finalPlayer = await tx.playerProfile.findUnique({
+        where: { id: player.id },
+        select: { lumens: true, energy: true }
+      });
+
+      return { 
+        rewards, 
+        newLumens: finalPlayer?.lumens || 0,
+        newEnergy: finalPlayer?.energy || 0
+      };
     });
 
     return NextResponse.json({
@@ -230,6 +242,7 @@ export async function POST(request: NextRequest) {
       itemName: item.name,
       rewards: result.rewards,
       newLumens: result.newLumens,
+      newEnergy: result.newEnergy,
     });
   } catch (error) {
     console.error('Shop purchase error:', error);
