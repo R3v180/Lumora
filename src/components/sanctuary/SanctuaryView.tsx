@@ -391,6 +391,64 @@ export function SanctuaryView({
           ))}
         </div>
       </div>
+
+      {/* NEW: Placed Spirits Management Section */}
+      <div className="mt-6 space-y-4 px-2">
+        {/* Element Summary Cards */}
+        <div className="grid grid-cols-5 gap-2">
+          {Object.entries(ELEMENT_EMOJIS).map(([element, emoji]) => (
+            <div key={element} className="glass-card-subtle p-2 rounded-xl border border-white/5 flex flex-col items-center justify-center">
+              <span className="text-lg">{emoji}</span>
+              <span className="text-[10px] font-bold text-muted-foreground">{sanctuary?.elements[element] || 0}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Placed Spirits Horizontal List */}
+        <div className="bg-card/40 rounded-2xl border border-border/20 p-3">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Espíritus Colocados ({sanctuary?.currentPlacedCount}/{sanctuary?.maxPlacedSpirits})
+            </h3>
+            {sanctuary && sanctuary.currentPlacedCount < sanctuary.maxPlacedSpirits && (
+              <span className="text-[9px] text-lumora-gold animate-pulse">
+                {sanctuary.maxPlacedSpirits - sanctuary.currentPlacedCount} huecos libres
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {sanctuary?.placedSpirits.map((spirit) => (
+              <motion.button
+                key={spirit.id}
+                onClick={() => onSpiritClick(spirit.id)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex-shrink-0 w-12 h-12 rounded-xl bg-background/60 border border-white/10 flex items-center justify-center relative group"
+              >
+                <img 
+                  src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} 
+                  className="w-9 h-9 object-contain"
+                  alt={spirit.spiritType.name}
+                />
+                <div className="absolute -top-1 -right-1 bg-lumora-purple text-[8px] font-bold px-1 rounded-full border border-white/20">
+                  {spirit.level}
+                </div>
+              </motion.button>
+            ))}
+            
+            {/* Empty Slots */}
+            {sanctuary && Array.from({ length: Math.max(0, sanctuary.maxPlacedSpirits - sanctuary.currentPlacedCount) }).map((_, i) => (
+              <div 
+                key={`empty-${i}`}
+                className="flex-shrink-0 w-12 h-12 rounded-xl border-2 border-dashed border-white/5 bg-white/2 flex items-center justify-center"
+              >
+                <Plus className="h-4 w-4 text-white/10" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
