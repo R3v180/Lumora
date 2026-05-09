@@ -730,8 +730,9 @@ export function WorldTreeWidget() {
                       (element) => {
                         const config = ELEMENT_CONFIG[element];
                         const isSelected = selectedElement === element;
-                        // Use useGameStore to get current points
-                        const points = useGameStore.getState().sanctuaryPoints?.[element] || 0;
+                        // Use useGameStore to get current points from the correct fields
+                        const fieldName = `global${element.charAt(0).toUpperCase() + element.slice(1)}` as keyof PlayerState;
+                        const points = useGameStore((s) => s[fieldName] as number) || 0;
                         
                         return (
                           <motion.button
