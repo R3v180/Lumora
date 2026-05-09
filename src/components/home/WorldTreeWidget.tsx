@@ -334,6 +334,15 @@ export function WorldTreeWidget() {
     amount: number;
   } | null>(null);
 
+  // Correctly fetch all element points at once to follow Hook rules
+  const allPoints = useGameStore(s => ({
+    fire: s.globalFire,
+    water: s.globalWater,
+    dream: s.globalDream,
+    nature: s.globalNature,
+    star: s.globalStar,
+  }));
+
   const fetchTreeData = useCallback(async () => {
     setError(null);
     try {
@@ -730,9 +739,7 @@ export function WorldTreeWidget() {
                       (element) => {
                         const config = ELEMENT_CONFIG[element];
                         const isSelected = selectedElement === element;
-                        // Use useGameStore to get current points from the correct fields
-                        const fieldName = `global${element.charAt(0).toUpperCase() + element.slice(1)}` as keyof PlayerState;
-                        const points = useGameStore((s) => s[fieldName] as number) || 0;
+                        const points = allPoints[element] || 0;
                         
                         return (
                           <motion.button
