@@ -3,7 +3,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf } from 'lucide-react';
+import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf, ArrowUp, Trash2, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useGameStore } from '@/lib/store';
+import { toast } from 'sonner';
 
 // === TYPES ===
 interface PlacedItem {
@@ -142,6 +145,7 @@ export function SanctuaryView({
 }: SanctuaryViewProps) {
   const t = useTranslations('sanctuary');
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   // Create a map of positions to placed items
   const placedMap = useMemo(() => {
@@ -166,6 +170,31 @@ export function SanctuaryView({
   }, [sanctuary]);
 
   const level = sanctuary?.sanctuaryLevel || 1;
+  const upgradeCost = level * 2000;
+  const playerLumens = useGameStore(s => s.lumens);
+
+  const handleUpgrade = async () => {
+    if (playerLumens < upgradeCost || isUpgrading) return;
+    setIsUpgrading(true);
+    try {
+      const res = await fetch('/api/sanctuary/upgrade', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        useGameStore.getState().syncPlayerStats({ 
+          lumens: data.newLumens, 
+          sanctuaryLevel: data.newLevel 
+        });
+        useGameStore.getState().triggerRefresh();
+        toast.success(`¡Santuario mejorado a Nivel ${data.newLevel}!`);
+      } else {
+        toast.error(data.error);
+      }
+    } catch (err) {
+      toast.error('Error al mejorar');
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
 
   const renderTile = (x: number, y: number) => {
     const key = `${x},${y}`;
@@ -279,24 +308,36 @@ export function SanctuaryView({
           ))}
         </div>
 
-        {/* Sanctuary name & spirit counter */}
-        <div className="text-center mb-2">
-          <h2 className="text-sm font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
-            {sanctuary?.name || 'Mi Santuario'}
-          </h2>
-          <div className="flex items-center justify-center gap-2 mt-0.5">
-            <p className="text-[10px] text-muted-foreground">
-              Nivel {sanctuary?.sanctuaryLevel || 1} · {sanctuary?.lumensPerHour || 0} Lumens/h
-            </p>
-            <span className="text-[10px] text-muted-foreground/40">·</span>
-            <p className={`text-[10px] font-medium ${
-              sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits
-                ? 'text-lumora-gold'
-                : 'text-muted-foreground'
-            }`}>
-              ✨ {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
-            </p>
+        {/* Sanctuary name, level & upgrade */}
+        <div className="flex items-center justify-between px-4 mb-4">
+          <div className="flex-1">
+            <h2 className="text-sm font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
+              {sanctuary?.name || 'Mi Santuario'}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-[9px] text-muted-foreground">
+                Nivel {level} · {sanctuary?.lumensPerHour || 0} L/h
+              </p>
+              <span className="text-[9px] text-muted-foreground/40">·</span>
+              <p className={`text-[9px] font-medium ${
+                sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits
+                  ? 'text-lumora-gold'
+                  : 'text-muted-foreground'
+              }`}>
+                ✨ {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
+              </p>
+            </div>
           </div>
+
+          <Button 
+            onClick={handleUpgrade}
+            disabled={playerLumens < upgradeCost || isUpgrading}
+            size="sm"
+            className="h-8 rounded-xl bg-gradient-to-r from-lumora-purple to-lumora-blue border-0 shadow-lg text-[10px] font-bold px-3 gap-1.5"
+          >
+            <ArrowUp className="h-3 w-3" />
+            {isUpgrading ? '...' : `SUBIR LV (${upgradeCost.toLocaleString()} ✨)`}
+          </Button>
         </div>
 
         {/* Element balance bar */}

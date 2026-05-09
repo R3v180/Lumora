@@ -43,23 +43,25 @@ export async function GET() {
     const now = new Date();
     const lastCollect = new Date(sanctuary.lastCollectAt);
     const hoursPassed = Math.max(0, (now.getTime() - lastCollect.getTime()) / (1000 * 60 * 60));
-    const idleLumens = Math.floor(hoursPassed * sanctuary.lumensPerHour);
-    // Cap at 8 hours offline
-    const cappedIdleLumens = Math.min(idleLumens, sanctuary.lumensPerHour * 8);
 
     // Calculate total Lumens per hour from placed spirits
     const placedSpiritIds = sanctuary.decorations
       .filter(d => d.type === 'spirit' && d.spiritId)
       .map(d => d.spiritId!);
 
-    const placedSpirits = player.spirits.filter(s =>
+    const placedSpiritsData = player.spirits.filter(s =>
       placedSpiritIds.includes(s.id)
     );
 
-    const spiritLumensPerHour = placedSpirits.reduce(
+    const spiritLumensPerHour = placedSpiritsData.reduce(
       (sum, s) => sum + s.spiritType.lumensPerHour,
       0
     );
+
+    const totalLumensPerHour = sanctuary.lumensPerHour + spiritLumensPerHour;
+    const idleLumens = Math.floor(hoursPassed * totalLumensPerHour);
+    // Cap at 8 hours offline
+    const cappedIdleLumens = Math.min(idleLumens, totalLumensPerHour * 8);
 
     // Separate placed and unplaced spirits
     const placedSpiritSet = new Set(placedSpiritIds);
@@ -69,7 +71,7 @@ export async function GET() {
       id: sanctuary.id,
       name: sanctuary.name,
       layout: sanctuary.layout,
-      lumensPerHour: sanctuary.lumensPerHour + spiritLumensPerHour,
+      lumensPerHour: totalLumensPerHour,
       baseLumensPerHour: sanctuary.lumensPerHour,
       spiritLumensPerHour,
       idleLumens: cappedIdleLumens,
