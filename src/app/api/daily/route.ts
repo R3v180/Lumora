@@ -42,6 +42,42 @@ export async function GET() {
       dailyChallenges = await generateDailyChallenges(today);
     }
 
+    // Ensure this player has entries for these challenges
+    const playerChallengePromises = dailyChallenges.map(async (ch) => {
+      if (ch.playerChallenges.length === 0) {
+        return db.playerDailyChallenge.upsert({
+          where: {
+            playerId_challengeId: {
+              playerId: player.id,
+              challengeId: ch.id
+            }
+          },
+          update: {},
+          create: {
+            playerId: player.id,
+            challengeId: ch.id,
+            progress: 0
+          }
+        });
+      }
+    });
+    await Promise.all(playerChallengePromises);
+
+    // Re-fetch to get accurate player progress
+    dailyChallenges = await db.dailyChallenge.findMany({
+      where: {
+        date: {
+          gte: today,
+          lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+      include: {
+        playerChallenges: {
+          where: { playerId: player.id },
+        },
+      },
+    });
+
     const result = dailyChallenges.map((ch) => {
       const playerCh = ch.playerChallenges[0];
       return {

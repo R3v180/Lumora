@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { updateAchievementProgress } from '@/lib/challenges';
 
 // GET /api/achievements - Get all achievements with player progress
 export async function GET() {
@@ -20,7 +21,7 @@ export async function GET() {
     }
 
     // Get all achievements with player progress
-    const achievements = await db.achievement.findMany({
+    let achievements = await db.achievement.findMany({
       include: {
         playerAchievements: {
           where: { playerId: player.id },
@@ -28,6 +29,43 @@ export async function GET() {
       },
       orderBy: [{ category: 'asc' }, { requirement: 'asc' }],
     });
+
+    // --- RETROACTIVE SYNC ---
+    // Check for "State" based achievements and auto-complete them
+    const syncPromises = [];
+    
+    // 1. Social: Guild Founder/Member
+    const guildMember = await db.guildMember.findFirst({ where: { playerId: player.id } });
+    if (guildMember) {
+      syncPromises.push(updateAchievementProgress(player.id, 'social', 1)); // At least 1 friend/social action
+      if (guildMember.role === 'owner') {
+        // Find "Founder" achievement and mark progress
+      }
+    }
+
+    // 2. Exploration: Sanctuary Level
+    if (player.sanctuaryLevel > 1) {
+      syncPromises.push(updateAchievementProgress(player.id, 'exploration', player.sanctuaryLevel));
+    }
+
+    // 3. Collection: Total spirits
+    const spiritCount = await db.playerSpirit.count({ where: { playerId: player.id } });
+    if (spiritCount > 0) {
+      syncPromises.push(updateAchievementProgress(player.id, 'collection', spiritCount));
+    }
+
+    if (syncPromises.length > 0) {
+      await Promise.all(syncPromises);
+      // Re-fetch to get updated progress
+      achievements = await db.achievement.findMany({
+        include: {
+          playerAchievements: {
+            where: { playerId: player.id },
+          },
+        },
+        orderBy: [{ category: 'asc' }, { requirement: 'asc' }],
+      });
+    }
 
     const result = achievements.map((ach) => {
       const playerAch = ach.playerAchievements[0];
