@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
+import { EnergyRefillDialog } from '@/components/game/EnergyRefillDialog';
+import { Zap, Play, Square } from 'lucide-react';
 
 interface RaidTarget {
   id: string;
@@ -25,6 +27,12 @@ export function RaidPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [raidingId, setRaidingId] = useState<string | null>(null);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showEnergyRefill, setShowEnergyRefill] = useState(false);
+  const [autoRaid, setAutoRaid] = useState(false);
+  const autoRaidRef = React.useRef(false);
+
+  const energy = useGameStore(s => s.energy);
+  const RAID_COST = 20;
 
   const fetchRaids = useCallback(async () => {
     try {
@@ -44,6 +52,23 @@ export function RaidPanel() {
   useEffect(() => {
     fetchRaids();
   }, [fetchRaids]);
+
+  // Auto-raid logic
+  useEffect(() => {
+    if (autoRaid && !raidingId && targets.length > 0) {
+      if (energy < RAID_COST) {
+        setAutoRaid(false);
+        autoRaidRef.current = false;
+        setShowEnergyRefill(true);
+        return;
+      }
+      
+      // Attack the first target with most lumens
+      const sorted = [...targets].sort((a, b) => b.stealable - a.stealable);
+      const timer = setTimeout(() => handleRaid(sorted[0].id), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoRaid, raidingId, targets, energy]);
 
   const handleRaid = async (targetId: string) => {
     setRaidingId(targetId);
@@ -68,7 +93,13 @@ export function RaidPanel() {
         fetchRaids();
       } else {
         audioService.playError();
-        toast.error(data.error);
+        if (data.error === 'Energía insuficiente') {
+          setShowEnergyRefill(true);
+          setAutoRaid(false);
+          autoRaidRef.current = false;
+        } else {
+          toast.error(data.error);
+        }
       }
     } catch (err) {
       toast.error('Error de conexión');
@@ -99,8 +130,28 @@ export function RaidPanel() {
         }}
       />
       <div className="relative z-10 space-y-4">
-      {/* Header with Help Button */}
-      <div className="flex justify-end mb-2">
+      {/* Header with Controls */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant={autoRaid ? "destructive" : "default"} 
+            size="sm" 
+            onClick={() => {
+              setAutoRaid(!autoRaid);
+              autoRaidRef.current = !autoRaid;
+            }}
+            className="h-8 px-3 rounded-full gap-1.5 font-bold text-[10px]"
+          >
+            {autoRaid ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            {autoRaid ? "PARAR AUTO" : "AUTO-RAID"}
+          </Button>
+          
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${energy < RAID_COST ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-lumora-blue/10 border-lumora-blue/30 text-lumora-blue'}`}>
+            <Zap className={`h-3 w-3 ${energy < RAID_COST ? 'animate-pulse' : ''}`} />
+            <span className="text-[10px] font-bold">{energy} / 20</span>
+          </div>
+        </div>
+
         <Button variant="ghost" size="icon" onClick={() => setShowHelpDialog(true)} className="h-8 w-8 rounded-full bg-card/50 border border-border/30 text-muted-foreground hover:text-foreground">
           <span className="font-bold font-serif">?</span>
         </Button>
@@ -184,6 +235,12 @@ export function RaidPanel() {
         </div>
       )}
       </div>
+
+      <EnergyRefillDialog 
+        isOpen={showEnergyRefill}
+        onClose={() => setShowEnergyRefill(false)}
+        onSuccess={() => fetchRaids()}
+      />
     </div>
   );
 }
