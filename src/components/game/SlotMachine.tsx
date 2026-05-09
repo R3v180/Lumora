@@ -12,6 +12,7 @@ import { BonusGame } from '@/components/game/BonusGame';
 import { SymbolIcon } from '@/components/game/SymbolIcon';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
+import { EnergyRefillDialog } from './EnergyRefillDialog';
 import { RewardedVideoAd } from '@/components/ads/RewardedVideoAd';
 import confetti from 'canvas-confetti';
 import { SYMBOLS } from '@/game/engine/symbols';
@@ -222,6 +223,7 @@ export function SlotMachine() {
   // Ads
   const [showAd, setShowAd] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'energy' | 'free_spin'>('energy');
+  const [showEnergyDialog, setShowEnergyDialog] = useState(false);
 
   const autoSpinRef = useRef(false);
 
@@ -295,7 +297,11 @@ export function SlotMachine() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Error al girar');
+        if (data.error === 'Energía insuficiente') {
+          setShowEnergyDialog(true);
+        } else {
+          setError(data.error || 'Error al girar');
+        }
         setIsSpinning(false);
         setAutoSpin(false);
         autoSpinRef.current = false;
@@ -791,6 +797,17 @@ export function SlotMachine() {
         onClose={() => setShowAd(false)}
         onReward={handleAdReward}
         rewardText={adRewardType === 'energy' ? 'Energía' : 'Giro Libre'}
+      />
+
+      {/* Energy Recovery Dialog */}
+      <EnergyRefillDialog 
+        isOpen={showEnergyDialog} 
+        onClose={() => setShowEnergyDialog(false)}
+        onSuccess={() => {
+          // Stats are synced via useGameStore in the dialog
+          setEnergy(useGameStore.getState().energy);
+          setLumens(useGameStore.getState().lumens);
+        }}
       />
 
       {/* Bonus Game Full-Screen Overlay */}

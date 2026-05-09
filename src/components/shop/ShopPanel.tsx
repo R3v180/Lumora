@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
+import { ShopItemIcon } from './ShopItemIcon';
 
 interface ShopItem {
   id: string;
@@ -220,9 +221,13 @@ export function ShopPanel() {
                 whileHover={canAfford ? { scale: 1.02 } : {}}
                 whileTap={canAfford ? { scale: 0.98 } : {}}
               >
-                {/* Emoji icon */}
-                <div className={`w-12 h-12 rounded-xl bg-${meta.color}/10 flex items-center justify-center text-2xl border border-${meta.color}/20`}>
-                  {emoji}
+                {/* Shop Item Icon */}
+                <div className={`w-14 h-14 rounded-2xl bg-card/40 flex items-center justify-center border border-${meta.color}/20 shadow-inner group-hover:scale-110 transition-transform`}>
+                  <ShopItemIcon 
+                    type={item.content.type || item.id.replace('shop_', '')} 
+                    category={item.category} 
+                    className="h-8 w-8"
+                  />
                 </div>
                 {/* Name */}
                 <p className="text-xs font-semibold leading-tight">{item.name}</p>
