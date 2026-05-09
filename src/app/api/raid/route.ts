@@ -7,6 +7,7 @@ import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challe
 const RAID_ENERGY_COST = 20;
 const STEAL_PERCENTAGE = 0.2; // 20% of idle lumens
 const AUTO_SHIELD_HOURS = 2;
+const REFRESH_COST = 500;
 
 // GET: Find 3 vulnerable sanctuaries
 export async function GET() {
@@ -64,7 +65,7 @@ export async function GET() {
             { shieldUntil: null },
             { shieldUntil: { lt: now } },
           ],
-          lastCollectAt: { lt: new Date(now.getTime() - 2 * 60 * 60 * 1000) }, // At least 2h idle
+          lastCollectAt: { lt: new Date(now.getTime() - 15 * 60 * 1000) },
         },
       },
       include: {
@@ -88,7 +89,7 @@ export async function GET() {
         idleLumens,
         stealable: Math.floor(idleLumens * STEAL_PERCENTAGE),
       };
-    });
+    }).filter(t => t.stealable > 0);
 
     // Recent raids by this player
     const recentRaids = await db.raidLog.findMany({
@@ -212,15 +213,7 @@ export async function POST(request: NextRequest) {
         data: { lumens: { increment: stolenLumens } },
       });
 
-      // Give attacker auto-shield
-      if (player.sanctuary) {
-        await tx.sanctuary.update({
-          where: { id: player.sanctuary.id },
-          data: {
-            shieldUntil: new Date(now.getTime() + AUTO_SHIELD_HOURS * 60 * 60 * 1000),
-          },
-        });
-      }
+      // REMOVED: No more auto-shield for attacking. 
 
       // Reset target's lastCollectAt so their idle resets
       await tx.sanctuary.update({
@@ -247,6 +240,7 @@ export async function POST(request: NextRequest) {
 
     // Update challenge progress (Exploration/Raid)
     await updateChallengeProgress(player.id, 'raid_sanctuaries', 1);
+    await updateChallengeProgress(player.id, 'raids', 1);
     
     // Update achievement progress (Exploration)
     await updateAchievementProgress(player.id, 'exploration', 1);

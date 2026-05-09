@@ -8,6 +8,7 @@ import { AuthProvider } from '@/components/layout/AuthProvider';
 import { ServiceWorkerRegistrar } from '@/components/layout/ServiceWorkerRegistrar';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from '@/components/providers/QueryProvider';
+import { OnboardingTour } from '@/components/ui/OnboardingTour';
 
 import { Sora, Inter } from "next/font/google";
 
@@ -54,6 +55,7 @@ export default async function LocaleLayout({
             <ServiceWorkerRegistrar />
             <QueryProvider>
               <AppShell>{children}</AppShell>
+              <OnboardingTour />
               <Toaster />
             </QueryProvider>
           </div>

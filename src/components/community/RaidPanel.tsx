@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Shield, Target, Coins, ShieldCheck } from 'lucide-react';
+import { Shield, Target, Coins, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
@@ -29,10 +29,13 @@ export function RaidPanel() {
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showEnergyRefill, setShowEnergyRefill] = useState(false);
   const [autoRaid, setAutoRaid] = useState(false);
+  const [sessionLoot, setSessionLoot] = useState(0);
   const autoRaidRef = useRef(false);
 
   const energy = useGameStore(s => s.energy);
   const RAID_COST = 20;
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchRaids = useCallback(async () => {
     try {
@@ -49,13 +52,41 @@ export function RaidPanel() {
     }
   }, []);
 
+  const handleRefresh = async (isAuto = false) => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch('/api/raid/refresh', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        if (!isAuto) toast.success(data.isFree ? 'Exploración gratuita realizada' : 'Nuevos objetivos localizados');
+        
+        useGameStore.getState().syncPlayerStats({
+          lumens: data.newLumens,
+          energy: useGameStore.getState().energy,
+          maxEnergy: useGameStore.getState().maxEnergy,
+        });
+        useGameStore.getState().triggerRefresh();
+        fetchRaids();
+      } else {
+        if (!isAuto) toast.error(data.error);
+        if (isAuto) setAutoRaid(false);
+      }
+    } catch (err) {
+      toast.error('Error al explorar');
+      if (isAuto) setAutoRaid(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchRaids();
   }, [fetchRaids]);
 
   // Auto-raid logic
   useEffect(() => {
-    if (autoRaid && !raidingId && targets.length > 0) {
+    if (autoRaid && !raidingId) {
       if (energy < RAID_COST) {
         setAutoRaid(false);
         autoRaidRef.current = false;
@@ -63,14 +94,23 @@ export function RaidPanel() {
         return;
       }
       
-      // Attack the first target with most lumens
-      const sorted = [...targets].sort((a, b) => b.stealable - a.stealable);
+      // If no targets or all have 0 lumens, refresh
+      const viableTargets = targets.filter(t => t.stealable > 0);
+      
+      if (viableTargets.length === 0) {
+        const timer = setTimeout(() => handleRefresh(true), 1200);
+        return () => clearTimeout(timer);
+      }
+
+      // Attack the target with most lumens
+      const sorted = [...viableTargets].sort((a, b) => b.stealable - a.stealable);
       const timer = setTimeout(() => handleRaid(sorted[0].id), 1500);
       return () => clearTimeout(timer);
     }
   }, [autoRaid, raidingId, targets, energy]);
 
   const handleRaid = async (targetId: string) => {
+    if (raidingId) return;
     setRaidingId(targetId);
     try {
       const res = await fetch('/api/raid', {
@@ -80,17 +120,29 @@ export function RaidPanel() {
       });
       const data = await res.json();
       if (res.ok) {
-        audioService.playCollect();
-        toast.success(t('lumensStolen', { amount: data.lumensStolen }));
-        toast(t('autoShield'), { icon: '🛡️' });
-        useGameStore.getState().syncPlayerStats({
-          lumens: data.newLumens,
-          energy: data.newEnergy,
-          maxEnergy: useGameStore.getState().maxEnergy,
-        });
-        useGameStore.getState().triggerRefresh();
-        setMyShield(data.shieldUntil);
-        fetchRaids();
+        if (data.success !== false) {
+          audioService.playCollect();
+          toast.success(`¡Éxito! Has robado ${data.lumensStolen} Lumens`);
+          setSessionLoot(prev => prev + data.lumensStolen);
+          useGameStore.getState().syncPlayerStats({
+            lumens: data.newLumens,
+            energy: data.newEnergy,
+            maxEnergy: useGameStore.getState().maxEnergy,
+          });
+          useGameStore.getState().triggerRefresh();
+          setMyShield(data.shieldUntil);
+          fetchRaids();
+        } else {
+          audioService.playError();
+          toast.error(data.error || 'Ataque fallido');
+          // Still cost energy on failure
+          useGameStore.getState().syncPlayerStats({
+            lumens: useGameStore.getState().lumens,
+            energy: data.newEnergy,
+            maxEnergy: useGameStore.getState().maxEnergy,
+          });
+          fetchRaids();
+        }
       } else {
         audioService.playError();
         if (data.error === 'Energía insuficiente') {
@@ -134,6 +186,17 @@ export function RaidPanel() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleRefresh(false)}
+            disabled={isRefreshing}
+            className="h-8 px-3 rounded-full gap-1.5 font-bold text-[10px] border-lumora-gold/30 text-lumora-gold hover:bg-lumora-gold/10"
+          >
+            <Sparkles className="h-3 w-3" />
+            {isRefreshing ? "..." : "EXPLORAR"}
+          </Button>
+
+          <Button 
             variant={autoRaid ? "destructive" : "default"} 
             size="sm" 
             onClick={() => {
@@ -145,6 +208,17 @@ export function RaidPanel() {
             {autoRaid ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
             {autoRaid ? "PARAR AUTO" : "AUTO-RAID"}
           </Button>
+
+          {sessionLoot > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1 bg-lumora-gold/20 border border-lumora-gold/30 px-3 py-1 rounded-full"
+            >
+              <Coins className="h-3 w-3 text-lumora-gold" />
+              <span className="text-[10px] font-bold text-lumora-gold">+{sessionLoot.toLocaleString()}</span>
+            </motion.div>
+          )}
           
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${energy < RAID_COST ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-lumora-blue/10 border-lumora-blue/30 text-lumora-blue'}`}>
             <Zap className={`h-3 w-3 ${energy < RAID_COST ? 'animate-pulse' : ''}`} />

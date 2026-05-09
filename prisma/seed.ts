@@ -446,23 +446,28 @@ async function main() {
   // Create Shop Items
   const shopItems = await Promise.all([
     prisma.shopItem.upsert({
-      where: { id: 'shop_energy_small' },
-      update: {},
+      where: { id: 'shop_lumens_small' },
+      update: { price: 100, content: { lumens: 1000 }, isActive: true },
       create: {
-        id: 'shop_energy_small',
-        name: 'Poción de Energía',
-        nameEn: 'Energy Potion',
-        description: 'Restaura +25 de energía',
-        descEn: 'Restores +25 energy',
-        category: 'boost',
-        price: 75,
+        id: 'shop_lumens_small',
+        name: 'Bolsa de Lumens',
+        nameEn: 'Small Lumens Pouch',
+        description: 'Contiene 1,000 Lumens',
+        descEn: 'Contains 1,000 Lumens',
+        category: 'currency',
+        price: 100,
         currency: 'lumens',
-        content: { energy: 25 },
+        content: { lumens: 1000 },
       },
     }),
     prisma.shopItem.upsert({
       where: { id: 'shop_energy_refill' },
-      update: {},
+      update: {
+        name: 'Recarga de Energía Total',
+        price: 250,
+        content: { energyRefill: true },
+        isActive: true,
+      },
       create: {
         id: 'shop_energy_refill',
         name: 'Recarga de Energía Total',
@@ -476,8 +481,38 @@ async function main() {
       },
     }),
     prisma.shopItem.upsert({
+      where: { id: 'shop_energy_small' },
+      update: { price: 75, content: { energy: 25 }, isActive: true },
+      create: {
+        id: 'shop_energy_small',
+        name: 'Poción de Energía',
+        nameEn: 'Energy Potion',
+        description: 'Restaura +25 de energía',
+        descEn: 'Restores +25 energy',
+        category: 'boost',
+        price: 75,
+        currency: 'lumens',
+        content: { energy: 25 },
+      },
+    }),
+    prisma.shopItem.upsert({
+      where: { id: 'shop_shield_basic' },
+      update: { price: 150, content: { type: 'shield', hours: 4 }, isActive: true },
+      create: {
+        id: 'shop_shield_basic',
+        name: 'Escudo Onírico',
+        nameEn: 'Dream Shield',
+        description: '4 horas de protección total',
+        descEn: '4 hours of total protection',
+        category: 'boost',
+        price: 150,
+        currency: 'lumens',
+        content: { type: 'shield', hours: 4 },
+      },
+    }),
+    prisma.shopItem.upsert({
       where: { id: 'shop_boost_exp' },
-      update: {},
+      update: { price: 500, content: { type: 'exp_boost', multiplier: 2, durationMin: 15 }, isActive: true },
       create: {
         id: 'shop_boost_exp',
         name: 'Elixir de Sabiduría',
@@ -492,7 +527,7 @@ async function main() {
     }),
     prisma.shopItem.upsert({
       where: { id: 'shop_season_pass' },
-      update: {},
+      update: { price: 1500, content: { type: 'season_pass', season: 'stellar_eclipse' }, isActive: true },
       create: {
         id: 'shop_season_pass',
         name: 'Pase de Temporada: Eclipse Estelar',
@@ -790,13 +825,85 @@ async function main() {
   ]);
   console.log(`✅ Created ${achievements.length} achievements`);
 
-  console.log('');
-  console.log('🌟 Echoes of Lumora database seeded successfully!');
-  console.log(`   - ${fireSpirits.length + waterSpirits.length + dreamSpirits.length + natureSpirits.length + starSpirits.length} Spirit Types`);
-  console.log(`   - ${shopItems.length} Shop Items`);
-  console.log(`   - ${decorItems.length} Decoration Items`);
-  console.log(`   - ${achievements.length} Achievements`);
-  console.log(`   - World State initialized`);
+  // === TESTING & BOTS SECTION ===
+  console.log('🧪 Setting up testing environment...');
+  
+  // 1. Boost "Viajero Estelar"
+  const traveler = await prisma.playerProfile.updateMany({
+    where: { displayName: { contains: 'Viajero' } },
+    data: {
+      lumens: 1000000,
+      energy: 5000,
+      maxEnergy: 5000,
+      level: 50
+    }
+  });
+  console.log(`🚀 Boosted ${traveler.count} traveler profiles`);
+
+  // 2. Create Vulnerable Rich Bots
+  const botNames = ['Sombra Nocturna', 'Espectro Errante', 'Viento del Norte', 'Llama Eterna', 'Gota de Rocío'];
+  const elements = ['fire', 'water', 'nature', 'dream', 'star'];
+
+  for (let i = 0; i < botNames.length; i++) {
+    const botId = `bot_test_${i}`;
+    const botUser = await prisma.user.upsert({
+      where: { email: `bot${i}@lumora.test` },
+      update: {},
+      create: {
+        id: botId,
+        email: `bot${i}@lumora.test`,
+        name: botNames[i],
+      },
+    });
+
+    const botProfile = await prisma.playerProfile.upsert({
+      where: { userId: botId },
+      update: {
+        lumens: 1000,
+        level: 10 + i * 5,
+      },
+      create: {
+        userId: botId,
+        displayName: botNames[i],
+        level: 10 + i * 5,
+        lumens: 1000,
+        energy: 150,
+      },
+    });
+
+    // High producing sanctuary with NO shield and 8 hours of idle time
+    await prisma.sanctuary.upsert({
+      where: { playerId: botProfile.id },
+      update: {
+        lumensPerHour: 500 + i * 100,
+        shieldUntil: null, // Always vulnerable
+        lastCollectAt: new Date(Date.now() - 8 * 60 * 60 * 1000), // 8 hours ago
+      },
+      create: {
+        playerId: botProfile.id,
+        name: `Isla de ${botNames[i]}`,
+        lumensPerHour: 500 + i * 100,
+        shieldUntil: null,
+        lastCollectAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
+      },
+    });
+
+    // Give bot some spirits so they have defense power
+    const botSpiritType = await prisma.spiritType.findFirst({
+      where: { element: elements[i % elements.length] }
+    });
+
+    if (botSpiritType) {
+      await prisma.playerSpirit.create({
+        data: {
+          playerId: botProfile.id,
+          spiritTypeId: botSpiritType.id,
+          level: 10,
+        }
+      }).catch(() => {}); // Ignore if already exists
+    }
+  }
+  console.log(`🤖 Created/Updated ${botNames.length} rich bots for raiding`);
 }
 
 main()

@@ -1,39 +1,31 @@
-// Echoes of Lumora - Prisma Schema
-// Neon PostgreSQL
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// =====================
-// AUTH & USER
-// =====================
-
 model User {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  name          String?
-  passwordHash  String?        // null for OAuth users
-  emailVerified DateTime?
-  image         String?
-  onboardingCompleted Boolean  @default(false)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  playerProfile PlayerProfile?
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  name                String?
+  emailVerified       DateTime?
+  image               String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  onboardingCompleted Boolean        @default(false)
+  passwordHash        String?
+  accounts            Account[]
+  playerProfile       PlayerProfile?
+  sessions            Session[]
 
   @@map("users")
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   type              String
   provider          String
@@ -47,8 +39,7 @@ model Account {
   session_state     String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -61,8 +52,7 @@ model Session {
   expires      DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
@@ -77,237 +67,198 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// =====================
-// PLAYER & PROFILE
-// =====================
-
 model PlayerProfile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
+  id               String                  @id @default(cuid())
+  userId           String                  @unique
   displayName      String
-  level            Int      @default(1)
-  experience       Int      @default(0)
-  lumens           Int      @default(100)
-  energy           Int      @default(100)
-  maxEnergy        Int      @default(100)
-  energyRefillAt   DateTime @default(now())
-  sanctuaryLevel   Int      @default(1)
-  arenaRating      Int      @default(1000)
-  arenaDefenseTeam Json     @default("[]")
-  language         String   @default("es")
-  lastLoginAt      DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sanctuary Sanctuary?
-  inventory Inventory[]
-  spirits   PlayerSpirit[]
-  guild     GuildMember?
-  friends1  Friendship[] @relation("Friend1")
-  friends2  Friendship[] @relation("Friend2")
-  achievements PlayerAchievement[]
-  dailyChallenges PlayerDailyChallenge[]
+  level            Int                     @default(1)
+  experience       Int                     @default(0)
+  lumens           Int                     @default(500)
+  energy           Int                     @default(150)
+  maxEnergy        Int                     @default(150)
+  energyRefillAt   DateTime                @default(now())
+  sanctuaryLevel   Int                     @default(1)
+  language         String                  @default("es")
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  lastLoginAt      DateTime                @default(now())
+  arenaDefenseTeam Json                    @default("[]")
+  arenaRating      Int                     @default(1000)
+  blessings        Blessing[]
+  bossDamageLogs   BossDamageLog[]
+  chatMessages     ChatMessage[]
+  friends1         Friendship[]            @relation("Friend1")
+  friends2         Friendship[]            @relation("Friend2")
+  guild            GuildMember?
+  inventory        Inventory[]
+  achievements     PlayerAchievement[]
+  chests           PlayerChest[]
+  dailyChallenges  PlayerDailyChallenge[]
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spirits          PlayerSpirit[]
   weeklyChallenges PlayerWeeklyChallenge[]
-  blessings  Blessing[]
-  chatMessages ChatMessage[]
-  bossDamageLogs BossDamageLog[]
-  spinRaceEntries SpinRaceEntry[]
-  chests    PlayerChest[]
+  sanctuary        Sanctuary?
+  spinRaceEntries  SpinRaceEntry[]
 
   @@map("player_profiles")
 }
 
-// =====================
-// SANCTUARY
-// =====================
-
 model Sanctuary {
-  id              String   @id @default(cuid())
-  playerId        String   @unique
-  name            String   @default("Mi Santuario")
-  layout          Json     @default("{}")
-  globalWater     Int      @default(0)
-  globalFire      Int      @default(0)
-  globalNature    Int      @default(0)
-  globalDream     Int      @default(0)
-  globalStar      Int      @default(0)
-  lumensPerHour   Int      @default(10)
-  lastCollectAt   DateTime @default(now())
-  shieldUntil     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  decorations SanctuaryDecoration[]
+  id            String                @id @default(cuid())
+  playerId      String                @unique
+  name          String                @default("Mi Santuario")
+  layout        Json                  @default("{}")
+  globalWater   Int                   @default(0)
+  globalFire    Int                   @default(0)
+  globalNature  Int                   @default(0)
+  globalDream   Int                   @default(0)
+  globalStar    Int                   @default(0)
+  lumensPerHour Int                   @default(10)
+  lastCollectAt DateTime              @default(now())
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  shieldUntil   DateTime?
+  player        PlayerProfile         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  decorations   SanctuaryDecoration[]
 
   @@map("sanctuaries")
 }
 
 model SanctuaryDecoration {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   sanctuaryId String
   type        String
   spiritId    String?
-  positionX   Int    @default(0)
-  positionY   Int    @default(0)
-  level       Int    @default(1)
-  createdAt   DateTime @default(now())
-
-  sanctuary Sanctuary @relation(fields: [sanctuaryId], references: [id], onDelete: Cascade)
+  positionX   Int       @default(0)
+  positionY   Int       @default(0)
+  level       Int       @default(1)
+  createdAt   DateTime  @default(now())
+  sanctuary   Sanctuary @relation(fields: [sanctuaryId], references: [id], onDelete: Cascade)
 
   @@map("sanctuary_decorations")
 }
 
-// =====================
-// SPIRITS & COLLECTION
-// =====================
-
 model SpiritType {
-  id          String @id @default(cuid())
-  name        String
-  nameEn      String
-  element     String  // fire, water, dream, nature, star
-  rarity      String  // common, uncommon, rare, epic, legendary
-  description String
-  descEn      String
-  basePower   Int     @default(10)
-  lumensPerHour Int   @default(5)
-  evolveFrom  String?
-  imageUrl    String?
-  createdAt   DateTime @default(now())
-
+  id            String         @id @default(cuid())
+  name          String
+  nameEn        String
+  element       String
+  rarity        String
+  description   String
+  descEn        String
+  basePower     Int            @default(10)
+  lumensPerHour Int            @default(5)
+  evolveFrom    String?
+  imageUrl      String?
+  createdAt     DateTime       @default(now())
   playerSpirits PlayerSpirit[]
 
   @@map("spirit_types")
 }
 
 model PlayerSpirit {
-  id           String   @id @default(cuid())
+  id           String        @id @default(cuid())
   playerId     String
   spiritTypeId String
-  level        Int      @default(1)
-  experience   Int      @default(0)
-  isPlaced     Boolean  @default(false)
+  level        Int           @default(1)
+  experience   Int           @default(0)
+  isPlaced     Boolean       @default(false)
   placedX      Int?
   placedY      Int?
-  acquiredAt   DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  spiritType SpiritType   @relation(fields: [spiritTypeId], references: [id])
+  acquiredAt   DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  player       PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  spiritType   SpiritType    @relation(fields: [spiritTypeId], references: [id])
 
   @@map("player_spirits")
 }
 
-// =====================
-// INVENTORY
-// =====================
-
 model Inventory {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   playerId  String
-  itemType  String   // spirit, decoration, cosmetic, boost, material
+  itemType  String
   itemId    String
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  player PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  quantity  Int           @default(1)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, itemType, itemId])
   @@map("inventory")
 }
 
-// =====================
-// GUILD & SOCIAL
-// =====================
-
 model Guild {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String        @id @default(cuid())
+  name        String        @unique
   description String?
   emblem      String?
-  level       Int      @default(1)
-  experience  Int      @default(0)
-  maxMembers  Int      @default(50)
-  treasury    Int      @default(0)
+  level       Int           @default(1)
+  experience  Int           @default(0)
+  maxMembers  Int           @default(50)
   ownerId     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  members GuildMember[]
-  wars1   GuildWar[] @relation("Attacker")
-  wars2   GuildWar[] @relation("Defender")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  treasury    Int           @default(0)
+  members     GuildMember[]
+  wars1       GuildWar[]    @relation("Attacker")
+  wars2       GuildWar[]    @relation("Defender")
 
   @@map("guilds")
 }
 
 model GuildMember {
-  id       String   @id @default(cuid())
+  id       String        @id @default(cuid())
   guildId  String
-  playerId String   @unique
-  role     String   @default("member") // owner, officer, member
-  joinedAt DateTime @default(now())
-
-  guild      Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  player    PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId String        @unique
+  role     String        @default("member")
+  joinedAt DateTime      @default(now())
+  guild    Guild         @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  player   PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("guild_members")
 }
 
 model Friendship {
-  id         String   @id @default(cuid())
-  player1Id  String
-  player2Id  String
-  status     String   @default("pending") // pending, accepted, blocked
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  player1 PlayerProfile @relation("Friend1", fields: [player1Id], references: [id], onDelete: Cascade)
-  player2 PlayerProfile @relation("Friend2", fields: [player2Id], references: [id], onDelete: Cascade)
+  id        String        @id @default(cuid())
+  player1Id String
+  player2Id String
+  status    String        @default("pending")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  player1   PlayerProfile @relation("Friend1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2   PlayerProfile @relation("Friend2", fields: [player2Id], references: [id], onDelete: Cascade)
 
   @@unique([player1Id, player2Id])
   @@map("friendships")
 }
 
-// =====================
-// CHAT
-// =====================
-
 model ChatMessage {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   senderId    String
-  guildId     String?  // null for world chat, guildId for guild chat
+  guildId     String?
   content     String
-  messageType String   @default("user") // user, system
-  createdAt   DateTime @default(now())
-
-  sender PlayerProfile @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  messageType String        @default("user")
+  createdAt   DateTime      @default(now())
+  sender      PlayerProfile @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([guildId, createdAt])
   @@index([createdAt])
   @@map("chat_messages")
 }
 
-// =====================
-// EVENTS & GUILD WARS
-// =====================
-
 model GuildWar {
-  id             String   @id @default(cuid())
+  id              String   @id @default(cuid())
   attackerGuildId String
   defenderGuildId String
-  attackerScore  Int      @default(0)
-  defenderScore  Int      @default(0)
-  winnerId       String?
-  startsAt       DateTime
-  endsAt         DateTime
-  status         String   @default("upcoming") // upcoming, active, completed
-  createdAt      DateTime @default(now())
-
-  attacker Guild @relation("Attacker", fields: [attackerGuildId], references: [id])
-  defender Guild @relation("Defender", fields: [defenderGuildId], references: [id])
+  attackerScore   Int      @default(0)
+  defenderScore   Int      @default(0)
+  winnerId        String?
+  startsAt        DateTime
+  endsAt          DateTime
+  status          String   @default("upcoming")
+  createdAt       DateTime @default(now())
+  attacker        Guild    @relation("Attacker", fields: [attackerGuildId], references: [id])
+  defender        Guild    @relation("Defender", fields: [defenderGuildId], references: [id])
 
   @@map("guild_wars")
 }
@@ -318,7 +269,7 @@ model WorldEvent {
   nameEn      String
   description String
   descEn      String
-  eventType   String   // awakening, eclipse, seasonal, guild_war
+  eventType   String
   startsAt    DateTime
   endsAt      DateTime
   multiplier  Float    @default(1.0)
@@ -329,127 +280,112 @@ model WorldEvent {
   @@map("world_events")
 }
 
-// =====================
-// PROGRESSION
-// =====================
-
 model Achievement {
-  id          String @id @default(cuid())
-  name        String
-  nameEn      String
-  description String
-  descEn      String
-  category    String // collection, social, combat, exploration
-  requirement Int
-  reward      Json   @default("{}")
-  iconUrl     String?
-
+  id                 String              @id @default(cuid())
+  name               String
+  nameEn             String
+  description        String
+  descEn             String
+  category           String
+  requirement        Int
+  reward             Json                @default("{}")
+  iconUrl            String?
   playerAchievements PlayerAchievement[]
 
   @@map("achievements")
 }
 
 model PlayerAchievement {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   playerId      String
   achievementId String
-  progress      Int      @default(0)
-  completed     Boolean  @default(false)
+  progress      Int           @default(0)
+  completed     Boolean       @default(false)
   completedAt   DateTime?
-  claimed       Boolean  @default(false)
+  createdAt     DateTime      @default(now())
+  claimed       Boolean       @default(false)
   claimedAt     DateTime?
-  createdAt     DateTime @default(now())
-
-  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  achievement Achievement   @relation(fields: [achievementId], references: [id])
+  achievement   Achievement   @relation(fields: [achievementId], references: [id])
+  player        PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, achievementId])
   @@map("player_achievements")
 }
 
 model DailyChallenge {
-  id          String   @id @default(cuid())
-  name        String
-  nameEn      String
-  description String
-  descEn      String
-  challengeType String // spin_combo, collect_spirit, plant_seeds, etc.
-  requirement Int
-  reward      Json     @default("{}")
-  date        DateTime @default(now())
-  createdAt   DateTime @default(now())
-
+  id               String                 @id @default(cuid())
+  name             String
+  nameEn           String
+  description      String
+  descEn           String
+  challengeType    String
+  requirement      Int
+  reward           Json                   @default("{}")
+  date             DateTime               @default(now())
+  createdAt        DateTime               @default(now())
   playerChallenges PlayerDailyChallenge[]
 
   @@map("daily_challenges")
 }
 
 model PlayerDailyChallenge {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   playerId    String
   challengeId String
-  progress    Int      @default(0)
-  completed   Boolean  @default(false)
-  claimed     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  player    PlayerProfile  @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  challenge DailyChallenge @relation(fields: [challengeId], references: [id])
+  progress    Int            @default(0)
+  completed   Boolean        @default(false)
+  claimed     Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id])
+  player      PlayerProfile  @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, challengeId])
   @@map("player_daily_challenges")
 }
 
 model WeeklyChallenge {
-  id          String   @id @default(cuid())
-  name        String
-  nameEn      String
-  description String
-  descEn      String
-  challengeType String
-  requirement Int
-  reward      Json     @default("{}")
-  weekNumber  Int      // 1-52
-  year        Int
-  createdAt   DateTime @default(now())
-
+  id               String                  @id @default(cuid())
+  name             String
+  nameEn           String
+  description      String
+  descEn           String
+  challengeType    String
+  requirement      Int
+  reward           Json                    @default("{}")
+  weekNumber       Int
+  year             Int
+  createdAt        DateTime                @default(now())
   playerChallenges PlayerWeeklyChallenge[]
 
   @@map("weekly_challenges")
 }
 
 model PlayerWeeklyChallenge {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   playerId    String
   challengeId String
-  progress    Int      @default(0)
-  completed   Boolean  @default(false)
-  claimed     Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  player    PlayerProfile   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  challenge WeeklyChallenge @relation(fields: [challengeId], references: [id])
+  progress    Int             @default(0)
+  completed   Boolean         @default(false)
+  claimed     Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  challenge   WeeklyChallenge @relation(fields: [challengeId], references: [id])
+  player      PlayerProfile   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([playerId, challengeId])
   @@map("player_weekly_challenges")
 }
 
 model Blessing {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   playerId    String
-  day         Int      @default(1)
-  claimed     Boolean  @default(false)
-  lastClaimAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-
-  player PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  day         Int           @default(1)
+  claimed     Boolean       @default(false)
+  lastClaimAt DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("blessings")
 }
-
-// =====================
-// SHOP & TRANSACTIONS
-// =====================
 
 model ShopItem {
   id          String   @id @default(cuid())
@@ -457,9 +393,9 @@ model ShopItem {
   nameEn      String
   description String
   descEn      String
-  category    String   // lumens, pass, cosmetic, bundle, boost
+  category    String
   price       Int
-  currency    String   @default("lumens") // lumens, real
+  currency    String   @default("lumens")
   content     Json     @default("{}")
   imageUrl    String?
   isActive    Boolean  @default(true)
@@ -471,7 +407,7 @@ model ShopItem {
 model Transaction {
   id        String   @id @default(cuid())
   playerId  String
-  type      String   // purchase, reward, trade, daily, event
+  type      String
   amount    Int
   currency  String   @default("lumens")
   itemId    String?
@@ -481,81 +417,63 @@ model Transaction {
   @@map("transactions")
 }
 
-// =====================
-// GLOBAL WORLD STATE
-// =====================
-
 model WorldState {
-  id             String   @id @default("lumora_world")
-  totalWater     Int      @default(0)
-  totalFire      Int      @default(0)
-  totalNature    Int      @default(0)
-  totalDream     Int      @default(0)
-  totalStar      Int      @default(0)
-  totalSpins     Int      @default(0)
-  totalPlayers   Int      @default(0)
-  treeLevel      Int      @default(1)
-  updatedAt      DateTime @updatedAt
+  id           String   @id @default("lumora_world")
+  totalWater   Int      @default(0)
+  totalFire    Int      @default(0)
+  totalNature  Int      @default(0)
+  totalDream   Int      @default(0)
+  totalStar    Int      @default(0)
+  totalSpins   Int      @default(0)
+  totalPlayers Int      @default(0)
+  treeLevel    Int      @default(1)
+  updatedAt    DateTime @updatedAt
 
   @@map("world_state")
 }
 
-// =====================
-// SPIN RESULTS LOG
-// =====================
-
 model SpinLog {
   id          String   @id @default(cuid())
   playerId    String
-  symbols     Json     // array of symbol results
+  symbols     Json
   combination String?
   winAmount   Int      @default(0)
   spiritsWon  Json     @default("[]")
-  element     String?  // primary element from spin
+  element     String?
   createdAt   DateTime @default(now())
 
   @@map("spin_logs")
 }
 
-// =====================
-// WORLD BOSS
-// =====================
-
 model WorldBoss {
-  id          String   @id @default(cuid())
-  name        String
-  nameEn      String
-  element     String
-  maxHp       Int
-  currentHp   Int
-  startsAt    DateTime @default(now())
-  endsAt      DateTime
-  status      String   @default("active") // active, defeated, expired
-  createdAt   DateTime @default(now())
-
-  damageLogs  BossDamageLog[]
+  id         String          @id @default(cuid())
+  name       String
+  nameEn     String
+  element    String
+  maxHp      Int
+  currentHp  Int
+  startsAt   DateTime        @default(now())
+  endsAt     DateTime
+  status     String          @default("active")
+  createdAt  DateTime        @default(now())
+  damageLogs BossDamageLog[]
 
   @@map("world_bosses")
 }
 
 model BossDamageLog {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   bossId      String
   playerId    String
   damage      Int
   spiritsUsed Json
-  createdAt   DateTime @default(now())
-
-  boss   WorldBoss     @relation(fields: [bossId], references: [id], onDelete: Cascade)
-  player PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  boss        WorldBoss     @relation(fields: [bossId], references: [id], onDelete: Cascade)
+  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([bossId, damage(sort: Desc)])
   @@map("boss_damage_logs")
 }
-
-// =====================
-// ARENA PvP
-// =====================
 
 model ArenaMatch {
   id              String   @id @default(cuid())
@@ -570,66 +488,65 @@ model ArenaMatch {
   @@map("arena_matches")
 }
 
-// =====================
-// SANCTUARY RAIDS
-// =====================
-
 model RaidLog {
-  id              String   @id @default(cuid())
-  attackerId      String
-  defenderId      String
-  lumensStolen    Int
-  createdAt       DateTime @default(now())
+  id           String   @id @default(cuid())
+  attackerId   String
+  defenderId   String
+  lumensStolen Int
+  createdAt    DateTime @default(now())
 
   @@map("raid_logs")
 }
 
-// =====================
-// SPIN RACES
-// =====================
-
 model SpinRace {
-  id          String   @id @default(cuid())
-  startsAt    DateTime
-  endsAt      DateTime
-  status      String   @default("active") // active, completed
-
-  entries     SpinRaceEntry[]
+  id       String          @id @default(cuid())
+  startsAt DateTime
+  endsAt   DateTime
+  status   String          @default("active")
+  entries  SpinRaceEntry[]
 
   @@map("spin_races")
 }
 
 model SpinRaceEntry {
-  id          String   @id @default(cuid())
-  raceId      String
-  playerId    String
-  score       Int      @default(0)
-
-  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  race        SpinRace      @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  raceId   String
+  playerId String
+  score    Int           @default(0)
+  player   PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  race     SpinRace      @relation(fields: [raceId], references: [id], onDelete: Cascade)
 
   @@unique([raceId, playerId])
   @@map("spin_race_entries")
 }
 
-// =====================
-// CHEST SYSTEM
-// =====================
-
 model PlayerChest {
-  id          String   @id @default(cuid())
-  playerId    String
-  type        String   @default("boss") // boss, raid, event
-  rarity      String   // common, rare, epic, legendary
-  state           String   @default("locked") // locked, unlocking, ready
-  durationMs      Int      @default(7200000) // 2h default
-  startedUnlockAt DateTime?
+  id              String        @id @default(cuid())
+  playerId        String
+  type            String        @default("boss")
+  rarity          String
   unlocksAt       DateTime
-  isOpened        Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  isOpened        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  durationMs      Int           @default(7200000)
+  startedUnlockAt DateTime?
+  status          String        @default("locked")
+  player          PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@map("player_chests")
+}
+
+model GameSession {
+  id        String   @id @default(cuid())
+  playerId  String
+  type      String
+  status    String   @default("active")
+  data      Json     @default("{}")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([playerId, type])
+  @@map("game_sessions")
 }

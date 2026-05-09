@@ -452,31 +452,68 @@ export function SpinningSymbol({ size = 64 }: { size?: number }) {
 
 // Main export — 80% image size gives room for scale:1.15 pulse without clipping.
 export function SymbolIcon({ symbol, isWin = false, isBonus = false }: SymbolIconProps) {
+  const rarityColors: Record<string, string> = {
+    common: '#94a3b8',
+    uncommon: '#10b981',
+    rare: '#3b82f6',
+    epic: '#a855f7',
+    legendary: '#eab308'
+  };
+
+  const rarityColor = rarityColors[symbol.rarity] || '#fff';
+
+  // Map legacy/DB IDs to asset filenames
+  const getAssetId = (id: string) => {
+    if (!id) return 'undefined';
+    if (id.startsWith('sym_')) return id;
+    if (id.startsWith('spirit_')) {
+      return id.replace('spirit_', 'sym_').replace(/_\d+$/, '');
+    }
+    return id;
+  };
+
+  const assetId = getAssetId(symbol.id);
+
   return (
-    <div className="w-full h-full flex items-center justify-center overflow-hidden">
+    <div 
+      className={`relative w-full h-full flex items-center justify-center overflow-hidden transition-all duration-300 ${isWin ? 'z-10' : ''}`}
+    >
+      {/* Rarity Aura/Border */}
+      <div 
+        className="absolute inset-1.5 rounded-2xl border-2 opacity-40"
+        style={{ 
+          borderColor: rarityColor,
+          boxShadow: isWin ? `0 0 20px ${rarityColor}80` : `0 0 5px ${rarityColor}20`,
+          backgroundColor: `${rarityColor}05`
+        }}
+      />
+
       <motion.div
         animate={isWin ? {
-          scale: [1, 1.12, 1], // Un poco menos de 1.15 para asegurar que no toque bordes
+          scale: [1, 1.15, 1],
           filter: [
             'brightness(1) saturate(1)',
-            'brightness(1.7) saturate(1.4)', // Incremento de luz interna
+            'brightness(1.8) saturate(1.5)',
             'brightness(1) saturate(1)',
           ],
         } : isBonus ? {
-          scale: [1, 1.08, 1],
-          filter: ['brightness(1)', 'brightness(1.4)', 'brightness(1)'],
+          scale: [1, 1.1, 1],
+          filter: ['brightness(1)', 'brightness(1.5)', 'brightness(1)'],
         } : {}}
         transition={isWin || isBonus ? {
           duration: 0.6,
           repeat: Infinity,
           ease: 'easeInOut',
         } : {}}
-        className="w-full h-full flex items-center justify-center"
+        className="w-full h-full flex items-center justify-center relative z-10"
       >
         <img
-          src={`/assets/symbols/${symbol.id}.png`}
+          src={`/assets/symbols/${assetId}.png`}
           alt={symbol.name ?? symbol.id}
-          className="w-[80%] h-[80%] object-contain pointer-events-none select-none"
+          className="w-[75%] h-[75%] object-contain pointer-events-none select-none drop-shadow-lg"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/assets/symbols/sym_fire_common.png';
+          }}
         />
       </motion.div>
     </div>

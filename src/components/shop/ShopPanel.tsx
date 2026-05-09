@@ -39,38 +39,39 @@ interface ShopCategory {
 }
 
 const CATEGORY_META: Record<string, { icon: any; color: string; label: string; labelEn: string }> = {
-  lumens: { icon: Sparkles, color: 'lumora-gold', label: 'Lumens', labelEn: 'Lumens' },
-  pass: { icon: Crown, color: 'lumora-purple', label: 'Pase', labelEn: 'Pass' },
-  cosmetic: { icon: Palette, color: 'lumora-pink', label: 'Cosméticos', labelEn: 'Cosmetics' },
-  bundle: { icon: Box, color: 'lumora-emerald', label: 'Paquetes', labelEn: 'Bundles' },
-  boost: { icon: Zap, color: 'lumora-blue', label: 'Impulsos', labelEn: 'Boosts' },
+  all: { icon: ShoppingBag, color: 'lumora-gold', label: 'Todo', labelEn: 'All' },
+  energy: { icon: Zap, color: 'lumora-blue', label: 'Energía', labelEn: 'Energy' },
+  shields: { icon: Lock, color: 'lumora-emerald', label: 'Escudos', labelEn: 'Shields' },
+  chests: { icon: Box, color: 'lumora-purple', label: 'Cofres', labelEn: 'Chests' },
+  pass: { icon: Crown, color: 'lumora-gold', label: 'Pase', labelEn: 'Pass' },
 };
 
 const ITEM_EMOJIS: Record<string, string> = {
-  lumens: '✨',
+  energy: '⚡',
+  shields: '🛡️',
+  chests: '🎁',
   pass: '👑',
-  cosmetic: '🎨',
-  bundle: '📦',
-  boost: '⚡',
 };
 
 export function ShopPanel() {
   const t = useTranslations('shop');
   const queryClient = useQueryClient();
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [purchaseDialog, setPurchaseDialog] = useState<ShopItem | null>(null);
   const [purchaseResult, setPurchaseResult] = useState<any>(null);
   const [showResult, setShowResult] = useState(false);
 
-  const { data: categories = [], isLoading, error: shopError } = useQuery({
+  const { data: shopData = { categories: [], allItems: [] }, isLoading, error: shopError } = useQuery({
     queryKey: ['shopCategories'],
     queryFn: async () => {
       const res = await fetch('/api/shop');
       if (!res.ok) throw new Error(t('fetchError'));
-      const data = await res.json();
-      return data.categories || [];
+      return await res.json();
     },
   });
+
+  const categories = shopData.categories || [];
+  const allItems = shopData.allItems || [];
 
   const { data: lumens = 0 } = useQuery({
     queryKey: ['playerLumens'],
@@ -81,12 +82,6 @@ export function ShopPanel() {
       return data.lumens;
     },
   });
-
-  useEffect(() => {
-    if (categories.length > 0 && !activeCategory) {
-      setActiveCategory(categories[0].key);
-    }
-  }, [categories, activeCategory]);
 
   const purchaseMutation = useMutation({
     mutationFn: async (itemId: string) => {
@@ -133,7 +128,9 @@ export function ShopPanel() {
   const isPurchasing = purchaseMutation.isPending;
   const error = shopError ? shopError.message : null;
 
-  const activeItems = categories.find((c) => c.key === activeCategory)?.items || [];
+  const activeItems = activeCategory === 'all' 
+    ? allItems 
+    : categories.find((c: any) => c.key === activeCategory)?.items || [];
 
   if (error) {
     return (
@@ -173,8 +170,21 @@ export function ShopPanel() {
 
       {/* Category tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 snap-x">
-        {categories.map((cat) => {
-          const meta = CATEGORY_META[cat.key] || CATEGORY_META.lumens;
+        {/* All tab */}
+        <button
+          onClick={() => setActiveCategory('all')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+            activeCategory === 'all'
+              ? 'text-lumora-gold bg-card/60 border border-current/20'
+              : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
+          }`}
+        >
+          <ShoppingBag className="h-3.5 w-3.5" />
+          Todo
+        </button>
+
+        {categories.map((cat: any) => {
+          const meta = CATEGORY_META[cat.key] || CATEGORY_META.energy;
           const Icon = meta.icon;
           const isActive = activeCategory === cat.key;
           return (
@@ -188,7 +198,7 @@ export function ShopPanel() {
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {t(cat.key === 'lumens' ? 'lumenPacks' : cat.key === 'pass' ? 'seasonPass' : cat.key === 'cosmetic' ? 'cosmetics' : cat.key === 'bundle' ? 'bundles' : 'boosts')}
+              {meta.label}
             </button>
           );
         })}

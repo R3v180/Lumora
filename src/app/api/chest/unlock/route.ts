@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     if (!player) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
 
     const chest = await db.playerChest.findUnique({ where: { id: chestId } });
-    if (!chest || chest.playerId !== player.id || chest.state !== 'locked' || chest.isOpened) {
+    if (!chest || chest.playerId !== player.id || chest.status !== 'locked' || chest.isOpened) {
       return NextResponse.json({ error: 'Cofre no disponible para desbloquear' }, { status: 400 });
     }
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     await db.playerChest.update({
       where: { id: chest.id },
       data: {
-        state: 'unlocking',
+        status: 'unlocking',
         startedUnlockAt: now,
         unlocksAt: unlocksAt
       },
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      state: 'unlocking',
+      status: 'unlocking',
       unlocksAt: unlocksAt.toISOString()
     });
   } catch (error) {

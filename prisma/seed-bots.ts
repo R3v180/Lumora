@@ -96,8 +96,8 @@ async function seedBots() {
         globalStar: randomInt(0, 50),
         lumensPerHour: randomInt(10, 200),
         lastCollectAt: new Date(Date.now() - randomInt(0, 8 * 3600000)), // up to 8h ago
-        // 50% chance of having a shield
-        shieldUntil: Math.random() > 0.5 ? new Date(Date.now() + randomInt(1, 24) * 3600000) : null
+        // 20% chance of having a shield (easier for raiding)
+        shieldUntil: Math.random() > 0.8 ? new Date(Date.now() + randomInt(1, 12) * 3600000) : null
       }
     });
 

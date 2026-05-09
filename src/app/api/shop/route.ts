@@ -203,39 +203,23 @@ export async function POST(request: NextRequest) {
         rewards.push(`Decoración: ${item.name}`);
       }
 
-      // Season pass
-      if (content.type === 'season_pass') {
-        await tx.inventory.upsert({
-          where: {
-            playerId_itemType_itemId: {
-              playerId: player.id,
-              itemType: 'pass',
-              itemId: content.season || 'current',
+      // Shield items
+      if (content.type === 'shield' && content.hours) {
+        if (player.sanctuary) {
+          const currentShield = player.sanctuary.shieldUntil && player.sanctuary.shieldUntil > new Date()
+            ? player.sanctuary.shieldUntil
+            : new Date();
+          
+          await tx.sanctuary.update({
+            where: { id: player.sanctuary.id },
+            data: {
+              shieldUntil: new Date(currentShield.getTime() + content.hours * 60 * 60 * 1000),
             },
-          },
-          update: { quantity: 1 },
-          create: {
-            playerId: player.id,
-            itemType: 'pass',
-            itemId: content.season || 'current',
-            quantity: 1,
-          },
-        });
-        rewards.push('Pase de Temporada activado');
-      }
-
-      // Element bonus decorations
-      if (content.elementBonus) {
-        rewards.push(`Bono de elemento: ${content.elementBonus}`);
-      }
-
-      // Power/beauty bonus
-      if (content.powerBonus) {
-        rewards.push(`+${content.powerBonus} Poder Base`);
-      }
-
-      if (content.lumensBonus) {
-        rewards.push(`+${content.lumensBonus} Lumens/h`);
+          });
+          rewards.push(`Escudo activado: +${content.hours}h`);
+        } else {
+          throw new Error('No tienes santuario para proteger');
+        }
       }
 
       return { rewards, newLumens: item.currency === 'lumens' ? player.lumens - item.price + (content.lumens || 0) + (content.bonus || 0) : player.lumens };

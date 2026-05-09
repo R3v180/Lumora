@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     await db.$transaction([
       db.playerChest.update({
         where: { id: chest.id },
-        data: { isOpened: true, state: 'opened' },
+        data: { isOpened: true, status: 'opened' },
       }),
       db.playerProfile.update({
         where: { id: player.id },

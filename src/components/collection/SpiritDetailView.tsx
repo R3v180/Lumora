@@ -84,13 +84,35 @@ export function SpiritDetailView({ spirit, onClose, isPreview, nextSpirit }: Spi
         {isPreview && nextSpirit ? (
           <div className="flex items-center justify-between p-4 rounded-3xl bg-white/5 border border-white/10 relative overflow-hidden">
              <div className="flex flex-col items-center gap-2 flex-1">
-                <SymbolIcon symbol={{...spirit.spiritType, symbolType: 'spirit'} as any} size="md" />
-                <span className="text-[10px] font-bold text-muted-foreground">ACTUAL</span>
+                <div className="w-20 h-20">
+                  <SymbolIcon symbol={{...spirit.spiritType, symbolType: 'spirit'} as any} />
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">{spirit.spiritType.name}</span>
+                  <span className="text-[8px] font-bold opacity-50 uppercase">ACTUAL</span>
+                </div>
              </div>
-             <ChevronRight className="h-6 w-6 text-lumora-purple animate-pulse" />
+
+             <div className="flex flex-col items-center gap-1">
+               <ChevronRight className="h-6 w-6 text-lumora-purple animate-pulse" />
+               <span className="text-[8px] font-bold text-lumora-purple/50">FUSIÓN</span>
+             </div>
+
              <div className="flex flex-col items-center gap-2 flex-1">
-                <SymbolIcon symbol={{...nextSpirit, symbolType: 'spirit'} as any} size="lg" />
-                <span className="text-[10px] font-bold text-lumora-gold">EVOLUCIÓN</span>
+                <div className="w-24 h-24 relative">
+                  <SymbolIcon symbol={{...nextSpirit, symbolType: 'spirit'} as any} />
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -top-1 -right-1"
+                  >
+                    <Star className="h-5 w-5 text-lumora-gold fill-lumora-gold" />
+                  </motion.div>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-[10px] font-bold text-lumora-gold uppercase">{nextSpirit.name}</span>
+                  <span className="text-[8px] font-bold text-lumora-gold/70 uppercase">EVOLUCIÓN</span>
+                </div>
              </div>
           </div>
         ) : (
@@ -98,11 +120,8 @@ export function SpiritDetailView({ spirit, onClose, isPreview, nextSpirit }: Spi
             <div className="absolute inset-0 bg-radial-gradient from-white/10 to-transparent opacity-50" style={{ backgroundImage: `radial-gradient(circle, ${color}30 0%, transparent 70%)` }} />
             <SymbolIcon 
               symbol={{
-                id: spirit.id,
+                ...spirit.spiritType,
                 symbolType: 'spirit',
-                element: spirit.spiritType.element,
-                rarity: spirit.spiritType.rarity,
-                emoji: spirit.spiritType.emoji || '👻'
               } as any} 
               size="xl" 
             />

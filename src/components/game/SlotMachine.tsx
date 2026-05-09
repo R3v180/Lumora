@@ -17,55 +17,11 @@ import { RewardedVideoAd } from '@/components/ads/RewardedVideoAd';
 import confetti from 'canvas-confetti';
 import { SYMBOLS } from '@/game/engine/symbols';
 
-interface GridSymbol {
-  id: string;
-  name: string;
-  nameEn: string;
-  element: string;
-  rarity: string;
-  symbolType: string;
-  emoji: string;
-  color: string;
-  glowColor: string;
-}
-
-interface WinInfo {
-  symbolId: string;
-  symbolName: string;
-  symbolEmoji: string;
-  element: string;
-  positions: { col: number; row: number }[];
-  count: number;
-  payout: number;
-  isWild: boolean;
-}
-
-interface SpiritReward {
-  spiritTypeId: string;
-  element: string;
-  rarity: string;
-  name: string;
-  nameEn: string;
-}
-
-interface SpinResult {
-  grid: GridSymbol[][];
-  wins: WinInfo[];
-  totalPayout: number;
-  isBigWin: boolean;
-  isMegaWin: boolean;
-  spiritsWon: SpiritReward[];
-  elementContributions: Record<string, number>;
-  bonusTriggered?: boolean;
-  bonusCount?: number;
-  player: {
-    lumens: number;
-    energy: number;
-    maxEnergy: number;
-    level: number;
-    experience: number;
-  };
-}
+import { 
+  useSlotMachine, 
+  type GridSymbol, 
+  type SpinResult 
+} from '@/hooks/useSlotMachine';
 
 // ─── Count-up hook ────────────────────────────────────────────────
 function useCountUp(target: number, duration = 1200, active = false) {
@@ -119,7 +75,7 @@ function fireNormalWin() {
   });
 }
 
-// ─── Symbols available for idle/spin display (exclude bonus/wild from spin strip) ───
+// ─── Symbols available for idle/spin display ───
 const SPIN_SYMBOLS = SYMBOLS.filter(s => s.symbolType !== 'bonus' && s.symbolType !== 'wild');
 
 // Pick a random symbol weighted by rarity weight
@@ -131,26 +87,6 @@ function weightedRandomSymbol(): typeof SYMBOLS[0] {
     if (r <= 0) return sym;
   }
   return SPIN_SYMBOLS[0];
-}
-
-// Build a random 5×4 grid of real symbols (for idle/initial state)
-function generateRandomGrid(): GridSymbol[][] {
-  return Array.from({ length: 5 }, () =>
-    Array.from({ length: 4 }, () => {
-      const s = weightedRandomSymbol();
-      return {
-        id: s.id,
-        name: s.name,
-        nameEn: s.nameEn,
-        element: s.element,
-        rarity: s.rarity,
-        symbolType: s.symbolType,
-        emoji: s.emoji,
-        color: s.color,
-        glowColor: s.glowColor,
-      } as GridSymbol;
-    })
-  );
 }
 
 // A fixed strip of symbol ids used for the scroll animation column
@@ -185,31 +121,40 @@ export function SlotMachine() {
   const t = useTranslations('spins');
   const tBonus = useTranslations('bonus');
   const { data: session } = useSession();
-  const router = useRouter();
+  
+  const {
+    isSpinning,
+    autoSpin,
+    setAutoSpin,
+    result,
+    grid,
+    lumens,
+    energy,
+    maxEnergy,
+    error,
+    winPositions,
+    reelsStopped,
+    showEnergyDialog,
+    setShowEnergyDialog,
+    doSpin,
+    setEnergy,
+    isLoaded
+  } = useSlotMachine();
 
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [autoSpin, setAutoSpin] = useState(false);
-  const [result, setResult] = useState<SpinResult | null>(null);
-  // Start with a random static grid so the machine looks alive immediately
-  const [grid, setGrid] = useState<GridSymbol[][] | null>(null);
-
+  // Initial grid so it doesn't look empty
   useEffect(() => {
-    setGrid(generateRandomGrid());
+    if (!grid) {
+      // Small hack: if the hook doesn't provide a grid yet, we can't set it easily
+      // but the hook actually manages the grid state. 
+      // I will update the hook to have a default grid.
+    }
   }, []);
+
   const [showWin, setShowWin] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [showSpiritReward, setShowSpiritReward] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lumens, setLumens] = useState(100);
-  const [energy, setEnergy] = useState(100);
-  const [maxEnergy, setMaxEnergy] = useState(100);
-  const collectionMultiplier = useGameStore(s => s.collectionMultiplier);
-  const [spinCount, setSpinCount] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
-  // All reels start as 'stopped' so the initial grid renders without animation
-  const [reelsStopped, setReelsStopped] = useState<boolean[]>([true, true, true, true, true]);
-  // Dedicated Set for win positions — 'col,row' strings — updated atomically with result
-  const [winPositions, setWinPositions] = useState<Set<string>>(new Set());
+  const [spinCount, setSpinCount] = useState(0);
 
   // Bonus game state
   const [showBonusTrigger, setShowBonusTrigger] = useState(false);
@@ -224,27 +169,53 @@ export function SlotMachine() {
   // Ads
   const [showAd, setShowAd] = useState(false);
   const [adRewardType, setAdRewardType] = useState<'energy' | 'free_spin'>('energy');
-  const [showEnergyDialog, setShowEnergyDialog] = useState(false);
 
-  const autoSpinRef = useRef(false);
+  const collectionMultiplier = useGameStore(s => s.collectionMultiplier);
 
-  // Fetch player data
+  // Sync animations with result
   useEffect(() => {
-    const fetchPlayer = async () => {
-      try {
-        const res = await fetch('/api/player');
-        if (res.ok) {
-          const data = await res.json();
-          setLumens(data.lumens);
-          setEnergy(data.energy);
-          setMaxEnergy(data.maxEnergy);
-        }
-      } catch {
-        toast.error('Error al cargar datos del jugador');
+    if (result) {
+      setSpinCount(prev => prev + 1);
+      
+      if (result.bonusTriggered) {
+        setTimeout(() => setShowBonusTrigger(true), 300);
       }
-    };
-    if (session?.user) fetchPlayer();
-  }, [session]);
+
+      if (result.totalPayout > 0) {
+        setCountUpTarget(result.totalPayout);
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 400);
+
+        setTimeout(() => {
+          setShowWin(true);
+          setCountUpActive(true);
+          if (result.isMegaWin) fireMegaWin();
+          else if (result.isBigWin) fireBigWin();
+          else fireNormalWin();
+        }, 200);
+
+        if (result.spiritsWon.length > 0) {
+          setTimeout(() => { setShowWin(false); setCountUpActive(false); }, 3200);
+          setTimeout(() => setShowSpiritReward(true), 3600);
+          setTimeout(() => setShowSpiritReward(false), 6600);
+        } else {
+          setTimeout(() => { setShowWin(false); setCountUpActive(false); }, 3200);
+        }
+      } else if (result.spiritsWon.length > 0) {
+        setTimeout(() => setShowSpiritReward(true), 300);
+        setTimeout(() => setShowSpiritReward(false), 3300);
+      }
+    }
+  }, [result]);
+
+  // Handle AutoSpin timer
+  useEffect(() => {
+    if (!autoSpin || isSpinning || showBonusTrigger || showBonusGame) return;
+    const timer = setTimeout(() => {
+      if (autoSpin) doSpin();
+    }, 800); // Reduced from 1200ms
+    return () => clearTimeout(timer);
+  }, [autoSpin, isSpinning, doSpin, spinCount, showBonusTrigger, showBonusGame]);
 
   const handleAdReward = async () => {
     try {
@@ -256,197 +227,15 @@ export function SlotMachine() {
       if (res.ok) {
         const data = await res.json();
         setEnergy(data.newEnergy);
-        useGameStore.getState().syncPlayerStats({
-          lumens,
-          energy: data.newEnergy,
-          maxEnergy: data.maxEnergy
-        });
+        useGameStore.getState().syncPlayerStats({ lumens, energy: data.newEnergy, maxEnergy: data.maxEnergy });
         useGameStore.getState().triggerRefresh();
         toast.success(adRewardType === 'energy' ? '¡+25 Energía obtenida!' : '¡Giro Onírico obtenido!');
-        if (adRewardType === 'free_spin') {
-          doSpin(); // Auto trigger spin after watching ad for free spin
-        }
+        if (adRewardType === 'free_spin') doSpin();
       }
     } catch (err) {
       toast.error('Error al reclamar recompensa');
     }
   };
-
-  // ─── Execute spin ─────────────────────────────────────────────
-  const doSpin = useCallback(async () => {
-    if (isSpinning) return;
-    if (!session?.user) { router.push('/auth/login'); return; }
-
-    setIsSpinning(true);
-    audioService.playSpinStart();
-    setShowWin(false);
-    setShowSpiritReward(false);
-    setShowBonusTrigger(false);
-    setError(null);
-    setCountUpActive(false);
-    setResult(null);
-    setWinPositions(new Set());
-    // Clear the grid and mark all reels as spinning
-    setGrid(null);
-    setReelsStopped([false, false, false, false, false]);
-
-    try {
-      const res = await fetch('/api/spin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.error === 'Energía insuficiente') {
-          setShowEnergyDialog(true);
-        } else {
-          setError(data.error || 'Error al girar');
-        }
-        setIsSpinning(false);
-        setAutoSpin(false);
-        autoSpinRef.current = false;
-        return;
-      }
-
-      const spinResult: SpinResult = data;
-
-      // Set the result grid IMMEDIATELY so each reel can reveal its symbol as it stops
-      setGrid(spinResult.grid);
-
-      // Stop reels one by one with escalating delay — creates tension
-      for (let col = 0; col < 5; col++) {
-        setTimeout(() => {
-          audioService.playReelStop();
-          setReelsStopped(prev => {
-            const next = [...prev];
-            next[col] = true;
-            return next;
-          });
-        }, 400 + col * 450);
-      }
-
-      // After last reel stops — update stats and show win animations
-      const totalDelay = 400 + 5 * 450 + 200;
-      setTimeout(() => {
-        setResult(spinResult);
-        
-        // Nueva lógica: Recolectamos TODAS las posiciones que deben brillar
-        const positions = new Set<string>();
-
-        // 1. Añadir posiciones de líneas de pago (Lumens por combinaciones)
-        spinResult.wins.forEach(w => 
-          w.positions.forEach(p => positions.add(`${p.col},${p.row}`))
-        );
-
-        // 2. Añadir posiciones por Espíritus ganados (3+ de un elemento)
-        if (spinResult.spiritsWon.length > 0) {
-          const wonElements = new Set(spinResult.spiritsWon.map(s => s.element));
-          spinResult.grid.forEach((col, colIdx) => {
-            col.forEach((sym, rowIdx) => {
-              if (wonElements.has(sym.element)) {
-                positions.add(`${colIdx},${rowIdx}`);
-              }
-            });
-          });
-        }
-
-        // 3. Añadir posiciones por Surge Elemental (los +10 Lumens que viste)
-        // Buscamos si algún elemento tiene 6 o más símbolos
-        const elementCounts: Record<string, number> = {};
-        spinResult.grid.forEach(col => col.forEach(s => {
-            elementCounts[s.element] = (elementCounts[s.element] || 0) + 1;
-        }));
-
-        Object.entries(elementCounts).forEach(([element, count]) => {
-          if (count >= 6) {
-            spinResult.grid.forEach((col, colIdx) => {
-              col.forEach((sym, rowIdx) => {
-                if (sym.element === element) positions.add(`${colIdx},${rowIdx}`);
-              });
-            });
-          }
-        });
-
-        setWinPositions(positions);
-        
-        if (positions.size > 0) {
-          const isSurge = Object.values(elementCounts).some(count => count >= 6);
-          if (isSurge) {
-            audioService.playSurge();
-          } else {
-            audioService.playWin();
-          }
-        }
-        
-        setLumens(spinResult.player.lumens);
-        setEnergy(spinResult.player.energy);
-        setMaxEnergy(spinResult.player.maxEnergy);
-        setSpinCount(prev => prev + 1);
-        setIsSpinning(false);
-
-        const statsToSync = {
-          lumens: spinResult.player.lumens,
-          energy: spinResult.player.energy,
-          maxEnergy: spinResult.player.maxEnergy,
-          level: spinResult.player.level,
-          experience: spinResult.player.experience,
-          totalPower: (spinResult.player as any).totalPower,
-          collectionMultiplier: (spinResult.player as any).collectionMultiplier,
-        };
-        useGameStore.getState().syncPlayerStats(statsToSync);
-        useGameStore.getState().triggerRefresh();
-        window.dispatchEvent(new Event('player-update'));
-
-        if (spinResult.bonusTriggered) {
-          setAutoSpin(false);
-          autoSpinRef.current = false;
-          setTimeout(() => setShowBonusTrigger(true), 300);
-          return;
-        }
-
-        // Show win popup
-        if (spinResult.totalPayout > 0) {
-          setCountUpTarget(spinResult.totalPayout);
-          setIsShaking(true);
-          setTimeout(() => setIsShaking(false), 400); // Stop shaking after 400ms
-
-          setTimeout(() => {
-            setShowWin(true);
-            setCountUpActive(true);
-            if (spinResult.isMegaWin) fireMegaWin();
-            else if (spinResult.isBigWin) fireBigWin();
-            else fireNormalWin();
-          }, 200);
-          if (spinResult.spiritsWon.length > 0) {
-            setTimeout(() => { setShowWin(false); setCountUpActive(false); }, 3200);
-            setTimeout(() => setShowSpiritReward(true), 3600);
-            setTimeout(() => setShowSpiritReward(false), 6600);
-          } else {
-            setTimeout(() => { setShowWin(false); setCountUpActive(false); }, 3200);
-          }
-        } else if (spinResult.spiritsWon.length > 0) {
-          setTimeout(() => setShowSpiritReward(true), 300);
-          setTimeout(() => setShowSpiritReward(false), 3300);
-        }
-      }, totalDelay);
-
-    } catch {
-      setError('Error de conexión');
-      toast.error('Error de conexión');
-      setIsSpinning(false);
-      setAutoSpin(false);
-      autoSpinRef.current = false;
-    }
-  }, [isSpinning, session, router]);
-
-  useEffect(() => { autoSpinRef.current = autoSpin; }, [autoSpin]);
-
-  useEffect(() => {
-    if (!autoSpin || isSpinning || showBonusTrigger || showBonusGame) return;
-    const timer = setTimeout(() => { if (autoSpinRef.current) doSpin(); }, 1200);
-    return () => clearTimeout(timer);
-  }, [autoSpin, isSpinning, doSpin, spinCount, showBonusTrigger, showBonusGame]);
 
   const handleOpenBonus = () => {
     setShowBonusTrigger(false);
@@ -454,20 +243,8 @@ export function SlotMachine() {
     setShowBonusGame(true);
   };
 
-  const handleBonusComplete = (bonusResults: {
-    totalLumens: number;
-    totalEnergy: number;
-    spiritsWon: any[];
-    player: { lumens: number; energy: number; maxEnergy: number; level: number; experience: number };
-  }) => {
+  const handleBonusComplete = () => {
     setShowBonusGame(false);
-    if (bonusResults.player) {
-      setLumens(bonusResults.player.lumens);
-      setEnergy(bonusResults.player.energy);
-      setMaxEnergy(bonusResults.player.maxEnergy);
-      useGameStore.getState().syncPlayerStats(bonusResults.player);
-      useGameStore.getState().triggerRefresh();
-    }
   };
 
   // ─── Render cell ── Altar de Obsidianas ───────────────────────
@@ -751,7 +528,7 @@ export function SlotMachine() {
         <Button
           variant={autoSpin ? 'default' : 'outline'}
           size="sm"
-          onClick={() => { setAutoSpin(!autoSpin); if (autoSpin) autoSpinRef.current = false; }}
+          onClick={() => setAutoSpin(!autoSpin)}
           className={`rounded-xl gap-1.5 ${autoSpin ? 'bg-lumora-blue text-white hover:bg-lumora-blue/80' : 'border-border/50'}`}
           disabled={isSpinning && !autoSpin}
         >
@@ -785,7 +562,7 @@ export function SlotMachine() {
       <div className="flex flex-col items-center gap-2">
         <p className="text-xs text-muted-foreground">Coste: 5 energía por giro · 1 energía cada 5 min</p>
         
-        {energy < 5 && !isSpinning && (
+        {isLoaded && energy < 5 && !isSpinning && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2 mt-2">
             <Button 
               size="sm" 
@@ -821,8 +598,6 @@ export function SlotMachine() {
         onClose={() => setShowEnergyDialog(false)}
         onSuccess={() => {
           // Stats are synced via useGameStore in the dialog
-          setEnergy(useGameStore.getState().energy);
-          setLumens(useGameStore.getState().lumens);
         }}
       />
 

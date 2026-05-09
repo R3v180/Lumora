@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-// === IN-MEMORY BONUS SESSIONS (5-minute expiry) ===
+// === DATABASE-BACKED BONUS SESSIONS ===
 
 interface BonusPod {
   type: 'lumens' | 'energy' | 'spirit' | 'extraPick' | 'collectAll';
@@ -15,28 +15,13 @@ interface BonusPod {
   spiritNameEn?: string;
 }
 
-interface BonusSession {
-  id: string;
-  playerId: string;
+interface BonusSessionData {
   pods: BonusPod[];
-  revealedPods: Set<number>;
+  revealedPods: number[]; // Array instead of Set for JSON compatibility
   remainingPicks: number;
   totalPicksAllowed: number;
-  createdAt: number;
   bonusCount: number;
 }
-
-const sessions = new Map<string, BonusSession>();
-
-// Clean up expired sessions every 60 seconds
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, session] of sessions) {
-    if (now - session.createdAt > 5 * 60 * 1000) {
-      sessions.delete(id);
-    }
-  }
-}, 60_000);
 
 // === REWARD GENERATION ===
 
@@ -87,25 +72,29 @@ async function handleStart(userId: string, bonusCount: number) {
     return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
   }
 
-  const sessionId = `bonus_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const pods = generatePods(player.level, bonusCount);
   const totalPicksAllowed = Math.min(3 + (bonusCount - 3), 6); // 3 base + 1 per extra bonus symbol, max 6
 
-  const session: BonusSession = {
-    id: sessionId,
-    playerId: player.id,
+  const sessionData: BonusSessionData = {
     pods,
-    revealedPods: new Set(),
+    revealedPods: [],
     remainingPicks: totalPicksAllowed,
     totalPicksAllowed,
-    createdAt: Date.now(),
     bonusCount,
   };
 
-  sessions.set(sessionId, session);
+  const session = await db.gameSession.create({
+    data: {
+      playerId: player.id,
+      type: 'BONUS_CHEST',
+      status: 'active',
+      data: sessionData as any,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    },
+  });
 
   return NextResponse.json({
-    sessionId,
+    sessionId: session.id,
     podCount: 9,
     totalPicksAllowed,
     remainingPicks: totalPicksAllowed,
@@ -113,15 +102,16 @@ async function handleStart(userId: string, bonusCount: number) {
 }
 
 async function handlePick(userId: string, sessionId: string, podIndex: number) {
-  const session = sessions.get(sessionId);
+  const session = await db.gameSession.findUnique({
+    where: { id: sessionId }
+  });
 
-  if (!session) {
-    return NextResponse.json({ error: 'Sesión de bonus no encontrada o expirada' }, { status: 404 });
+  if (!session || session.status !== 'active') {
+    return NextResponse.json({ error: 'Sesión de bonus no encontrada o ya completada' }, { status: 404 });
   }
 
-  const now = Date.now();
-  if (now - session.createdAt > 5 * 60 * 1000) {
-    sessions.delete(sessionId);
+  if (session.expiresAt < new Date()) {
+    await db.gameSession.update({ where: { id: sessionId }, data: { status: 'expired' } });
     return NextResponse.json({ error: 'Sesión de bonus expirada' }, { status: 410 });
   }
 
@@ -134,24 +124,27 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
+  const sessionData = session.data as unknown as BonusSessionData;
+  const revealedPodsSet = new Set(sessionData.revealedPods);
+
   // Validate pod index
   if (podIndex < 0 || podIndex >= 9) {
     return NextResponse.json({ error: 'Índice de pod inválido' }, { status: 400 });
   }
 
   // Check if already revealed
-  if (session.revealedPods.has(podIndex)) {
+  if (revealedPodsSet.has(podIndex)) {
     return NextResponse.json({ error: 'Este pod ya fue revelado' }, { status: 400 });
   }
 
   // Check picks remaining
-  if (session.remainingPicks <= 0) {
+  if (sessionData.remainingPicks <= 0) {
     return NextResponse.json({ error: 'No quedan elecciones' }, { status: 400 });
   }
 
-  const pod = session.pods[podIndex];
-  session.revealedPods.add(podIndex);
-  session.remainingPicks--;
+  const pod = sessionData.pods[podIndex];
+  revealedPodsSet.add(podIndex);
+  sessionData.remainingPicks--;
 
   const rewardDetails: Record<string, any> = {
     type: pod.type,
@@ -219,14 +212,14 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
         pod.spiritNameEn = spiritType.nameEn;
       }
     } else if (pod.type === 'extraPick') {
-      session.remainingPicks++;
-      session.totalPicksAllowed++;
-      rewardDetails.newRemainingPicks = session.remainingPicks;
+      sessionData.remainingPicks++;
+      sessionData.totalPicksAllowed++;
+      rewardDetails.newRemainingPicks = sessionData.remainingPicks;
     } else if (pod.type === 'collectAll') {
       // Reveal and award all remaining unrevealed pods
       const remainingIndices: number[] = [];
       for (let i = 0; i < 9; i++) {
-        if (!session.revealedPods.has(i)) {
+        if (!revealedPodsSet.has(i)) {
           remainingIndices.push(i);
         }
       }
@@ -236,8 +229,8 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
       const spiritsWon: Record<string, any>[] = [];
 
       for (const idx of remainingIndices) {
-        session.revealedPods.add(idx);
-        const rPod = session.pods[idx];
+        revealedPodsSet.add(idx);
+        const rPod = sessionData.pods[idx];
 
         if (rPod.type === 'lumens' && rPod.amount) {
           totalLumens += rPod.amount;
@@ -273,7 +266,6 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
             rPod.spiritNameEn = spiritType.nameEn;
           }
         }
-        // Extra pick and collectAll within collectAll are ignored (rare edge case)
       }
 
       // Award lumens
@@ -312,7 +304,7 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
       }
 
       // Set remaining picks to 0 since all pods are revealed
-      session.remainingPicks = 0;
+      sessionData.remainingPicks = 0;
 
       rewardDetails.collectedAll = true;
       rewardDetails.collectedIndices = remainingIndices;
@@ -326,6 +318,13 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
       where: { id: player.id },
       data: { experience: { increment: 2 } },
     });
+
+    // Update session data in DB
+    sessionData.revealedPods = Array.from(revealedPodsSet);
+    await tx.gameSession.update({
+      where: { id: session.id },
+      data: { data: sessionData as any }
+    });
   });
 
   // Get updated player state
@@ -335,8 +334,8 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
 
   return NextResponse.json({
     reward: rewardDetails,
-    remainingPicks: session.remainingPicks,
-    revealedCount: session.revealedPods.size,
+    remainingPicks: sessionData.remainingPicks,
+    revealedCount: revealedPodsSet.size,
     player: updatedPlayer ? {
       lumens: updatedPlayer.lumens,
       energy: updatedPlayer.energy,
@@ -348,7 +347,9 @@ async function handlePick(userId: string, sessionId: string, podIndex: number) {
 }
 
 async function handleFinish(userId: string, sessionId: string) {
-  const session = sessions.get(sessionId);
+  const session = await db.gameSession.findUnique({
+    where: { id: sessionId }
+  });
 
   if (!session) {
     return NextResponse.json({ error: 'Sesión de bonus no encontrada' }, { status: 404 });
@@ -362,13 +363,15 @@ async function handleFinish(userId: string, sessionId: string) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
   }
 
-  // Calculate total rewards
+  const sessionData = session.data as unknown as BonusSessionData;
+
+  // Calculate total rewards from the revealed pods
   let totalLumens = 0;
   let totalEnergy = 0;
   const spiritsWon: Record<string, any>[] = [];
 
-  for (const idx of session.revealedPods) {
-    const pod = session.pods[idx];
+  for (const idx of sessionData.revealedPods) {
+    const pod = sessionData.pods[idx];
     if (pod.type === 'lumens' && pod.amount) totalLumens += pod.amount;
     else if (pod.type === 'energy' && pod.amount) totalEnergy += pod.amount;
     else if (pod.type === 'spirit' && pod.spiritTypeId) {
@@ -382,8 +385,11 @@ async function handleFinish(userId: string, sessionId: string) {
     }
   }
 
-  // Clean up session
-  sessions.delete(sessionId);
+  // Mark session as completed
+  await db.gameSession.update({
+    where: { id: sessionId },
+    data: { status: 'completed' }
+  });
 
   // Get updated player data
   const updatedPlayer = await db.playerProfile.findUnique({
@@ -394,7 +400,7 @@ async function handleFinish(userId: string, sessionId: string) {
     totalLumens,
     totalEnergy,
     spiritsWon,
-    totalPicks: session.revealedPods.size,
+    totalPicks: sessionData.revealedPods.length,
     player: updatedPlayer ? {
       lumens: updatedPlayer.lumens,
       energy: updatedPlayer.energy,

@@ -150,8 +150,8 @@ export async function POST(request: NextRequest) {
     // Calculate new lumens (with World Tree lumens multiplier)
     const newLumens = player.lumens + buffedPayout;
 
-    // Calculate experience (1 XP per spin + bonus for wins, using buffed payout)
-    const xpGain = 1 + Math.floor(buffedPayout / 10);
+    // Calculate experience (3 XP per spin + bonus for wins, using buffed payout)
+    const xpGain = 3 + Math.floor(buffedPayout / 10);
 
     // Determine spirits to add to player collection
     const spiritRewards = spinResult.spiritsWon;
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
         const winningElements = [...new Set(spinResult.wins.map(w => w.symbol.element))];
         
         // Award XP to all player spirits of those elements
-        // Logic: Winning spirits get XP = (payout / 10) + 5
+        // Logic: Winning spirits get XP = (payout / 5) + 5
         const spiritXpGain = Math.floor(buffedPayout / 5) + 5;
 
         const playerSpirits = await tx.playerSpirit.findMany({
@@ -265,10 +265,10 @@ export async function POST(request: NextRequest) {
             playerId: player.id,
             spiritType: { element: { in: winningElements } }
           },
-          include: { spiritType: true }
         });
 
-        for (const spirit of playerSpirits) {
+        // Use Promise.all to run updates in parallel within the transaction
+        await Promise.all(playerSpirits.map(spirit => {
           let newSpExp = spirit.experience + spiritXpGain;
           let newSpLevel = spirit.level;
           
@@ -280,14 +280,14 @@ export async function POST(request: NextRequest) {
             expNeeded = newSpLevel * 50;
           }
 
-          await tx.playerSpirit.update({
+          return tx.playerSpirit.update({
             where: { id: spirit.id },
             data: {
               experience: newSpExp,
               level: newSpLevel
             }
           });
-        }
+        }));
       }
 
       // Update sanctuary element contributions

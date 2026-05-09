@@ -30,28 +30,31 @@ export default function PlayHubPage() {
           onClick={() => handleNavigate('/spins')}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="relative group w-full text-left overflow-hidden rounded-3xl border border-lumora-gold/30 bg-card/60 backdrop-blur-md p-6 shadow-[0_0_20px_rgba(255,215,0,0.1)]"
+          className="relative group w-full text-left overflow-hidden rounded-3xl min-h-[180px] sm:min-h-[220px] shadow-lg border border-lumora-gold/30"
+          style={{
+            backgroundImage: 'url(/assets/backgrounds/bg_spin_adventure.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-lumora-gold/10 via-transparent to-lumora-pink/10 opacity-50 group-hover:opacity-100 transition-opacity" />
-          <div className="absolute right-[-20px] top-[-20px] opacity-20 group-hover:scale-110 transition-transform duration-500">
-            <Sparkles className="h-40 w-40 text-lumora-gold" />
-          </div>
+          {/* Dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+          {/* Accent glow */}
+          <div className="absolute inset-0 bg-gradient-to-br from-lumora-gold/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-lumora-gold/20 rounded-2xl">
-                  <Sparkles className="h-8 w-8 text-lumora-gold" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white uppercase tracking-tight">Giro Onírico</h2>
-                  <p className="text-xs text-lumora-gold font-bold">RECOMPENSAS: ✨ Lumens | ⚡ Energía</p>
-                </div>
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-lumora-gold/20 rounded-2xl backdrop-blur-sm border border-lumora-gold/30">
+                <Sparkles className="h-7 w-7 text-lumora-gold" />
               </div>
-              <p className="text-sm text-muted-foreground/80 mt-2 max-w-[85%] leading-relaxed">
-                El corazón de Lumora. Gira para expandir tu santuario y ganar recursos infinitos.
-              </p>
+              <div>
+                <h2 className="text-xl font-bold text-white uppercase tracking-tight">Giro Onírico</h2>
+                <p className="text-xs text-lumora-gold font-bold">RECOMPENSAS: ✨ Lumens | ⚡ Energía</p>
+              </div>
             </div>
+            <p className="text-sm text-white/80 mt-1 max-w-[90%] leading-relaxed">
+              El corazón de Lumora. Gira para expandir tu santuario y ganar recursos infinitos.
+            </p>
             
             <div className="mt-4 flex items-center gap-2 text-xs font-bold text-lumora-gold">
               <span>JUGAR AHORA</span>
