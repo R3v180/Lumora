@@ -32,7 +32,7 @@ export async function GET() {
 
     // --- RETROACTIVE SYNC ---
     // Check for "State" based achievements and auto-complete them
-    const syncPromises = [];
+    const syncPromises: Promise<any>[] = [];
     
     // 1. Social: Guild Founder/Member
     const guildMember = await db.guildMember.findFirst({ where: { playerId: player.id } });
