@@ -99,6 +99,7 @@ export default function SanctuaryPage() {
   const [showPlacementPanel, setShowPlacementPanel] = useState(false);
   const [selectedSpiritDetail, setSelectedSpiritDetail] = useState<PlacedSpirit | null>(null);
   const [showSpiritDetail, setShowSpiritDetail] = useState(false);
+  const refreshKey = useGameStore(s => s.refreshKey);
 
   // Player lumens (for collector display)
   const [playerLumens, setPlayerLumens] = useState(0);
@@ -139,7 +140,7 @@ export default function SanctuaryPage() {
 
   useEffect(() => {
     fetchSanctuary();
-  }, [fetchSanctuary]);
+  }, [fetchSanctuary, refreshKey]);
 
   // Collect idle lumens
   const handleCollect = useCallback(async (): Promise<{ collected: number; totalLumens: number } | null> => {
