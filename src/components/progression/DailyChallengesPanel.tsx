@@ -89,6 +89,7 @@ function useCountdownToMidnight() {
 export function DailyChallengesPanel() {
   const t = useTranslations('dailyChallenges');
   const locale = useLocale();
+  const [activeTab, setActiveTab] = useState<'daily' | 'weekly'>('daily');
   const [data, setData] = useState<DailyResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,21 +99,23 @@ export function DailyChallengesPanel() {
   const timeLeft = useCountdownToMidnight();
 
   const fetchChallenges = useCallback(async () => {
+    setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/daily');
+      const endpoint = activeTab === 'daily' ? '/api/daily' : '/api/weekly';
+      const res = await fetch(endpoint);
       if (res.ok) {
         const d = await res.json();
         setData(d);
       }
     } catch (err) {
-      console.error('Failed to fetch daily challenges:', err);
+      console.error(`Failed to fetch ${activeTab} challenges:`, err);
       setError('Error al cargar desafíos');
       toast.error('Error al cargar desafíos');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
     fetchChallenges();
@@ -121,7 +124,8 @@ export function DailyChallengesPanel() {
   const handleClaim = async (challengeId: string) => {
     setClaimingId(challengeId);
     try {
-      const res = await fetch('/api/daily', {
+      const endpoint = activeTab === 'daily' ? '/api/daily' : '/api/weekly';
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challengeId }),
@@ -135,13 +139,13 @@ export function DailyChallengesPanel() {
           if (data.reward.lumens) rewards.push({ type: 'lumens', amount: data.reward.lumens });
           if (data.reward.energy) rewards.push({ type: 'energy', amount: data.reward.energy });
           if (data.reward.experience) rewards.push({ type: 'experience', amount: data.reward.experience });
-          setShowReward({ rewards, title: "¡Desafío Completado!" });
+          setShowReward({ rewards, title: activeTab === 'daily' ? "¡Desafío Diario!" : "¡Reto Semanal!" });
         }
         fetchChallenges();
         useGameStore.getState().triggerRefresh();
       }
     } catch (err) {
-      console.error('Failed to claim daily challenge:', err);
+      console.error('Failed to claim challenge:', err);
       toast.error('Error al reclamar desafío');
     } finally {
       setClaimingId(null);
@@ -209,17 +213,47 @@ export function DailyChallengesPanel() {
 
   return (
     <div className="glass-card backdrop-blur-sm p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-lumora-purple" />
-          <span className="text-sm font-fantasy font-bold text-lumora-purple">{t('title')}</span>
+      {/* Header & Tabs */}
+      <div className="space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-lumora-gold animate-pulse" />
+            <h3 className="font-fantasy font-bold text-lg text-foreground tracking-tight">MISIONES</h3>
+          </div>
+          {activeTab === 'daily' && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-lumora-purple/10 border border-lumora-purple/20">
+              <Clock className="h-3 w-3 text-lumora-purple" />
+              <span className="text-[9px] font-bold text-lumora-purple whitespace-nowrap">
+                {timeLeft}
+              </span>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-1.5">
-          <Zap className="h-3 w-3 text-lumora-gold" />
-          <span className="text-[10px] font-semibold text-lumora-gold">
-            {t('resetsIn')} {timeLeft}
-          </span>
+
+        {/* Tab Selector */}
+        <div className="flex p-1 rounded-xl bg-muted/30 border border-border/10">
+          <button
+            onClick={() => setActiveTab('daily')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'daily' 
+                ? 'bg-background shadow-sm text-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            DIARIAS
+          </button>
+          <button
+            onClick={() => setActiveTab('weekly')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'weekly' 
+                ? 'bg-background shadow-sm text-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Star className="h-3.5 w-3.5" />
+            SEMANALES
+          </button>
         </div>
       </div>
 

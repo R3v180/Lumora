@@ -108,6 +108,7 @@ model PlayerProfile {
   friends2  Friendship[] @relation("Friend2")
   achievements PlayerAchievement[]
   dailyChallenges PlayerDailyChallenge[]
+  weeklyChallenges PlayerWeeklyChallenge[]
   blessings  Blessing[]
   chatMessages ChatMessage[]
   bossDamageLogs BossDamageLog[]
@@ -397,6 +398,40 @@ model PlayerDailyChallenge {
 
   @@unique([playerId, challengeId])
   @@map("player_daily_challenges")
+}
+
+model WeeklyChallenge {
+  id          String   @id @default(cuid())
+  name        String
+  nameEn      String
+  description String
+  descEn      String
+  challengeType String
+  requirement Int
+  reward      Json     @default("{}")
+  weekNumber  Int      // 1-52
+  year        Int
+  createdAt   DateTime @default(now())
+
+  playerChallenges PlayerWeeklyChallenge[]
+
+  @@map("weekly_challenges")
+}
+
+model PlayerWeeklyChallenge {
+  id          String   @id @default(cuid())
+  playerId    String
+  challengeId String
+  progress    Int      @default(0)
+  completed   Boolean  @default(false)
+  claimed     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  player    PlayerProfile   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  challenge WeeklyChallenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([playerId, challengeId])
+  @@map("player_weekly_challenges")
 }
 
 model Blessing {
