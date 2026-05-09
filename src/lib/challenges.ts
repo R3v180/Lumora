@@ -60,3 +60,51 @@ export async function updateChallengeProgress(playerId: string, challengeType: s
     console.error(`Error updating challenge progress (${challengeType}):`, error);
   }
 }
+
+/**
+ * Updates player progress for a specific achievement category.
+ * @param playerId The player's ID
+ * @param category The achievement category (e.g., 'collection', 'combat')
+ * @param amount The amount to set the progress to (absolute value)
+ */
+export async function updateAchievementProgress(playerId: string, category: string, amount: number) {
+  try {
+    // Find all achievements in this category
+    const achievements = await db.achievement.findMany({
+      where: { category }
+    });
+
+    for (const ach of achievements) {
+      // Upsert progress
+      const playerAch = await db.playerAchievement.upsert({
+        where: {
+          playerId_achievementId: {
+            playerId,
+            achievementId: ach.id,
+          },
+        },
+        update: {
+          progress: amount, // For achievements we often set absolute value (like "have 5 spirits")
+        },
+        create: {
+          playerId,
+          achievementId: ach.id,
+          progress: amount,
+        },
+      });
+
+      // Check for completion
+      if (!playerAch.completed && amount >= ach.requirement) {
+        await db.playerAchievement.update({
+          where: { id: playerAch.id },
+          data: { 
+            completed: true,
+            completedAt: new Date()
+          },
+        });
+      }
+    }
+  } catch (error) {
+    console.error(`Error updating achievement progress (${category}):`, error);
+  }
+}

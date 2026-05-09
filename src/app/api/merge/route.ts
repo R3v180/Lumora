@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { updateChallengeProgress } from '@/lib/challenges';
+import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
 
     // Update challenge progress
     await updateChallengeProgress(player.id, 'merge_spirits', 1);
+    
+    // Update achievement progress (First Fusion)
+    await updateAchievementProgress(player.id, 'collection', 1); 
 
     // Execute merge in transaction
     const result = await db.$transaction(async (tx) => {

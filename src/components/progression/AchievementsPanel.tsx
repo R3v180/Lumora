@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
+import { WinScreen } from '@/components/game/WinScreen';
 
 interface AchievementData {
   id: string;
@@ -76,6 +77,7 @@ export function AchievementsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimedIds, setClaimedIds] = useState<Set<string>>(new Set());
+  const [showReward, setShowReward] = useState<any | null>(null);
 
   const fetchAchievements = useCallback(async () => {
     setError(null);
@@ -109,6 +111,14 @@ export function AchievementsPanel() {
       if (res.ok) {
         audioService.playClaimReward();
         setClaimedIds((prev) => new Set(prev).add(achievementId));
+        const data = await res.json();
+        if (data.reward) {
+          const rewards: any[] = [];
+          if (data.reward.lumens) rewards.push({ type: 'lumens', amount: data.reward.lumens });
+          if (data.reward.energy) rewards.push({ type: 'energy', amount: data.reward.energy });
+          if (data.reward.experience) rewards.push({ type: 'experience', amount: data.reward.experience });
+          setShowReward({ rewards, title: "¡Logro Desbloqueado!" });
+        }
         fetchAchievements();
         useGameStore.getState().triggerRefresh();
       }
@@ -348,6 +358,17 @@ export function AchievementsPanel() {
           );
         })}
       </Tabs>
+
+      {/* Reward Popup */}
+      {showReward && (
+        <WinScreen 
+          isOpen={!!showReward}
+          onClose={() => setShowReward(null)}
+          title={showReward.title}
+          subtitle="Tu leyenda en Lumora sigue creciendo"
+          rewards={showReward.rewards}
+        />
+      )}
     </div>
   );
 }

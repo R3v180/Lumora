@@ -8,7 +8,7 @@ import {
   ENERGY_COST,
 } from '@/game/engine/spinEngine';
 import { GameSymbol } from '@/game/engine/symbols';
-import { updateChallengeProgress } from '@/lib/challenges';
+import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
 
 // World Tree buff helpers
 interface TreeBuff {
@@ -192,6 +192,12 @@ export async function POST(request: NextRequest) {
     const elementalTotal = Object.values(spinResult.elementContributions).reduce((a, b) => a + b, 0);
     if (elementalTotal > 0) {
       await updateChallengeProgress(player.id, 'world_contribution', Math.floor(elementalTotal / 2));
+    }
+
+    // Update collection achievements
+    if (spiritRewards.length > 0) {
+      const currentSpiritCount = player.spirits.length + spiritRewards.length;
+      await updateAchievementProgress(player.id, 'collection', currentSpiritCount);
     }
 
     // Update player data in a transaction
