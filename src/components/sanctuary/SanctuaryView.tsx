@@ -75,6 +75,8 @@ interface SanctuaryViewProps {
   onSpiritClick: (spiritId: string) => void;
   selectedSpiritId?: string | null;
   isPlacingMode: boolean;
+  onAutoPlace?: () => void;
+  onStartPlacing?: () => void;
 }
 
 // === CONSTANTS ===
@@ -142,6 +144,8 @@ export function SanctuaryView({
   onSpiritClick,
   selectedSpiritId,
   isPlacingMode,
+  onAutoPlace,
+  onStartPlacing,
 }: SanctuaryViewProps) {
   const t = useTranslations('sanctuary');
   const [hoveredTile, setHoveredTile] = useState<{ x: number; y: number } | null>(null);
@@ -412,11 +416,28 @@ export function SanctuaryView({
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               Espíritus Colocados ({sanctuary?.currentPlacedCount}/{sanctuary?.maxPlacedSpirits})
             </h3>
-            {sanctuary && sanctuary.currentPlacedCount < sanctuary.maxPlacedSpirits && (
-              <span className="text-[9px] text-lumora-gold animate-pulse">
-                {sanctuary.maxPlacedSpirits - sanctuary.currentPlacedCount} huecos libres
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {sanctuary && sanctuary.currentPlacedCount < sanctuary.maxPlacedSpirits && (
+                <>
+                  <Button 
+                    onClick={onAutoPlace}
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-[9px] text-lumora-gold hover:text-lumora-gold hover:bg-lumora-gold/10 px-2 rounded-lg border border-lumora-gold/20"
+                  >
+                    COLOCAR TODOS
+                  </Button>
+                  <Button 
+                    onClick={onStartPlacing}
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-[9px] text-lumora-blue hover:text-lumora-blue hover:bg-lumora-blue/10 px-2 rounded-lg border border-lumora-blue/20"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> MANUAL
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

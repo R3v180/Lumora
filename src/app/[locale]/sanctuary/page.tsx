@@ -467,6 +467,8 @@ export default function SanctuaryPage() {
         onSpiritClick={handleSpiritClick}
         selectedSpiritId={selectedSpiritId}
         isPlacingMode={isPlacingMode}
+        onAutoPlace={handleAutoPlace}
+        onStartPlacing={startPlacingMode}
       />
 
       {/* Lumens Collector (Keep this as a separate section) */}
