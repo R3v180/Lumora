@@ -92,7 +92,7 @@ export async function GET() {
         positionY: d.positionY,
         level: d.level,
       })),
-      placedSpirits: placedSpirits.map(s => ({
+      placedSpirits: placedSpiritsData.map(s => ({
         id: s.id,
         level: s.level,
         spiritType: {
