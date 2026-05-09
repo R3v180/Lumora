@@ -284,18 +284,6 @@ export default function SanctuaryPage() {
   // Start placing mode
   const startPlacingMode = () => {
     if (!sanctuary) return;
-
-    if (sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits) {
-      setActionMessage(t('maxSpiritsReached'));
-      setTimeout(() => setActionMessage(null), 4000);
-      return;
-    }
-
-    if (sanctuary.unplacedSpirits.length === 0) {
-      setActionMessage(t('noSpiritsToPlace'));
-      setTimeout(() => setActionMessage(null), 3000);
-      return;
-    }
     setIsPlacingMode(true);
     setShowPlacementPanel(true);
   };
