@@ -12,6 +12,7 @@ import { BlessingWidget } from '@/components/blessing/BlessingWidget';
 import { DailyChallengesPanel } from '@/components/progression/DailyChallengesPanel';
 import { OfflineRewardsDialog } from '@/components/home/OfflineRewardsDialog';
 import { WorldTreeWidget } from '@/components/home/WorldTreeWidget';
+import { ChestPanel } from '@/components/progression/ChestPanel';
 import { toast } from 'sonner';
 import { audioService } from '@/lib/audioService';
 
@@ -186,6 +187,12 @@ export default function HomePage() {
       <div className="relative z-10 w-full max-w-sm mb-6">
         <EventWidget />
       </div>
+
+      {isAuthenticated && (
+        <div className="relative z-10 w-full max-w-sm">
+          <ChestPanel />
+        </div>
+      )}
 
 
       {/* Daily Blessing Widget (when logged in) */}

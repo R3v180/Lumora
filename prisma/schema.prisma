@@ -586,10 +586,13 @@ model PlayerChest {
   playerId    String
   type        String   @default("boss") // boss, raid, event
   rarity      String   // common, rare, epic, legendary
-  unlocksAt   DateTime
-  isOpened    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  state           String   @default("locked") // locked, unlocking, ready
+  durationMs      Int      @default(7200000) // 2h default
+  startedUnlockAt DateTime?
+  unlocksAt       DateTime
+  isOpened        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   player      PlayerProfile @relation(fields: [playerId], references: [id], onDelete: Cascade)
 

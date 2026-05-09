@@ -9,7 +9,13 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: true,
-  allowedDevOrigins: ['localhost', '*.ngrok-free.dev', '*.ngrok-free.app'],
+  allowedDevOrigins: [
+    'localhost',
+    '192.168.1.129',
+    '*.ngrok-free.dev',
+    '*.ngrok-free.app',
+    '*.local'
+  ],
 };
 
 export default withNextIntl(nextConfig);

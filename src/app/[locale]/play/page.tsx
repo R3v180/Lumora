@@ -37,19 +37,26 @@ export default function PlayHubPage() {
             <Sparkles className="h-40 w-40 text-lumora-gold" />
           </div>
           
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-lumora-gold/20 rounded-2xl">
-                <Sparkles className="h-8 w-8 text-lumora-gold" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-lumora-gold/20 rounded-2xl">
+                  <Sparkles className="h-8 w-8 text-lumora-gold" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white uppercase tracking-tight">Giro Onírico</h2>
+                  <p className="text-xs text-lumora-gold font-bold">RECOMPENSAS: ✨ Lumens | ⚡ Energía</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Giro Onírico</h2>
-                <p className="text-xs text-lumora-gold font-semibold">Modo Principal</p>
-              </div>
+              <p className="text-sm text-muted-foreground/80 mt-2 max-w-[85%] leading-relaxed">
+                El corazón de Lumora. Gira para expandir tu santuario y ganar recursos infinitos.
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground/80 mt-2 max-w-[80%]">
-              Gira la máquina para obtener Lumens, Energía y ganar premios.
-            </p>
+            
+            <div className="mt-4 flex items-center gap-2 text-xs font-bold text-lumora-gold">
+              <span>JUGAR AHORA</span>
+              <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </div>
           </div>
         </motion.button>
 
@@ -77,11 +84,11 @@ export default function PlayHubPage() {
                   <Skull className="h-6 w-6 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white drop-shadow-lg">Incursiones del Vacío</h3>
-                  <p className="text-xs text-red-300/80">Jefe Mundial PvE</p>
+                  <h3 className="text-lg font-bold text-white drop-shadow-lg uppercase tracking-tight">Incursiones del Vacío</h3>
+                  <p className="text-xs text-red-300 font-bold">RECOMPENSAS: 📦 Cofres Épicos | 💎 Fragmentos</p>
                 </div>
               </div>
-              <p className="text-xs text-white/50 mt-1">Ataca al boss mundial con tus mejores giros elementales.</p>
+              <p className="text-xs text-white/70 mt-1">Derrota a titanes oníricos para obtener los tesoros más raros.</p>
             </div>
             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/20 group-hover:text-white/50 transition-colors z-10" />
           </motion.button>
@@ -107,11 +114,11 @@ export default function PlayHubPage() {
                   <Swords className="h-6 w-6 text-lumora-gold" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white drop-shadow-lg">El Coliseo</h3>
-                  <p className="text-xs text-lumora-gold/80">Arena PvP Asíncrona</p>
+                  <h3 className="text-lg font-bold text-white drop-shadow-lg uppercase tracking-tight">Arena Estelar</h3>
+                  <p className="text-xs text-lumora-gold font-bold">RECOMPENSAS: 📦 Cofres | 🏆 Rango</p>
                 </div>
               </div>
-              <p className="text-xs text-white/50 mt-1">Desafía a otros viajeros y sube en el ranking.</p>
+              <p className="text-xs text-white/70 mt-1">Enfréntate a otros viajeros y saquea sus recursos.</p>
             </div>
             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/20 group-hover:text-white/50 transition-colors z-10" />
           </motion.button>
@@ -137,11 +144,11 @@ export default function PlayHubPage() {
                   <Target className="h-6 w-6 text-lumora-pink" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white drop-shadow-lg">Saqueos</h3>
-                  <p className="text-xs text-lumora-pink/80">Robar Lumens a rivales</p>
+                  <h3 className="text-lg font-bold text-white drop-shadow-lg uppercase tracking-tight">Saqueos Oníricos</h3>
+                  <p className="text-xs text-lumora-pink font-bold">RECOMPENSAS: ✨ Lumens | 📦 Cofres</p>
                 </div>
               </div>
-              <p className="text-xs text-white/50 mt-1">Asalta santuarios enemigos y roba sus Lumens idle.</p>
+              <p className="text-xs text-white/70 mt-1">Asalta santuarios enemigos y roba sus recursos inactivos.</p>
             </div>
             <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 text-white/20 group-hover:text-white/50 transition-colors z-10" />
           </motion.button>

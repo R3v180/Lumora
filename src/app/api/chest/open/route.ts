@@ -25,17 +25,23 @@ export async function POST(req: NextRequest) {
     const unlocksAt = new Date(chest.unlocksAt);
     let cost = 0;
 
+    // Logic for costs:
+    // If state is ready (time elapsed), cost is 0.
+    // If state is unlocking or locked, cost depends on time remaining.
     if (now < unlocksAt) {
       if (!useLumens) {
-        return NextResponse.json({ error: 'El cofre aún está bloqueado' }, { status: 400 });
+        return NextResponse.json({ error: 'El cofre aún está bloqueado. Usa Lumens para abrirlo ya.' }, { status: 400 });
       }
       
-      // Calculate cost: 100 lumens per hour remaining
-      const hoursRemaining = Math.ceil((unlocksAt.getTime() - now.getTime()) / (1000 * 60 * 60));
-      cost = hoursRemaining * 100;
+      // Cost calculation: max 500 lumens for full duration, minimum 0.
+      const totalDuration = chest.durationMs;
+      const elapsed = chest.startedUnlockAt ? (now.getTime() - new Date(chest.startedUnlockAt).getTime()) : 0;
+      const remaining = Math.max(0, totalDuration - elapsed);
+      
+      cost = Math.ceil((remaining / totalDuration) * 500);
 
       if (player.lumens < cost) {
-        return NextResponse.json({ error: 'Lumens insuficientes' }, { status: 400 });
+        return NextResponse.json({ error: 'Lumens insuficientes para apertura instantánea.' }, { status: 400 });
       }
     }
 
@@ -66,7 +72,7 @@ export async function POST(req: NextRequest) {
     await db.$transaction([
       db.playerChest.update({
         where: { id: chest.id },
-        data: { isOpened: true },
+        data: { isOpened: true, state: 'opened' },
       }),
       db.playerProfile.update({
         where: { id: player.id },
