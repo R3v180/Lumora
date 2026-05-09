@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import { Shield, Target, Coins, ShieldCheck } from 'lucide-react';
@@ -29,7 +29,7 @@ export function RaidPanel() {
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showEnergyRefill, setShowEnergyRefill] = useState(false);
   const [autoRaid, setAutoRaid] = useState(false);
-  const autoRaidRef = React.useRef(false);
+  const autoRaidRef = useRef(false);
 
   const energy = useGameStore(s => s.energy);
   const RAID_COST = 20;
