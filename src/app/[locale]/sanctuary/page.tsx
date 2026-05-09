@@ -460,7 +460,7 @@ export default function SanctuaryPage() {
         </motion.div>
       )}
 
-      {/* Sanctuary View */}
+      {/* Sanctuary View (Now contains most of the UI) */}
       <SanctuaryView
         sanctuary={sanctuary}
         onTileClick={handleTileClick}
@@ -469,7 +469,7 @@ export default function SanctuaryPage() {
         isPlacingMode={isPlacingMode}
       />
 
-      {/* Lumens Collector */}
+      {/* Lumens Collector (Keep this as a separate section) */}
       <div className="w-full mt-4">
         <LumensCollector
           idleLumens={sanctuary?.idleLumens || 0}
@@ -479,125 +479,6 @@ export default function SanctuaryPage() {
           onCollect={handleCollect}
         />
       </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-3 mt-4">
-        {/* Place Spirit */}
-        <Button
-          onClick={startPlacingMode}
-          disabled={isPlacingMode || (sanctuary ? sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits : false)}
-          className="rounded-xl gap-1.5 bg-gradient-to-r from-lumora-emerald to-lumora-blue text-white hover:opacity-90 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          {t('placeSpirit')}
-        </Button>
-
-        {/* Upgrade Sanctuary */}
-        {sanctuary && (
-          <Button
-            onClick={handleUpgrade}
-            disabled={playerLumens < sanctuary.sanctuaryLevel * 2000}
-            className="rounded-xl gap-1.5 bg-gradient-to-r from-lumora-gold to-lumora-purple text-white hover:opacity-90 disabled:opacity-50"
-          >
-            <ArrowUp className="h-4 w-4" />
-            Mejorar ({sanctuary.sanctuaryLevel * 2000} ✨)
-          </Button>
-        )}
-
-        {/* Collection count */}
-        <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-card/60 border border-border/30">
-          <Sparkles className="h-3.5 w-3.5 text-lumora-purple" />
-          <span className="text-xs font-medium">
-            {sanctuary?.currentPlacedCount ?? 0}/{sanctuary?.maxPlacedSpirits ?? 5}
-          </span>
-        </div>
-      </div>
-
-      {/* Sanctuary full message */}
-      {sanctuary && sanctuary.currentPlacedCount >= sanctuary.maxPlacedSpirits && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg mt-3 px-4 py-2 rounded-xl bg-lumora-gold/10 border border-lumora-gold/20 text-xs text-lumora-gold text-center"
-        >
-          {t('maxSpiritsReached')}
-        </motion.div>
-      )}
-
-      {/* Placed spirits summary */}
-      {sanctuary && sanctuary.placedSpirits.length > 0 && (
-        <div className="w-full max-w-lg mt-4">
-          <div className="rounded-2xl border border-border/20 bg-card/40 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Espíritus Colocados ({sanctuary.placedSpirits.length})
-              </span>
-              <span className="text-xs text-lumora-gold font-medium flex items-center gap-1">
-                ✨ +{sanctuary.spiritLumensPerHour}/h
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {sanctuary.placedSpirits.map((spirit) => (
-                <motion.button
-                  key={spirit.id}
-                  onClick={() => {
-                    setSelectedSpiritDetail(spirit);
-                    setShowSpiritDetail(true);
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-background/40 border border-border/20 hover:border-lumora-gold/30 transition-colors"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span className="text-base">
-                    {{ fire: '🔥', water: '💧', dream: '🌙', nature: '🌿', star: '⭐' }[spirit.spiritType.element]}
-                  </span>
-                  <span className="text-xs font-medium">{spirit.spiritType.name}</span>
-                  <span className="text-[10px] text-muted-foreground">Nv.{spirit.level}</span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Unplaced spirits preview */}
-      {sanctuary && sanctuary.unplacedSpirits.length > 0 && (
-        <div className="w-full max-w-lg mt-3">
-          <div className="rounded-2xl border border-dashed border-border/30 bg-card/20 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">
-                Sin Colocar ({sanctuary.unplacedSpirits.length})
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={startPlacingMode}
-                className="text-xs text-lumora-gold h-6"
-              >
-                Colocar todos <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {sanctuary.unplacedSpirits.slice(0, 8).map((spirit) => (
-                <div
-                  key={spirit.id}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-background/30 border border-border/10"
-                >
-                  <span className="text-sm">
-                    {{ fire: '🔥', water: '💧', dream: '🌙', nature: '🌿', star: '⭐' }[spirit.spiritType.element]}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{spirit.spiritType.name}</span>
-                </div>
-              ))}
-              {sanctuary.unplacedSpirits.length > 8 && (
-                <span className="text-[10px] text-muted-foreground self-center">
-                  +{sanctuary.unplacedSpirits.length - 8} más
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Spirit Placement Panel */}
       <SpiritPlacementPanel
