@@ -63,9 +63,13 @@ export async function GET() {
       legendary: 400
     };
 
-    const totalPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
-    // Multiplier: 1.0 + 0.01 per 100 power (logarithmic or linear? let's go linear for now, but capped)
-    // Example: 1000 power = 1.1x, 5000 power = 1.5x
+    const totalPower = player.spirits.reduce((sum, s) => {
+      const base = POWER_MAP[s.spiritType.rarity] || 0;
+      // Power grows with level: +10% per level
+      const levelBonus = 1 + (s.level - 1) * 0.1;
+      return sum + Math.floor(base * levelBonus);
+    }, 0);
+    // Multiplier: 1.0 + 0.01 per 100 power
     const collectionMultiplier = 1.0 + (totalPower / 10000); 
 
     // Calculate sanctuary lumens per hour including placed spirits

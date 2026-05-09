@@ -78,12 +78,15 @@ export async function POST(request: NextRequest) {
       });
 
       // Create the evolved spirit
+      // We carry over some experience from the source spirits (average / 2)
+      const avgExp = Math.floor(spirits.reduce((s, sp) => s + sp.experience, 0) / 3);
+      
       const newSpirit = await tx.playerSpirit.create({
         data: {
           playerId: player.id,
           spiritTypeId: evolvedSpirit.id,
           level: 1,
-          experience: 0,
+          experience: Math.floor(avgExp / 2),
         },
         include: { spiritType: true },
       });

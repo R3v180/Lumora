@@ -197,7 +197,6 @@ export async function POST(request: NextRequest) {
           experience: player.experience + xpGain,
         },
       });
-
       // Check for level up
       const expForLevel = updated.level * 100;
       if (updated.experience >= expForLevel) {
@@ -210,7 +209,6 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-
       // Add won spirits to player collection
       for (const reward of spiritRewards) {
         // Find the matching SpiritType in the database
@@ -228,7 +226,47 @@ export async function POST(request: NextRequest) {
               playerId: player.id,
               spiritTypeId: spiritType.id,
               level: 1,
+              experience: 0,
             },
+          });
+        }
+      }
+
+      // 4. Award XP to spirits involved in the win
+      if (spinResult.wins.length > 0) {
+        // Find spirits of the same element as the winning symbols
+        const winningElements = [...new Set(spinResult.wins.map(w => w.symbol.element))];
+        
+        // Award XP to all player spirits of those elements
+        // Logic: Winning spirits get XP = (payout / 10) + 5
+        const spiritXpGain = Math.floor(buffedPayout / 5) + 5;
+
+        const playerSpirits = await tx.playerSpirit.findMany({
+          where: { 
+            playerId: player.id,
+            spiritType: { element: { in: winningElements } }
+          },
+          include: { spiritType: true }
+        });
+
+        for (const spirit of playerSpirits) {
+          let newSpExp = spirit.experience + spiritXpGain;
+          let newSpLevel = spirit.level;
+          
+          // Simple level up formula: Level * 50 XP
+          let expNeeded = newSpLevel * 50;
+          while (newSpExp >= expNeeded && newSpLevel < 100) {
+            newSpExp -= expNeeded;
+            newSpLevel++;
+            expNeeded = newSpLevel * 50;
+          }
+
+          await tx.playerSpirit.update({
+            where: { id: spirit.id },
+            data: {
+              experience: newSpExp,
+              level: newSpLevel
+            }
           });
         }
       }

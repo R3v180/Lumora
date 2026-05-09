@@ -169,12 +169,19 @@ export function CollectionPanel() {
                     {spirit.spiritType.name}
                   </span>
                   
-                  <div className={`mt-1 h-0.5 w-full rounded-full opacity-50 ${
-                    spirit.spiritType.rarity === 'legendary' ? 'bg-lumora-gold' :
-                    spirit.spiritType.rarity === 'epic' ? 'bg-lumora-purple' :
-                    spirit.spiritType.rarity === 'rare' ? 'bg-lumora-blue' :
-                    spirit.spiritType.rarity === 'uncommon' ? 'bg-lumora-emerald' : 'bg-muted-foreground'
-                  }`} />
+                  <div className={`mt-1 h-1 w-full rounded-full bg-white/10 overflow-hidden`}>
+                    <motion.div 
+                      className={`h-full ${
+                        spirit.spiritType.rarity === 'legendary' ? 'bg-lumora-gold' :
+                        spirit.spiritType.rarity === 'epic' ? 'bg-lumora-purple' :
+                        spirit.spiritType.rarity === 'rare' ? 'bg-lumora-blue' :
+                        spirit.spiritType.rarity === 'uncommon' ? 'bg-lumora-emerald' : 'bg-muted-foreground'
+                      }`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (spirit.experience / (spirit.level * 50)) * 100)}%` }}
+                      transition={{ duration: 1 }}
+                    />
+                  </div>
                 </motion.div>
               ))}
             </AnimatePresence>
