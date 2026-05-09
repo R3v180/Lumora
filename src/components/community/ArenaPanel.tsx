@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
-import { Shield, Swords, Trophy, Crown } from 'lucide-react';
+import { Shield, Swords, Trophy, Crown, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useGameStore } from '@/lib/store';

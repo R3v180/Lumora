@@ -182,7 +182,9 @@ export function SanctuaryView({
       if (res.ok) {
         useGameStore.getState().syncPlayerStats({ 
           lumens: data.newLumens, 
-          sanctuaryLevel: data.newLevel 
+          sanctuaryLevel: data.newLevel,
+          energy: useGameStore.getState().energy,
+          maxEnergy: useGameStore.getState().maxEnergy
         });
         useGameStore.getState().triggerRefresh();
         toast.success(`¡Santuario mejorado a Nivel ${data.newLevel}!`);
