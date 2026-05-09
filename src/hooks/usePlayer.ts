@@ -91,6 +91,13 @@ export function usePlayer() {
         sanctuaryLevel: data.sanctuaryLevel,
         totalPower: data.totalPower,
         collectionMultiplier: data.collectionMultiplier,
+        sanctuaryPoints: data.sanctuary ? {
+          fire: data.sanctuary.globalFire,
+          water: data.sanctuary.globalWater,
+          nature: data.sanctuary.globalNature,
+          dream: data.sanctuary.globalDream,
+          star: data.sanctuary.globalStar,
+        } : undefined,
       });
       // Also sync display name
       useGameStore.getState().setDisplayName(data.displayName);

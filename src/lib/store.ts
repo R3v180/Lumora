@@ -65,6 +65,13 @@ export interface PlayerState {
     sanctuaryLevel?: number;
     totalPower?: number;
     collectionMultiplier?: number;
+    sanctuaryPoints?: {
+      fire: number;
+      water: number;
+      nature: number;
+      dream: number;
+      star: number;
+    };
   }) => void;
 }
 
@@ -163,5 +170,12 @@ export const useGameStore = create<PlayerState>((set, get) => ({
       ...(stats.sanctuaryLevel !== undefined ? { sanctuaryLevel: stats.sanctuaryLevel } : {}),
       ...(stats.totalPower !== undefined ? { totalPower: stats.totalPower } : {}),
       ...(stats.collectionMultiplier !== undefined ? { collectionMultiplier: stats.collectionMultiplier } : {}),
+      ...(stats.sanctuaryPoints ? {
+        globalFire: stats.sanctuaryPoints.fire,
+        globalWater: stats.sanctuaryPoints.water,
+        globalNature: stats.sanctuaryPoints.nature,
+        globalDream: stats.sanctuaryPoints.dream,
+        globalStar: stats.sanctuaryPoints.star,
+      } : {}),
     }),
 }));
