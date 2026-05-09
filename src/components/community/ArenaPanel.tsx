@@ -49,6 +49,10 @@ export function ArenaPanel() {
   const [lastResult, setLastResult] = useState<any>(null);
   const [spinResults, setSpinResults] = useState<string[]>([]);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showEnergyRefill, setShowEnergyRefill] = useState(false);
+  
+  const energy = useGameStore(s => s.energy);
+  const ARENA_COST = 15;
 
   const fetchArena = useCallback(async () => {
     try {
@@ -139,7 +143,11 @@ export function ArenaPanel() {
         }, 1500);
       } else {
         audioService.playError();
-        toast.error(data.error);
+        if (data.error === 'Energía insuficiente') {
+          setShowEnergyRefill(true);
+        } else {
+          toast.error(data.error);
+        }
         setIsFighting(false);
       }
     } catch (err) {
@@ -201,7 +209,10 @@ export function ArenaPanel() {
         <div className="rounded-2xl border border-border/20 bg-card/40 p-4">
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm font-semibold text-muted-foreground">Tus 3 Giros de Combate</p>
-            <span className="text-xs font-bold text-lumora-blue bg-lumora-blue/10 px-2 py-1 rounded-full border border-lumora-blue/20">Coste: 15 ⚡</span>
+            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${energy < ARENA_COST ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-lumora-blue/10 border-lumora-blue/30 text-lumora-blue'}`}>
+              <Zap className={`h-3 w-3 ${energy < ARENA_COST ? 'animate-pulse' : ''}`} />
+              <span className="text-[10px] font-bold">COSTE: {ARENA_COST}</span>
+            </div>
           </div>
           
           {/* Slot Machine Visualization - Bandeja de Invocación */}
