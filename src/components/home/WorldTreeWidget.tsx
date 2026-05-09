@@ -334,14 +334,21 @@ export function WorldTreeWidget() {
     amount: number;
   } | null>(null);
 
-  // Correctly fetch all element points at once to follow Hook rules
-  const allPoints = useGameStore(s => ({
-    fire: s.globalFire,
-    water: s.globalWater,
-    dream: s.globalDream,
-    nature: s.globalNature,
-    star: s.globalStar,
-  }));
+  // Fetch individual points to avoid creating new objects on every render (prevents infinite loops)
+  const firePoints = useGameStore(s => s.globalFire);
+  const waterPoints = useGameStore(s => s.globalWater);
+  const dreamPoints = useGameStore(s => s.globalDream);
+  const naturePoints = useGameStore(s => s.globalNature);
+  const starPoints = useGameStore(s => s.globalStar);
+
+  // Map them for easy access in the loop
+  const allPoints: Record<string, number> = {
+    fire: firePoints,
+    water: waterPoints,
+    dream: dreamPoints,
+    nature: naturePoints,
+    star: starPoints,
+  };
 
   const fetchTreeData = useCallback(async () => {
     setError(null);
