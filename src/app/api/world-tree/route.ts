@@ -248,28 +248,45 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Get player profile
+      // Get player profile and sanctuary
       const player = await db.playerProfile.findUnique({
         where: { userId },
+        include: { sanctuary: true }
       });
 
-      if (!player) {
+      if (!player || !player.sanctuary) {
         return NextResponse.json(
-          { error: 'Perfil no encontrado' },
+          { error: 'Perfil o Santuario no encontrado' },
           { status: 404 }
         );
       }
 
-      // Check if player has enough lumens
-      if (player.lumens < contributionAmount) {
+      // Map simple element name to sanctuary field name
+      const fieldMap: Record<string, string> = {
+        fire: 'globalFire',
+        water: 'globalWater',
+        dream: 'globalDream',
+        nature: 'globalNature',
+        star: 'globalStar'
+      };
+
+      const sanctuaryField = fieldMap[element] as keyof typeof player.sanctuary;
+      const currentPoints = player.sanctuary[sanctuaryField] as number;
+
+      // Check if player has enough element points
+      if (currentPoints < contributionAmount) {
         return NextResponse.json(
-          { error: 'Lumens insuficientes', lumens: player.lumens },
+          { error: `Puntos de ${element} insuficientes`, points: currentPoints },
           { status: 400 }
         );
       }
 
+      // REWARD CALCULATION: 10 Lumens per element point
+      const lumensReward = contributionAmount * 10;
+      const expReward = Math.floor(contributionAmount * 2);
+
       // Update in transaction
-      const field = `total${element.charAt(0).toUpperCase() + element.slice(1)}` as
+      const worldField = `total${element.charAt(0).toUpperCase() + element.slice(1)}` as
         | 'totalFire'
         | 'totalWater'
         | 'totalDream'
@@ -277,24 +294,31 @@ export async function POST(request: NextRequest) {
         | 'totalStar';
 
       await db.$transaction(async (tx) => {
-        // Deduct lumens from player
+        // Deduct element points and give rewards
+        await tx.sanctuary.update({
+          where: { id: player.sanctuary!.id },
+          data: {
+            [fieldMap[element]]: { decrement: contributionAmount }
+          }
+        });
+
         await tx.playerProfile.update({
           where: { id: player.id },
           data: {
-            lumens: player.lumens - contributionAmount,
-            experience: player.experience + Math.floor(contributionAmount / 10),
-          },
+            lumens: { increment: lumensReward },
+            experience: { increment: expReward }
+          }
         });
 
         // Add to world element total
         await tx.worldState.upsert({
           where: { id: 'lumora_world' },
           update: {
-            [field]: { increment: contributionAmount },
+            [worldField]: { increment: contributionAmount },
           },
           create: {
             id: 'lumora_world',
-            [field]: contributionAmount,
+            [worldField]: contributionAmount,
           },
         });
 
@@ -302,12 +326,13 @@ export async function POST(request: NextRequest) {
         await tx.transaction.create({
           data: {
             playerId: player.id,
-            type: 'contribution',
-            amount: contributionAmount,
+            type: 'contribution_reward',
+            amount: lumensReward,
             currency: 'lumens',
             metadata: {
               element,
-              source: 'world_tree_contribution',
+              pointsSpent: contributionAmount,
+              source: 'world_tree_altar',
             },
           },
         });

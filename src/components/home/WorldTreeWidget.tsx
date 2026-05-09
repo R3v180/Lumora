@@ -630,7 +630,7 @@ export function WorldTreeWidget() {
         <p className="text-[10px] text-muted-foreground mb-3">{t('noBuffs')}</p>
       )}
 
-      {/* Contribute Button */}
+      {/* Altar Button */}
       {player && (
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Button
@@ -639,10 +639,10 @@ export function WorldTreeWidget() {
               setContributeResult(null);
             }}
             variant="outline"
-            className="rounded-full gap-2 border-lumora-gold/30 text-lumora-gold hover:bg-lumora-gold/10 hover:text-lumora-gold text-xs px-4 py-2"
+            className="rounded-full gap-2 border-lumora-emerald/30 text-lumora-emerald hover:bg-lumora-emerald/10 hover:text-lumora-emerald text-xs px-4 py-2 bg-lumora-emerald/5"
           >
-            <Heart className="h-3.5 w-3.5" />
-            {t('contribute')}
+            <Sparkles className="h-3.5 w-3.5" />
+            ALTAR DE OFRENDAS
           </Button>
         </motion.div>
       )}
@@ -667,11 +667,12 @@ export function WorldTreeWidget() {
       <Dialog open={showContributeDialog} onOpenChange={setShowContributeDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-fantasy">
-              {t('contribute')}
+            <DialogTitle className="font-fantasy text-xl flex items-center gap-2">
+              <TreePine className="h-5 w-5 text-lumora-emerald" />
+              Altar del Árbol del Mundo
             </DialogTitle>
             <DialogDescription>
-              {t('communityEffort')}
+              Ofrece tus puntos elementales al Árbol para recibir bendiciones y Lumens.
             </DialogDescription>
           </DialogHeader>
 
@@ -721,14 +722,17 @@ export function WorldTreeWidget() {
               >
                 {/* Element Selector */}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">
-                    {t('contributeTo', { element: '' }).trim()}
+                  <label className="text-xs font-medium text-muted-foreground mb-3 block text-center">
+                    ¿Qué elemento deseas ofrecer hoy?
                   </label>
-                  <div className="flex gap-2 justify-center">
+                  <div className="grid grid-cols-5 gap-2 justify-center">
                     {(['fire', 'water', 'dream', 'nature', 'star'] as ElementKey[]).map(
                       (element) => {
                         const config = ELEMENT_CONFIG[element];
                         const isSelected = selectedElement === element;
+                        // Use useGameStore to get current points
+                        const points = useGameStore.getState().sanctuaryPoints?.[element] || 0;
+                        
                         return (
                           <motion.button
                             key={element}
@@ -736,14 +740,14 @@ export function WorldTreeWidget() {
                             className={`relative flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${
                               isSelected
                                 ? `${config.borderClass} ${config.bgClass} ${config.glowClass}`
-                                : 'border-transparent bg-muted/30 hover:bg-muted/50'
+                                : 'border-transparent bg-white/5 hover:bg-white/10'
                             }`}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                           >
-                            <span className="text-lg">{config.emoji}</span>
-                            <span className="text-[9px] font-medium text-muted-foreground">
-                              {t(`elements.${element}`)}
+                            <span className="text-xl">{config.emoji}</span>
+                            <span className="text-[10px] font-bold text-white">
+                              {points}
                             </span>
                           </motion.button>
                         );
@@ -782,19 +786,20 @@ export function WorldTreeWidget() {
                   </div>
                 </div>
 
-                {/* Preview */}
-                <div className="rounded-lg bg-muted/20 border border-border/30 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    {t('contributePreview', {
-                      amount: contributeAmount.toLocaleString(),
-                      element: t(`elements.${selectedElement}`),
-                    })}
-                  </p>
-                  {player && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      💫 {player.lumens.toLocaleString()} Lumens
+                {/* Preview Recompensa */}
+                <div className="rounded-2xl bg-lumora-emerald/10 border border-lumora-emerald/30 p-4 text-center space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-lumora-emerald font-bold">
+                    <Zap className="h-4 w-4" />
+                    <span>RECOMPENSA ESTIMADA</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xl font-fantasy font-bold text-lumora-gold">
+                      ✨ +{(contributeAmount * 10).toLocaleString()} Lumens
                     </p>
-                  )}
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      +{Math.floor(contributeAmount * 2)} EXP de Jugador
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             )}
