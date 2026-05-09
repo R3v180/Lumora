@@ -418,25 +418,23 @@ export function SanctuaryView({
             </h3>
             <div className="flex items-center gap-2">
               {sanctuary && sanctuary.currentPlacedCount < sanctuary.maxPlacedSpirits && (
-                <>
-                  <Button 
-                    onClick={onAutoPlace}
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 text-[9px] text-lumora-gold hover:text-lumora-gold hover:bg-lumora-gold/10 px-2 rounded-lg border border-lumora-gold/20"
-                  >
-                    COLOCAR TODOS
-                  </Button>
-                  <Button 
-                    onClick={onStartPlacing}
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-6 text-[9px] text-lumora-blue hover:text-lumora-blue hover:bg-lumora-blue/10 px-2 rounded-lg border border-lumora-blue/20"
-                  >
-                    <Plus className="h-3 w-3 mr-1" /> MANUAL
-                  </Button>
-                </>
+                <Button 
+                  onClick={onAutoPlace}
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 text-[9px] text-lumora-gold hover:text-lumora-gold hover:bg-lumora-gold/10 px-2 rounded-lg border border-lumora-gold/20"
+                >
+                  COLOCAR TODOS
+                </Button>
               )}
+              <Button 
+                onClick={onStartPlacing}
+                variant="ghost" 
+                size="sm" 
+                className="h-6 text-[9px] text-lumora-blue hover:text-lumora-blue hover:bg-lumora-blue/10 px-2 rounded-lg border border-lumora-blue/20"
+              >
+                <Plus className="h-3 w-3 mr-1" /> GESTIONAR
+              </Button>
             </div>
           </div>
 
