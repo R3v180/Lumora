@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, TreePine, Flame, Droplets, Moon, Leaf, Star, Gift, Zap, Heart, ChevronUp } from 'lucide-react';
+import { Sparkles, TreePine, Flame, Droplets, Moon, Leaf, Star, Gift, Zap, Heart, ChevronUp, HelpCircle, ChevronDown, Info, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
 import { usePlayer } from '@/hooks/usePlayer';
 import { toast } from 'sonner';
 import { useGameStore, PlayerState } from '@/lib/store';
+import { TreeEvolutionModal } from './TreeEvolutionModal';
 
 type ElementKey = 'fire' | 'water' | 'dream' | 'nature' | 'star';
 
@@ -328,6 +329,9 @@ export function WorldTreeWidget() {
   const [contributeAmount, setContributeAmount] = useState<number>(100);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [isContributing, setIsContributing] = useState(false);
+  const [showEvolutionModal, setShowEvolutionModal] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const [contributeResult, setContributeResult] = useState<{
     success: boolean;
     element: string;
@@ -484,11 +488,21 @@ export function WorldTreeWidget() {
 
   return (
     <div className="relative z-10 flex flex-col items-center mb-8">
-      {/* Tree Visual Container */}
+      {/* Tree Visual Container - CLICKABLE */}
       <motion.div
-        className="relative flex items-center justify-center"
+        className="relative flex items-center justify-center cursor-pointer group"
         style={{ width: 240, height: 240 }}
+        onClick={() => setShowEvolutionModal(true)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
+        {/* Hint Tooltip */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 z-50 pointer-events-none">
+           <span className="text-[10px] font-bold text-lumora-gold uppercase tracking-widest flex items-center gap-2">
+             <Star className="h-3 w-3 animate-spin-slow" /> Ver Evolución
+           </span>
+        </div>
+
         {/* Glowing ring behind tree */}
         <motion.div
           className={`absolute inset-0 rounded-full bg-gradient-to-br ${getGlowIntensity(level)} blur-xl`}
@@ -583,6 +597,14 @@ export function WorldTreeWidget() {
           ))}
       </motion.div>
 
+      {/* Tree Evolution Modal */}
+      <TreeEvolutionModal 
+        isOpen={showEvolutionModal}
+        onClose={() => setShowEvolutionModal(false)}
+        currentLevel={level}
+        dominantElement={dominant}
+      />
+
       {/* Level badge */}
       <div className="flex flex-col items-center mt-2 mb-2">
         <Badge
@@ -605,18 +627,75 @@ export function WorldTreeWidget() {
         </span>
       </div>
 
-      {/* Title */}
-      <h2 className="text-lg font-fantasy font-bold bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple bg-clip-text text-transparent">
-        {tHome('worldTree')}
-      </h2>
+      {/* Title + Help */}
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-fantasy font-bold bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple bg-clip-text text-transparent">
+          {tHome('worldTree')}
+        </h2>
+        <button 
+          onClick={() => setShowHelpDialog(true)}
+          className="p-1 rounded-full hover:bg-white/5 transition-colors"
+        >
+          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-lumora-gold" />
+        </button>
+      </div>
 
-      {/* Dominant Element */}
-      <div className="flex items-center gap-1.5 mt-1 mb-2">
-        <span className="text-xs text-muted-foreground">{t('dominantElement')}:</span>
-        <span className="text-sm">{ELEMENT_CONFIG[dominant].emoji}</span>
-        <span className={`text-xs font-medium ${ELEMENT_CONFIG[dominant].color}`}>
-          {t(`elements.${dominant}`)}
-        </span>
+      {/* Dominant Element - CLICKABLE BREAKDOWN */}
+      <div 
+        className="flex flex-col items-center mt-1 mb-2 cursor-help group"
+        onClick={() => setShowBreakdown(!showBreakdown)}
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">{t('dominantElement')}:</span>
+          <span className="text-sm">{ELEMENT_CONFIG[dominant].emoji}</span>
+          <span className={`text-xs font-medium ${ELEMENT_CONFIG[dominant].color}`}>
+            {t(`elements.${dominant}`)}
+          </span>
+          <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform duration-300 ${showBreakdown ? 'rotate-180' : ''}`} />
+        </div>
+        
+        <AnimatePresence>
+          {showBreakdown && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="w-64 mt-3 space-y-2 overflow-hidden bg-black/40 p-3 rounded-2xl border border-white/5"
+            >
+              <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest text-center mb-2">
+                Contribución Global
+              </p>
+              {(['fire', 'water', 'dream', 'nature', 'star'] as ElementKey[]).map((el) => {
+                const amount = treeData.elements[el];
+                const total = Object.values(treeData.elements).reduce((a, b) => a + b, 0);
+                const percent = total > 0 ? Math.round((amount / total) * 100) : 0;
+                const config = ELEMENT_CONFIG[el];
+                
+                return (
+                  <div key={el} className="space-y-1">
+                    <div className="flex justify-between items-center text-[10px]">
+                      <span className="flex items-center gap-1">
+                         <span>{config.emoji}</span>
+                         <span className={config.color}>{t(`elements.${el}`)}</span>
+                      </span>
+                      <span className="font-mono text-white/60">{amount.toLocaleString()} ({percent}%)</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percent}%` }}
+                        className={`h-full ${config.color.replace('text-', 'bg-')}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-[8px] text-center text-muted-foreground mt-2 italic">
+                El elemento con más puntos define la esencia del árbol.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Active Buffs */}
@@ -857,6 +936,69 @@ export function WorldTreeWidget() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="sm:max-w-md bg-background border-white/10 rounded-[2rem] overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple" />
+          <DialogHeader className="pt-4">
+            <DialogTitle className="font-fantasy text-xl flex items-center gap-2 text-lumora-gold">
+              <HelpCircle className="h-5 w-5" />
+              Guía del Árbol del Mundo
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="flex gap-4">
+              <div className="p-3 rounded-2xl bg-lumora-emerald/10 border border-lumora-emerald/20 h-fit">
+                <TreePine className="h-5 w-5 text-lumora-emerald" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">¿Qué es el Árbol del Mundo?</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Es un ser vivo colectivo. Su salud y crecimiento dependen de la actividad de todos los Viajeros Estelares. Al crecer, otorga bendiciones pasivas a toda la comunidad.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="p-3 rounded-2xl bg-lumora-blue/10 border border-lumora-blue/20 h-fit">
+                <Target className="h-5 w-5 text-lumora-blue" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">¿Cómo sube de nivel?</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Cada giro que se realiza en el <strong>Giro Onírico</strong> contribuye al progreso global. Cuantos más giros hagamos entre todos, más rápido evolucionará el árbol.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="p-3 rounded-2xl bg-lumora-fire/10 border border-lumora-fire/20 h-fit">
+                <Flame className="h-5 w-5 text-lumora-fire" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-white">Elementos Dominantes</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Al donar puntos en el <strong>Altar de Ofrendas</strong>, influyes en la esencia del árbol. El elemento con más donaciones totales se vuelve el dominante, cambiando el aspecto del árbol y sus bonus futuros.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 italic text-center">
+              <p className="text-[10px] text-muted-foreground">
+                "El destino de Lumora está escrito en sus raíces."
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setShowHelpDialog(false)} className="w-full rounded-xl bg-white text-black font-bold uppercase tracking-widest hover:bg-white/90">
+              Entendido
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

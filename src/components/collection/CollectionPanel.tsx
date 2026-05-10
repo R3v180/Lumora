@@ -38,25 +38,53 @@ export function CollectionPanel() {
 
   const allSpirits = player.spirits || [];
 
-  // Filtering & Sorting Logic
-  const filteredSpirits = allSpirits
-    .filter(s => {
-      const matchElement = filterElement === 'all' || s.spiritType.element === filterElement;
-      const matchSearch = s.spiritType.name.toLowerCase().includes(search.toLowerCase());
+  // Grouping Logic
+  const groupedSpirits = allSpirits.reduce((acc: any, s: any) => {
+    const typeId = s.spiritType.id;
+    if (!acc[typeId]) {
+      acc[typeId] = {
+        id: typeId,
+        type: s.spiritType,
+        instances: [],
+        representative: s,
+        count: 0
+      };
+    }
+    acc[typeId].instances.push(s);
+    acc[typeId].count++;
+    
+    // Representative is the highest level/xp spirit
+    const sExp = (s as any).experience || 0;
+    const rExp = (acc[typeId].representative as any).experience || 0;
+
+    if (s.level > acc[typeId].representative.level || 
+       (s.level === acc[typeId].representative.level && sExp > rExp)) {
+      acc[typeId].representative = s;
+    }
+    return acc;
+  }, {});
+
+  const spiritGroups = Object.values(groupedSpirits);
+
+  // Filtering & Sorting Logic (Applied to Groups)
+  const filteredGroups = spiritGroups
+    .filter((g: any) => {
+      const matchElement = filterElement === 'all' || g.type.element === filterElement;
+      const matchSearch = g.type.name.toLowerCase().includes(search.toLowerCase());
       return matchElement && matchSearch;
     })
-    .sort((a, b) => {
+    .sort((a: any, b: any) => {
       if (sortOption === 'power') {
-        const powerA = (a.spiritType.basePower || 0) * (1 + (a.level - 1) * 0.1);
-        const powerB = (b.spiritType.basePower || 0) * (1 + (b.level - 1) * 0.1);
+        const powerA = (a.type.basePower || 0) * (1 + (a.representative.level - 1) * 0.1);
+        const powerB = (b.type.basePower || 0) * (1 + (b.representative.level - 1) * 0.1);
         return powerB - powerA;
       }
-      if (sortOption === 'level') return b.level - a.level;
+      if (sortOption === 'level') return b.representative.level - a.representative.level;
       if (sortOption === 'rarity') {
         const rarities = { legendary: 4, epic: 3, rare: 2, uncommon: 1, common: 0 };
-        return rarities[b.spiritType.rarity as keyof typeof rarities] - rarities[a.spiritType.rarity as keyof typeof rarities];
+        return rarities[b.type.rarity as keyof typeof rarities] - rarities[a.type.rarity as keyof typeof rarities];
       }
-      return new Date((b as any).createdAt || 0).getTime() - new Date((a as any).createdAt || 0).getTime();
+      return b.count - a.count; // Default to count if recent not available
     });
 
   return (
@@ -117,13 +145,13 @@ export function CollectionPanel() {
           onElementChange={setFilterElement}
           currentSort={sortOption}
           onSortChange={setSortOption}
-          totalCount={filteredSpirits.length}
+          totalCount={filteredGroups.length}
         />
       </div>
 
       {/* Spirit Grid */}
       <div className="flex-1 px-4 pb-24 overflow-y-auto no-scrollbar">
-        {filteredSpirits.length === 0 ? (
+        {filteredGroups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
               <Sparkles className="h-8 w-8 text-muted-foreground opacity-20" />
@@ -133,41 +161,49 @@ export function CollectionPanel() {
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 lg:gap-4">
             <AnimatePresence mode='popLayout'>
-              {filteredSpirits.map((spirit) => (
+              {filteredGroups.map((group: any) => (
                 <motion.div
                   layout
-                  key={spirit.id}
+                  key={group.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   whileTap={{ scale: 0.95 }}
                   className="flex flex-col items-center gap-2 cursor-pointer group"
-                  onClick={() => setSelectedSpirit(spirit)}
+                  onClick={() => setSelectedSpirit(group)}
                 >
                   <div className="relative w-full aspect-square rounded-2xl overflow-hidden glass-card hover:border-white/20 transition-all">
                      <SymbolIcon 
                        symbol={{
-                         ...spirit.spiritType,
+                         ...group.type,
                          symbolType: 'spirit',
                        } as any}
                      />
+                     
+                     {/* Multiplier Badge */}
+                     {group.count > 1 && (
+                       <div className="absolute top-1.5 left-1.5 bg-lumora-gold/80 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/20 shadow-lg z-10">
+                          <span className="text-[9px] font-black text-black">x{group.count}</span>
+                       </div>
+                     )}
+
                      <div className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/10">
-                        <span className="text-[8px] font-black text-white">L{spirit.level}</span>
+                        <span className="text-[8px] font-black text-white">L{group.representative.level}</span>
                      </div>
                      
                      {/* XP Progress Mini-Bar */}
                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/40">
                         <motion.div 
                           className="h-full bg-lumora-blue"
-                          style={{ backgroundColor: ELEMENT_COLORS[spirit.spiritType.element as keyof typeof ELEMENT_COLORS] }}
+                          style={{ backgroundColor: ELEMENT_COLORS[group.type.element as keyof typeof ELEMENT_COLORS] }}
                           initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, (((spirit as any).experience || 0) / (spirit.level * 50)) * 100)}%` }}
+                          animate={{ width: `${Math.min(100, ((group.representative.experience || 0) / (group.representative.level * 50)) * 100)}%` }}
                         />
                      </div>
                   </div>
                   
                   <span className="text-[10px] font-bold truncate w-full text-center text-muted-foreground group-hover:text-white transition-colors uppercase tracking-tighter">
-                    {spirit.spiritType.name}
+                    {group.type.name}
                   </span>
                 </motion.div>
               ))}

@@ -83,6 +83,10 @@ export async function GET(request: NextRequest) {
       const guild = player.guild.guild;
       const memberRole = player.guild.role;
 
+      // Dynamic Capacity Logic
+      const calculatedMaxMembers = 10 + (guild.level - 1) * 5;
+      const experienceToNextLevel = guild.level * 2500;
+
       return NextResponse.json({
         inGuild: true,
         role: memberRole,
@@ -93,7 +97,8 @@ export async function GET(request: NextRequest) {
           emblem: guild.emblem,
           level: guild.level,
           experience: guild.experience,
-          maxMembers: guild.maxMembers,
+          experienceToNextLevel,
+          maxMembers: calculatedMaxMembers,
           treasury: guild.treasury,
           ownerId: guild.ownerId,
           memberCount: guild.members.length,

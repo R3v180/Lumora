@@ -344,7 +344,7 @@ export function SlotMachine() {
           <motion.div
             className={`h-full rounded-full ${energy > maxEnergy ? 'shadow-[0_0_15px_rgba(255,215,0,0.4)]' : 'bar-animated'}`}
             style={{ 
-              background: energy > maxEnergy 
+              backgroundImage: energy > maxEnergy 
                 ? 'linear-gradient(90deg, #FFD700, #FFA500, #FFD700)' 
                 : 'linear-gradient(90deg, #5DADE2, #9B59B6, #FF69B4, #5DADE2)',
               backgroundSize: '200% 100%'
@@ -617,7 +617,16 @@ export function SlotMachine() {
           </div>
         </motion.button>
 
-        <Button variant="ghost" size="icon" onClick={() => setIsMuted(!isMuted)} className="rounded-xl h-12 w-12 bg-card/30 border border-white/5">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => {
+            const current = audioService.getSettings();
+            audioService.setVolumes({ muted: !current.muted });
+            setIsMuted(!current.muted);
+          }} 
+          className="rounded-xl h-12 w-12 bg-card/30 border border-white/5"
+        >
           {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </Button>
       </div>

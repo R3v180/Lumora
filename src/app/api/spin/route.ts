@@ -195,26 +195,49 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 4. Award XP to spirits involved in the win
-      if (spinResult.wins.length > 0) {
+      // 4. Award XP to spirits
+      if (buffedPayout >= 0) {
         const winningElements = [...new Set(spinResult.wins.map(w => w.symbol.element))];
-        const spiritXpGain = Math.floor(buffedPayout / 5) + 5;
+        const baseSpiritXp = (1 + Math.floor(buffedPayout / 10)) * validatedMultiplier;
 
-        const playerSpirits = await tx.playerSpirit.findMany({
+        // Get spirits to award XP
+        // 1. All placed spirits get base XP
+        // 2. Winning element spirits get BONUS XP
+        const spiritsToUpdate = await tx.playerSpirit.findMany({
           where: { 
             playerId: player.id,
-            spiritType: { element: { in: winningElements } }
+            OR: [
+              { isPlaced: true }, // Placed spirits
+              { spiritType: { element: { in: winningElements as any } } } 
+            ]
           },
+          include: {
+            spiritType: true
+          }
         });
 
-        await Promise.all(playerSpirits.map(spirit => {
-          let newSpExp = spirit.experience + spiritXpGain;
+        await Promise.all(spiritsToUpdate.map(spirit => {
+          const isWinner = winningElements.includes((spirit.spiritType as any)?.element || '');
+          const finalXpGain = isWinner ? Math.floor(baseSpiritXp * 2) : baseSpiritXp;
+
+          let newSpExp = spirit.experience + finalXpGain;
           let newSpLevel = spirit.level;
-          let expNeeded = newSpLevel * 50;
+          
+          const XP_BASE: Record<string, number> = {
+            common: 50,
+            uncommon: 100,
+            rare: 250,
+            epic: 600,
+            legendary: 1500
+          };
+          const rarity = spirit.spiritType?.rarity || 'common';
+          const xpBaseForLevel = XP_BASE[rarity] || 50;
+
+          let expNeeded = newSpLevel * xpBaseForLevel;
           while (newSpExp >= expNeeded && newSpLevel < 100) {
             newSpExp -= expNeeded;
             newSpLevel++;
-            expNeeded = newSpLevel * 50;
+            expNeeded = newSpLevel * xpBaseForLevel;
           }
 
           return tx.playerSpirit.update({

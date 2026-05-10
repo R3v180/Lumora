@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-// Tree level formula: each level requires level * 10 total spins (TESTING MODE)
+// Tree level formula: each level requires level * 1000 total spins (REALISTIC MODE)
 function spinsForLevel(level: number): number {
-  return level * 10;
+  return level * 1000;
 }
 
 // Calculate total spins needed to reach a given level from level 1
@@ -251,7 +251,10 @@ export async function POST(request: NextRequest) {
       // Get player profile and sanctuary
       const player = await db.playerProfile.findUnique({
         where: { userId },
-        include: { sanctuary: true }
+        include: { 
+          sanctuary: true,
+          guild: true
+        }
       });
 
       if (!player || !player.sanctuary) {
@@ -309,6 +312,33 @@ export async function POST(request: NextRequest) {
             experience: { increment: expReward }
           }
         });
+
+        // GUILD XP REWARD
+        if (player.guild) {
+           const guildXpReward = Math.floor(contributionAmount / 2);
+           const guild = await tx.guild.findUnique({
+              where: { id: player.guild.guildId }
+           });
+           
+           if (guild) {
+              let newLevel = guild.level;
+              let newExperience = guild.experience + guildXpReward;
+              const xpToNext = guild.level * 2500;
+
+              if (newExperience >= xpToNext) {
+                 newLevel += 1;
+                 newExperience -= xpToNext;
+              }
+
+              await tx.guild.update({
+                 where: { id: guild.id },
+                 data: {
+                    experience: newExperience,
+                    level: newLevel
+                 }
+              });
+           }
+        }
 
         // Add to world element total
         await tx.worldState.upsert({

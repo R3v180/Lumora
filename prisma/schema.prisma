@@ -450,13 +450,13 @@ model WorldBoss {
   name       String
   nameEn     String
   element    String
-  type       String          @default("void")
   maxHp      Int
   currentHp  Int
   startsAt   DateTime        @default(now())
   endsAt     DateTime
   status     String          @default("active")
   createdAt  DateTime        @default(now())
+  type       String          @default("void")
   damageLogs BossDamageLog[]
 
   @@map("world_bosses")

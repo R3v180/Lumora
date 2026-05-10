@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { GuildWarsPanel } from './GuildWarsPanel';
 
-type GuildSubTab = 'info' | 'members' | 'war';
+type GuildSubTab = 'info' | 'members' | 'war' | 'explore';
 
 interface GuildMember {
   id: string;
@@ -233,8 +233,9 @@ export function GuildPanel() {
   const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '⚔️', '🐉', '💎', '🏆'];
 
   const GUILD_SUBTABS: { key: GuildSubTab; icon: any; label: string; color: string }[] = [
-    { key: 'info', icon: Info, label: 'Info', color: 'text-lumora-purple' },
+    { key: 'info', icon: Info, label: 'Mi Gremio', color: 'text-lumora-purple' },
     { key: 'members', icon: Users, label: t('members'), color: 'text-lumora-blue' },
+    { key: 'explore', icon: Search, label: 'Explorar', color: 'text-lumora-gold' },
     { key: 'war', icon: Swords, label: t('warTab') || 'Guerra', color: 'text-orange-500' },
   ];
 
@@ -308,7 +309,7 @@ export function GuildPanel() {
         </div>
 
         {/* Sub-tab navigation */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
           {GUILD_SUBTABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = subTab === tab.key;
@@ -390,6 +391,82 @@ export function GuildPanel() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {subTab === 'explore' && (
+              <div className="flex flex-col gap-4">
+                {/* Search guilds */}
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearchGuilds()}
+                      placeholder={t('searchGuildPlaceholder')}
+                      className="pl-9 bg-card/40 border-border/30 rounded-xl"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSearchGuilds}
+                    variant="outline"
+                    size="icon"
+                    className="rounded-xl border-border/30 h-10 w-10"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Search results or recommended */}
+                <AnimatePresence mode="wait">
+                  {searchResults.length > 0 ? (
+                    <motion.div
+                      key="search"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col gap-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          {t('searchResults')}
+                        </p>
+                        <button
+                          onClick={() => setSearchResults([])}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          {t('close')} ✕
+                        </button>
+                      </div>
+                      {searchResults.map((g) => (
+                        <GuildCard key={g.id} guild={g} onJoin={() => {}} t={t} isExploring={true} />
+                      ))}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="recommended"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col gap-2"
+                    >
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Gremio Recomendados
+                      </p>
+                      {recommended.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Shield className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-sm text-muted-foreground">No hay otros gremios</p>
+                        </div>
+                      ) : (
+                        recommended.map((g) => (
+                          <GuildCard key={g.id} guild={g} onJoin={() => {}} t={t} isExploring={true} />
+                        ))
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
@@ -571,10 +648,12 @@ function GuildCard({
   guild,
   onJoin,
   t,
+  isExploring = false,
 }: {
   guild: RecommendedGuild;
   onJoin: (id: string) => void;
   t: any;
+  isExploring?: boolean;
 }) {
   const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '🐉', '💎', '🏆', '🔥'];
 
@@ -599,20 +678,27 @@ function GuildCard({
           </div>
         </div>
       </div>
-      {guild.canJoin ? (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onJoin(guild.id)}
-          className="rounded-lg gap-1 text-xs h-7 border-lumora-purple/30 text-lumora-purple hover:bg-lumora-purple/10"
-        >
-          <ChevronRight className="h-3 w-3" />
-          {t('joinGuild')}
-        </Button>
+      {!isExploring ? (
+        guild.canJoin ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onJoin(guild.id)}
+            className="rounded-lg gap-1 text-xs h-7 border-lumora-purple/30 text-lumora-purple hover:bg-lumora-purple/10"
+          >
+            <ChevronRight className="h-3 w-3" />
+            {t('joinGuild')}
+          </Button>
+        ) : (
+          <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/30">
+            {t('guildFull')}
+          </Badge>
+        )
       ) : (
-        <Badge variant="outline" className="text-[10px] text-muted-foreground border-border/30">
-          {t('guildFull')}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+           <Swords className="h-4 w-4 text-orange-400 opacity-40" />
+           <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Rival</span>
+        </div>
       )}
     </div>
   );

@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/co
 import { AchievementsPanel } from '@/components/progression/AchievementsPanel';
 import { PlayerProfileEditor } from '@/components/progression/PlayerProfileEditor';
 import { ChestPanel } from '@/components/progression/ChestPanel';
+import { AudioSettingsPanel } from '@/components/progression/AudioSettingsPanel';
 
 export function TopBar() {
   const t = useTranslations('home');
@@ -65,6 +66,9 @@ export function TopBar() {
               {isAuthenticated ? (
                 <>
                   <PlayerProfileEditor />
+                  <div className="mb-6">
+                    <AudioSettingsPanel />
+                  </div>
 
                   {/* Event + Language — moved here from TopBar */}
                   <div className="flex items-center justify-between rounded-xl glass-card-subtle p-3 mb-4">

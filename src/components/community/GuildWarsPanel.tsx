@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Swords, Shield, Flame, Trophy, Clock, Search,
   ChevronRight, Sparkles, AlertTriangle, X, Skull,
-  Crown, Zap, Users, Star, TrendingUp,
+  Crown, Zap, Users, Star, TrendingUp, HelpCircle, Info, Target, Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,6 +104,7 @@ export function GuildWarsPanel() {
   const [role, setRole] = useState<string>('member');
   const [isLoading, setIsLoading] = useState(true);
   const [showResult, setShowResult] = useState<RecentWarData | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Declare war state
   const [showDeclareDialog, setShowDeclareDialog] = useState(false);
@@ -682,13 +683,79 @@ export function GuildWarsPanel() {
   return (
     <div className="flex flex-col gap-4">
       {/* War title */}
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-2 relative">
         <Swords className="h-5 w-5 text-orange-500" />
-        <h3 className="font-fantasy font-title font-bold text-orange-300 text-lg">
+        <h3 className="font-fantasy font-title font-bold text-orange-300 text-lg uppercase tracking-wider">
           {t('title')}
         </h3>
         <Swords className="h-5 w-5 text-orange-500" />
+        
+        <button 
+          onClick={() => setShowHelp(true)}
+          className="absolute right-0 p-1.5 rounded-full hover:bg-white/5 transition-colors"
+        >
+          <HelpCircle className="h-4 w-4 text-orange-400/60 hover:text-orange-400" />
+        </button>
       </div>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelp} onOpenChange={setShowHelp}>
+        <DialogContent className="sm:max-w-md bg-background border-white/10 rounded-[2rem] overflow-hidden p-0">
+          <div className="h-24 bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center">
+            <Swords className="h-10 w-10 text-white animate-pulse" />
+          </div>
+          
+          <div className="p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="font-fantasy text-xl text-orange-400">
+                Leyes de Guerra de Lumora
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 h-fit">
+                  <Sparkles className="h-5 w-5 text-orange-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Declaración de Guerra</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Solo los Líderes y Oficiales pueden declarar la guerra. Cuesta <strong>5,000 Lumens</strong> del Tesoro del Gremio.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 h-fit">
+                  <Skull className="h-5 w-5 text-red-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Sacrificio de Espíritus</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Durante las 24h de guerra, debes <strong>sacrificar espíritus</strong> para ganar puntos. Cuanto más raros y de mayor nivel sean, más puntos aportarás a tu gremio.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 h-fit">
+                  <Trophy className="h-5 w-5 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Recompensas de Victoria</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    El gremio ganador se lleva un <strong>bonus masivo de Lumens</strong> para su tesoro y gran cantidad de <strong>Experiencia de Gremio</strong> para subir de nivel y aumentar su capacidad.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={() => setShowHelp(false)} className="w-full rounded-xl bg-orange-600 text-white font-bold uppercase tracking-widest hover:bg-orange-500 border-none h-12">
+              ¡A LAS ARMAS!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Declare War button (owner/officer only) */}
       {isOwnerOrOfficer && (

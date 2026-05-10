@@ -2,15 +2,28 @@
 
 class AudioService {
   private ctx: AudioContext | null = null;
-  private enabled: boolean = true;
-  private bgmOsc: OscillatorNode | null = null;
-  private bgmGain: GainNode | null = null;
-  private bgmLfo: OscillatorNode | null = null;
+  private masterVolume: number = 1.0;
+  private musicVolume: number = 0.5;
+  private sfxVolume: number = 0.7;
+  private isMuted: boolean = false;
+  
   private currentBgm: string | null = null;
   private bgmAudio: HTMLAudioElement | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
+      // Load preferences
+      const saved = localStorage.getItem('lumora_audio_settings');
+      if (saved) {
+        try {
+          const settings = JSON.parse(saved);
+          this.masterVolume = settings.master ?? 1.0;
+          this.musicVolume = settings.music ?? 0.5;
+          this.sfxVolume = settings.sfx ?? 0.7;
+          this.isMuted = settings.muted ?? false;
+        } catch (e) { console.warn("Failed to load audio settings", e); }
+      }
+
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioContextClass) {
         this.ctx = new AudioContextClass();
@@ -34,19 +47,54 @@ class AudioService {
     }
   }
 
+  private saveSettings() {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lumora_audio_settings', JSON.stringify({
+        master: this.masterVolume,
+        music: this.musicVolume,
+        sfx: this.sfxVolume,
+        muted: this.isMuted
+      }));
+    }
+  }
+
+  public getSettings() {
+    return {
+      master: this.masterVolume,
+      music: this.musicVolume,
+      sfx: this.sfxVolume,
+      muted: this.isMuted
+    };
+  }
+
+  public setVolumes(settings: { master?: number, music?: number, sfx?: number, muted?: boolean }) {
+    if (settings.master !== undefined) this.masterVolume = settings.master;
+    if (settings.music !== undefined) this.musicVolume = settings.music;
+    if (settings.sfx !== undefined) this.sfxVolume = settings.sfx;
+    if (settings.muted !== undefined) this.isMuted = settings.muted;
+    
+    this.saveSettings();
+    this.updateBGMVolume();
+  }
+
+  private updateBGMVolume() {
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.isMuted ? 0 : this.masterVolume * this.musicVolume;
+    }
+  }
+
   public async init() {
     if (this.ctx && this.ctx.state === 'suspended') {
       await this.ctx.resume();
     }
   }
 
-  public setEnabled(enabled: boolean) {
-    this.enabled = enabled;
-  }
-
   private playTone(freq: number, type: OscillatorType, duration: number, vol = 0.1) {
-    if (!this.enabled || !this.ctx) return;
+    if (this.isMuted || !this.ctx) return;
     this.init();
+
+    const finalVol = vol * this.masterVolume * this.sfxVolume;
+    if (finalVol <= 0) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -56,7 +104,7 @@ class AudioService {
     osc.frequency.setValueAtTime(freq, t);
 
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.05);
+    gain.gain.linearRampToValueAtTime(finalVol, t + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
     osc.connect(gain);
@@ -67,8 +115,6 @@ class AudioService {
   }
 
   public playBGM(scene: 'home' | 'spins' | 'sanctuary' | 'community' | 'shop' | 'battle') {
-    if (!this.enabled) return;
-    
     if (this.currentBgm === scene) return;
     this.currentBgm = scene;
 
@@ -98,11 +144,13 @@ class AudioService {
 
     this.bgmAudio = new Audio(src);
     this.bgmAudio.loop = true;
-    this.bgmAudio.volume = 0.3;
+    this.updateBGMVolume();
     
-    this.bgmAudio.play().catch((e) => {
-      console.warn('Audio auto-play prevented. User interaction required.', e);
-    });
+    if (!this.isMuted) {
+      this.bgmAudio.play().catch((e) => {
+        console.warn('Audio auto-play prevented.', e);
+      });
+    }
   }
 
   public stopBGM() {
@@ -119,19 +167,20 @@ class AudioService {
   }
 
   public playSpinStart() {
-    if (!this.enabled || !this.ctx) return;
+    if (this.isMuted || !this.ctx) return;
     this.init();
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    const finalVol = 0.1 * this.masterVolume * this.sfxVolume;
 
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(150, t);
     osc.frequency.exponentialRampToValueAtTime(400, t + 0.3);
 
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.1, t + 0.1);
+    gain.gain.linearRampToValueAtTime(finalVol, t + 0.1);
     gain.gain.linearRampToValueAtTime(0, t + 0.4);
 
     osc.connect(gain);
@@ -141,19 +190,20 @@ class AudioService {
   }
 
   public playReelStop() {
-    if (!this.enabled || !this.ctx) return;
+    if (this.isMuted || !this.ctx) return;
     this.init();
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    const finalVol = 0.15 * this.masterVolume * this.sfxVolume;
 
     osc.type = 'square';
     osc.frequency.setValueAtTime(100, t);
     osc.frequency.exponentialRampToValueAtTime(40, t + 0.1);
 
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
+    gain.gain.linearRampToValueAtTime(finalVol, t + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
     const filter = this.ctx.createBiquadFilter();
@@ -182,11 +232,12 @@ class AudioService {
   }
 
   public playSurge() {
-    if (!this.enabled || !this.ctx) return;
+    if (this.isMuted || !this.ctx) return;
     this.init();
 
     const t = this.ctx.currentTime;
     const freqs =[261.63, 329.63, 392.00, 523.25]; 
+    const finalVol = 0.1 * this.masterVolume * this.sfxVolume;
     
     freqs.forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
@@ -196,7 +247,7 @@ class AudioService {
       osc.frequency.setValueAtTime(freq, t);
 
       gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.1, t + 0.2);
+      gain.gain.linearRampToValueAtTime(finalVol, t + 0.2);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
 
       osc.connect(gain);
@@ -205,34 +256,10 @@ class AudioService {
       osc.start(t);
       osc.stop(t + 1.6);
     });
-
-    setTimeout(() => this.playTone(1046.50, 'sine', 0.3, 0.05), 100); 
-    setTimeout(() => this.playTone(1318.51, 'sine', 0.3, 0.05), 250); 
-    setTimeout(() => this.playTone(1567.98, 'sine', 0.4, 0.08), 400); 
   }
 
   public playCollect() {
-    if (!this.enabled || !this.ctx) return;
-    this.init();
-
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(987.77, t); 
-    osc.frequency.setValueAtTime(1318.51, t + 0.1); 
-
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.1, t + 0.05);
-    gain.gain.setValueAtTime(0.1, t + 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.5);
+    this.playTone(987.77, 'sine', 0.5, 0.1);
   }
 
   public playPlaceSpirit() {
@@ -251,24 +278,7 @@ class AudioService {
   }
 
   public playMerge() {
-    if (!this.enabled || !this.ctx) return;
-    this.init();
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(300, t);
-    osc.frequency.exponentialRampToValueAtTime(1200, t + 0.4);
-    
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.2, t + 0.2);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
-    
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(t);
-    osc.stop(t + 0.6);
+    this.playTone(300, 'sine', 0.6, 0.2);
   }
 
   public playBonusReveal() {
