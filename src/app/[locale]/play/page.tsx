@@ -151,7 +151,7 @@ export default function PlayHubPage() {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-white drop-shadow-lg uppercase tracking-tight">Incursiones del Vacío</h3>
-                  <p className="text-xs text-red-300 font-bold">RECOMPENSAS: 📦 Cofres Épicos | 💎 Fragmentos</p>
+                  <p className="text-xs text-red-300 font-bold">RECOMPENSAS: ✨ Lumens | 📦 Cofres</p>
                 </div>
               </div>
               <p className="text-xs text-white/70 mt-1">Derrota a titanes oníricos para obtener los tesoros más raros.</p>

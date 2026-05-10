@@ -9,7 +9,6 @@ import { useSession } from 'next-auth/react';
 import { usePlayer } from '@/hooks/usePlayer';
 import { Button } from '@/components/ui/button';
 import { BlessingWidget } from '@/components/blessing/BlessingWidget';
-import { DailyChallengesPanel } from '@/components/progression/DailyChallengesPanel';
 import { OfflineRewardsDialog } from '@/components/home/OfflineRewardsDialog';
 import { WorldTreeWidget } from '@/components/home/WorldTreeWidget';
 import { ChestPanel } from '@/components/progression/ChestPanel';
@@ -204,13 +203,6 @@ export default function HomePage() {
 
       {/* Offline Rewards Dialog */}
       {isAuthenticated && <OfflineRewardsDialog />}
-
-      {/* Daily Challenges Widget (when logged in) */}
-      {isAuthenticated && (
-        <div className="relative z-10 w-full max-w-sm mt-3">
-          <DailyChallengesPanel />
-        </div>
-      )}
     </div>
   );
 }

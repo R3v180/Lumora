@@ -18,9 +18,13 @@ interface RaidTarget {
   id: string;
   displayName: string;
   level: number;
+  avatar?: string;
   sanctuaryName: string;
   idleLumens: number;
   stealable: number;
+  isShielded?: boolean;
+  defenseElements?: string[];
+  power?: number;
 }
 
 export function RaidPanel() {
@@ -71,6 +75,27 @@ export function RaidPanel() {
     const bonus = maxCount === 3 ? 0.25 : maxCount === 2 ? 0.10 : 0.05;
 
     return Math.round((baseSum + rarityBonus) * (1 + bonus));
+  }, [playerSpirits, arenaDefenseIds]);
+
+  const calculateElementalAdvantage = useCallback((targetElements: string[]) => {
+    if (!targetElements || targetElements.length === 0) return 0;
+    const ELEMENT_ADVANTAGE: Record<string, string> = {
+      fire: 'nature', nature: 'water', water: 'fire', dream: 'star', star: 'dream',
+    };
+    
+    const myElements = arenaDefenseIds.map(id => playerSpirits.find(x => x.id === id)?.element).filter(Boolean);
+    if (myElements.length === 0) return 0;
+
+    let advantageScore = 0;
+    for (let i = 0; i < 3; i++) {
+      const myEl = myElements[i];
+      const theirEl = targetElements[i];
+      if (myEl && theirEl) {
+        if (ELEMENT_ADVANTAGE[myEl] === theirEl) advantageScore++;
+        else if (ELEMENT_ADVANTAGE[theirEl] === myEl) advantageScore--;
+      }
+    }
+    return advantageScore;
   }, [playerSpirits, arenaDefenseIds]);
 
   const myPower = getMyPower();
@@ -175,7 +200,7 @@ export function RaidPanel() {
 
         if (res.ok) {
           const isSuccess = data.success !== false;
-          setLastResult({ ...data, success: isSuccess, targetName: targets.find(t => t.id === targetId)?.displayName });
+          setLastResult({ ...data, success: isSuccess, targetName: targets.find(t => t.id === targetId)?.displayName, precision });
           if (isSuccess) {
             audioService.playCollect();
             setSessionLoot(prev => prev + data.lumensStolen);
@@ -443,10 +468,12 @@ export function RaidPanel() {
 
           <div className="grid gap-3">
             {targets.map((target, idx) => {
-              const diff = myPower - (target as any).power;
+              const diff = myPower - (target.power || 0);
               const isEasy = diff > 200;
               const isHard = diff < -200;
               
+              const advScore = calculateElementalAdvantage(target.defenseElements || []);
+
               return (
                 <motion.div
                   key={target.id}
@@ -458,7 +485,7 @@ export function RaidPanel() {
                   <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
                       <PlayerAvatar 
-                        avatarId={(target as any).avatar} 
+                        avatarId={target.avatar} 
                         displayName={target.displayName} 
                         size="md"
                         className="group-hover:scale-110 transition-transform border-white/10"
@@ -471,12 +498,17 @@ export function RaidPanel() {
                           <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase border shrink-0 ${isEasy ? 'bg-green-500/10 border-green-500/40 text-green-500' : isHard ? 'bg-red-500/10 border-red-500/40 text-red-500' : 'bg-white/5 border-white/10 text-white/40'}`}>
                             {isEasy ? 'DÉBIL' : isHard ? 'ÉLITE' : 'NORMAL'}
                           </span>
+                          {advScore !== 0 && (
+                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase border shrink-0 flex items-center gap-1 ${advScore > 0 ? 'bg-lumora-gold/10 border-lumora-gold/40 text-lumora-gold' : 'bg-red-500/10 border-red-500/40 text-red-500'}`}>
+                              {advScore > 0 ? `VENTAJA +${advScore}` : `DESVENTAJA ${advScore}`}
+                            </span>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-1 mt-1">
-                          <Shield className={`h-3 w-3 ${isEasy ? 'text-green-500' : isHard ? 'text-red-500' : 'text-lumora-blue'}`} />
-                          <span className="text-[10px] text-white/40 font-bold uppercase tracking-wider truncate">
-                            {isEasy ? 'Defensas Vulnerables' : isHard ? 'Protección Máxima' : 'Sistemas Activos'}
+                          <Shield className={`h-3 w-3 ${target.isShielded ? 'text-lumora-gold animate-pulse' : isEasy ? 'text-green-500' : isHard ? 'text-red-500' : 'text-lumora-blue'}`} />
+                          <span className={`text-[10px] font-bold uppercase tracking-wider truncate ${target.isShielded ? 'text-lumora-gold' : 'text-white/40'}`}>
+                            {target.isShielded ? 'ESCUDO ACTIVO (Requiere Verde)' : isEasy ? 'Defensas Vulnerables' : isHard ? 'Protección Máxima' : 'Sistemas Activos'}
                           </span>
                         </div>
                         
@@ -488,10 +520,10 @@ export function RaidPanel() {
                           <div className="w-16 md:w-20 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
                             <div 
                               className={`h-full transition-all duration-1000 ${isEasy ? 'bg-green-500' : isHard ? 'bg-red-500' : 'bg-lumora-blue'}`} 
-                              style={{ width: `${Math.min(100, ((target as any).power / (myPower || 1)) * 100)}%` }} 
+                              style={{ width: `${Math.min(100, ((target.power || 0) / (myPower || 1)) * 100)}%` }} 
                             />
                           </div>
-                          <span className="text-[8px] font-black text-white/20 uppercase shrink-0">{ (target as any).power } ⚔</span>
+                          <span className="text-[8px] font-black text-white/20 uppercase shrink-0">{ target.power } ⚔</span>
                         </div>
                       </div>
                     </div>
@@ -547,10 +579,24 @@ export function RaidPanel() {
                 <section className="space-y-2">
                   <div className="flex items-center gap-2 text-lumora-gold">
                     <Sparkles className="h-4 w-4" />
-                    <span className="text-xs font-black uppercase tracking-wider">Poder de Guardia</span>
+                    <span className="text-xs font-black uppercase tracking-wider">Poder de Guardia y Elementos</span>
                   </div>
                   <p className="text-xs text-white/60 leading-relaxed">
                     Tu poder de asalto depende de tu **Guardia de la Arena**. ¡Mantén a tus mejores espíritus defendiendo!
+                    <br/><br/>
+                    <span className="text-lumora-gold font-bold">Ventaja Elemental:</span> Compara tu formación 1 a 1 con la del objetivo. Cada victoria elemental suma **+15% de poder**.
+                  </p>
+                </section>
+
+                <section className="space-y-2">
+                  <div className="flex items-center gap-2 text-lumora-pink">
+                    <Shield className="h-4 w-4" />
+                    <span className="text-xs font-black uppercase tracking-wider">Escudos y Perforación</span>
+                  </div>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    Los objetivos con escudo dorado solo pueden ser saqueados con un **Impacto Perfecto (Verde)**.
+                    <br/><br/>
+                    El botín de perforación es del **40%**, pero permite ignorar la protección del rival.
                   </p>
                 </section>
               </div>
@@ -567,7 +613,7 @@ export function RaidPanel() {
           onClose={() => setShowResultModal(false)}
           type={lastResult?.success ? 'victory' : 'defeat'}
           title={lastResult?.success ? '¡SAQUEO EXITOSO!' : 'INCURSIÓN FALLIDA'}
-          subtitle={lastResult?.success ? `Has asaltado el santuario de ${lastResult.targetName}` : 'El escudo enemigo ha repelido tu ataque'}
+          subtitle={lastResult?.success ? `Has asaltado el santuario de ${lastResult.targetName}` : (lastResult?.error || 'El escudo enemigo ha repelido tu ataque')}
           rewards={lastResult?.success ? [
             { type: 'lumens', amount: lastResult.lumensStolen || 0 },
             { type: 'exp', amount: 15 },
@@ -578,7 +624,7 @@ export function RaidPanel() {
             }] : [])
           ] : []}
           stats={[
-            { label: 'ESCUDO ACTIVO', value: '30 min' },
+            { label: 'PRECISIÓN', value: lastResult?.precision === 1.0 ? 'PERFECTA' : lastResult?.precision === 0.75 ? 'BUENA' : 'MALA' },
             { label: 'BOTÍN TOTAL', value: sessionLoot }
           ]}
         />

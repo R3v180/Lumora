@@ -11,8 +11,8 @@ import { useGameStore } from '@/lib/store';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { AchievementsPanel } from '@/components/progression/AchievementsPanel';
 import { PlayerProfileEditor } from '@/components/progression/PlayerProfileEditor';
-import { ChestPanel } from '@/components/progression/ChestPanel';
 import { AudioSettingsPanel } from '@/components/progression/AudioSettingsPanel';
+import { DailyChallengesPanel } from '@/components/progression/DailyChallengesPanel';
 
 export function TopBar() {
   const t = useTranslations('home');
@@ -34,7 +34,7 @@ export function TopBar() {
   const sanctuaryLevel = player !== null ? storeSanctuaryLevel : 1;
   const totalPower = player !== null ? storeTotalPower : 0;
 
-  // Chest notification
+  // Chest notification logic remains for the TopBar badge
   const [chestCount, setChestCount] = useState(0);
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -73,25 +73,38 @@ export function TopBar() {
             <SheetHeader className="p-4 border-b border-border/10">
               <SheetTitle className="font-fantasy text-lg text-left text-lumora-gold">{t('travelerProfile')}</SheetTitle>
             </SheetHeader>
-            <div className="p-4 flex-1">
+            <div className="p-4 flex-1 space-y-6">
               {isAuthenticated ? (
                 <>
+                  {/* 1. Identity */}
                   <PlayerProfileEditor />
-                  <div className="mb-6">
-                    <AudioSettingsPanel />
+
+                  {/* 2. Active Progression: Missions */}
+                  <div className="space-y-2">
+                    <DailyChallengesPanel />
                   </div>
 
-                  {/* Event + Language — moved here from TopBar */}
-                  <div className="flex items-center justify-between rounded-xl glass-card-subtle p-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-lumora-pink" />
-                      <span className="text-xs text-lumora-pink font-semibold">Evento Activo</span>
+                  {/* 3. Long-term Progression: Achievements */}
+                  <AchievementsPanel />
+
+                  {/* 4. Language & Meta */}
+                  <div className="flex items-center justify-between rounded-2xl glass-card-subtle p-4 border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-lumora-pink/20 flex items-center justify-center border border-lumora-pink/30">
+                        <Globe className="h-4 w-4 text-lumora-pink" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Preferencia</span>
+                        <span className="text-xs text-white font-bold uppercase">Idioma</span>
+                      </div>
                     </div>
                     <LanguageSwitcher />
                   </div>
 
-                  <ChestPanel />
-                  <AchievementsPanel />
+                  {/* 5. Settings: Audio at the very bottom */}
+                  <div className="pt-4 border-t border-white/5 opacity-60 hover:opacity-100 transition-opacity">
+                    <AudioSettingsPanel />
+                  </div>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">Inicia sesión para ver tu perfil.</p>
