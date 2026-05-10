@@ -105,12 +105,25 @@ export default function HomePage() {
   const isAuthenticated = !!session?.user;
 
   return (
-    <div className="relative flex flex-col items-center px-4 pt-6 pb-8 overflow-hidden">
-      {/* Background atmospheric effects */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-1/4 w-64 h-64 bg-lumora-purple/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-40 right-1/4 w-48 h-48 bg-lumora-gold/5 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute bottom-32 left-1/2 w-56 h-56 bg-lumora-blue/5 rounded-full blur-3xl animate-pulse delay-500" />
+    <div className="relative flex flex-col items-center px-4 pt-6 pb-8 overflow-hidden min-h-screen">
+      {/* Immersive Background Layer */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <motion.img 
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.4 }}
+          transition={{ duration: 2 }}
+          src="/assets/backgrounds/bg_home.png" 
+          alt="" 
+          className="w-full h-full object-cover" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay" />
+      </div>
+
+      {/* Atmospheric pulses (keeping them for extra depth) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-30">
+        <div className="absolute top-20 left-1/4 w-64 h-64 bg-lumora-purple/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-40 right-1/4 w-48 h-48 bg-lumora-gold/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       {/* World Tree Widget */}

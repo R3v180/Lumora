@@ -19,12 +19,24 @@ export default function SpinsPage() {
   const [showCollection, setShowCollection] = useState(false);
 
   return (
-    <div className="flex flex-col items-center px-4 pt-1 pb-8 min-h-[70vh]">
-      {/* Spin Race Widget */}
-      <RaceWidget />
+    <div className="flex flex-col items-center px-4 pt-1 pb-24 relative min-h-screen overflow-hidden">
+      {/* Immersive Background Layer */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <motion.img 
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.45 }}
+          transition={{ duration: 2 }}
+          src="/assets/backgrounds/bg_spin_adventure.png" 
+          alt="" 
+          className="w-full h-full object-cover" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+      </div>
 
-      {/* Slot Machine */}
-      <SlotMachine />
+      {/* Spin Race Widget */}
+      <div className="relative z-10 w-full flex flex-col items-center">
+        <RaceWidget />
+        <SlotMachine />
 
       {/* Collection Sheet */}
       <Sheet open={showCollection} onOpenChange={setShowCollection}>
@@ -76,6 +88,7 @@ export default function SpinsPage() {
 
       {/* Merge Panel */}
       <MergePanel isOpen={showMerge} onClose={() => setShowMerge(false)} />
+      </div>
     </div>
   );
 }

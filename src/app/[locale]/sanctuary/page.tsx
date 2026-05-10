@@ -369,10 +369,17 @@ export default function SanctuaryPage() {
   return (
     <div className="flex flex-col items-center px-4 pt-2 pb-8 min-h-[80vh] relative overflow-x-hidden">
       {/* Sanctuary background — fixed behind everything */}
-      <div 
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-screen pointer-events-none"
-        style={{ backgroundImage: "url('/assets/sanctuary/bg_sanctuary.png')" }} 
-      />
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <motion.img 
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.55 }}
+          transition={{ duration: 2 }}
+          src="/assets/sanctuary/bg_sanctuary.png" 
+          alt="" 
+          className="w-full h-full object-cover mix-blend-screen" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+      </div>
       {/* Title Header - Tactical Style */}
       <div className="w-full flex items-center justify-between mb-6">
         <div className="flex flex-col">
