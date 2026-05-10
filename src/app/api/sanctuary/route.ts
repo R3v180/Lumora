@@ -171,7 +171,20 @@ export async function POST(request: NextRequest) {
         (sum, s) => sum + s.spiritType.lumensPerHour, 0
       );
 
-      const totalLumensPerHour = player.sanctuary.lumensPerHour + spiritLumensPerHour;
+      let totalLumensPerHour = player.sanctuary.lumensPerHour + spiritLumensPerHour;
+      
+      // Get World Tree Dominant Aura (Nature boosts production)
+      const worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
+      if (worldState) {
+        const { getDominantElement, getDominantAura } = await import('@/lib/worldTree');
+        const dominant = getDominantElement(worldState);
+        const dominantAura = getDominantAura(dominant, worldState.treeLevel);
+        
+        if (dominantAura && dominantAura.type === 'sanctuaryProduction') {
+          totalLumensPerHour = Math.floor(totalLumensPerHour * (1 + dominantAura.value));
+        }
+      }
+
       const idleLumens = Math.min(
         Math.floor(hoursPassed * totalLumensPerHour),
         totalLumensPerHour * 8 // Cap at 8 hours

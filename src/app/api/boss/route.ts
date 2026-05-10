@@ -137,6 +137,15 @@ export async function POST(request: NextRequest) {
     const boss = await db.worldBoss.findFirst({ where: { status: 'active' } });
     if (!boss) return NextResponse.json({ error: 'No hay jefe activo' }, { status: 404 });
 
+    // Get World Tree Dominant Aura
+    const worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
+    let dominantAura: any = null;
+    if (worldState) {
+      const { getDominantElement, getDominantAura } = await import('@/lib/worldTree');
+      const dominant = getDominantElement(worldState);
+      dominantAura = getDominantAura(dominant, worldState.treeLevel);
+    }
+
     // Calculate base damage
     const damageMultiplier = validatedMultiplier === 10 ? 1.1 : 1.0; // 10% bonus for x10
     const baseDamagePerSpin = (player.level * 500 * validatedMultiplier * damageMultiplier) / 5;
@@ -157,10 +166,24 @@ export async function POST(request: NextRequest) {
       totalDamage += Math.floor(dmg * rng);
     }
 
+    // Apply Fire Aura (Combat Damage)
+    if (dominantAura && dominantAura.type === 'combatDamage') {
+      totalDamage = Math.floor(totalDamage * (1 + dominantAura.value));
+    }
+
     const result = await db.$transaction(async (tx) => {
+      let baseExp = 100 * validatedMultiplier;
+      // Apply Star Aura (Experience)
+      if (dominantAura && dominantAura.type === 'experienceGain') {
+        baseExp = Math.floor(baseExp * (1 + dominantAura.value));
+      }
+
       await tx.playerProfile.update({
         where: { id: player.id },
-        data: { energy: { decrement: energyCost } },
+        data: { 
+          energy: { decrement: energyCost },
+          experience: { increment: baseExp }
+        },
       });
 
       const updatedBoss = await tx.worldBoss.update({

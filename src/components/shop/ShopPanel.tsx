@@ -128,9 +128,25 @@ export function ShopPanel() {
   const isPurchasing = purchaseMutation.isPending;
   const error = shopError ? shopError.message : null;
 
-  const activeItems = activeCategory === 'all' 
+  const activeItems = (activeCategory === 'all' 
     ? allItems 
-    : categories.find((c: any) => c.key === activeCategory)?.items || [];
+    : categories.find((c: any) => c.key === activeCategory)?.items || []).map((item: any) => {
+      // Dynamic fix for energy items display
+      if (item.category === 'energy' || item.id.includes('energy')) {
+        const energyValue = item.content.energy;
+        const isRefill = item.content.energyRefill;
+        
+        return {
+          ...item,
+          name: item.id.includes('small') ? 'Poción de Energía (P)' : 
+                item.id.includes('medium') ? 'Elixir de Energía (M)' : 'Esencia de Energía (G)',
+          description: isRefill ? 'Restaura TODA tu energía al máximo.' : 
+                       `Restaura +${energyValue} puntos de energía.`,
+          category: 'energy' // Ensure category is strictly 'energy'
+        };
+      }
+      return item;
+    });
 
   if (error) {
     return (

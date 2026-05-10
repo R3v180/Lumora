@@ -18,26 +18,11 @@ import {
 import { GameSymbol } from '@/game/engine/symbols';
 import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
 
-// World Tree buff helpers
-interface TreeBuff {
-  lumensMultiplier: number;
-  energyRegenBonus: number;
-  rareSpiritBonus: number;
-  bonusGameChance: number;
-}
-
-function getBuffsForLevel(level: number): TreeBuff {
-  if (level >= 21) {
-    return { lumensMultiplier: 1.2, energyRegenBonus: 3, rareSpiritBonus: 0.1, bonusGameChance: 0.05 };
-  } else if (level >= 16) {
-    return { lumensMultiplier: 1.15, energyRegenBonus: 2, rareSpiritBonus: 0.05, bonusGameChance: 0 };
-  } else if (level >= 11) {
-    return { lumensMultiplier: 1.1, energyRegenBonus: 1, rareSpiritBonus: 0, bonusGameChance: 0 };
-  } else if (level >= 6) {
-    return { lumensMultiplier: 1.05, energyRegenBonus: 0, rareSpiritBonus: 0, bonusGameChance: 0 };
-  }
-  return { lumensMultiplier: 1, energyRegenBonus: 0, rareSpiritBonus: 0, bonusGameChance: 0 };
-}
+import { 
+  getBuffsForLevel, 
+  getDominantElement, 
+  getDominantAura 
+} from '@/lib/worldTree';
 
 function getMissionElement(raceId: string): string {
   const ELEMENTS = ['fire', 'water', 'nature', 'dream', 'star'];
@@ -86,12 +71,14 @@ export async function POST(request: NextRequest) {
 
     const currentEnergy = player.energy + energyRegenerated;
 
-    // Get World Tree level for buffs
+    // Get World Tree level and Dominant Aura
     let worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
     if (!worldState) {
       worldState = await db.worldState.create({ data: { id: 'lumora_world' } });
     }
     const treeBuffs = getBuffsForLevel(worldState.treeLevel);
+    const dominant = getDominantElement(worldState as any);
+    const dominantAura = getDominantAura(dominant, worldState.treeLevel);
 
     // Apply Multipliers
     const POWER_MAP: Record<string, number> = {
@@ -169,10 +156,19 @@ export async function POST(request: NextRequest) {
     const totalMultiplier = collectionMultiplier * treeBuffs.lumensMultiplier * validatedMultiplier;
     const buffedPayout = Math.floor(spinResult.totalPayout * totalMultiplier);
 
+    // Apply Water Aura (Luck: Rare Spirit & Bonus Game)
+    let finalRareSpiritBonus = treeBuffs.rareSpiritBonus;
+    let finalBonusGameChance = treeBuffs.bonusGameChance;
+    
+    if (dominantAura && dominantAura.type === 'rareSymbolChance') {
+      finalRareSpiritBonus += dominantAura.value;
+      finalBonusGameChance += (dominantAura.value / 2); // Half effect for bonus game
+    }
+
     // Rare spirit chance bonus
-    if (treeBuffs.rareSpiritBonus > 0 && spinResult.spiritsWon.length > 0) {
+    if (finalRareSpiritBonus > 0 && spinResult.spiritsWon.length > 0) {
       for (const reward of spinResult.spiritsWon) {
-        if (Math.random() < treeBuffs.rareSpiritBonus) {
+        if (Math.random() < finalRareSpiritBonus) {
           const rarityChain: Record<string, string> = {
             common: 'uncommon', uncommon: 'rare', rare: 'epic', epic: 'legendary',
           };
@@ -183,8 +179,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Bonus game chance bonus
-    if (treeBuffs.bonusGameChance > 0 && !spinResult.bonusTriggered) {
-      if (Math.random() < treeBuffs.bonusGameChance) {
+    if (finalBonusGameChance > 0 && !spinResult.bonusTriggered) {
+      if (Math.random() < finalBonusGameChance) {
         spinResult.bonusTriggered = true;
         spinResult.bonusCount = Math.max(spinResult.bonusCount, 3);
       }
@@ -193,7 +189,14 @@ export async function POST(request: NextRequest) {
     const energyCost = effectiveEnergyCost;
     const newEnergy = currentEnergy - energyCost;
     const newLumens = player.lumens + buffedPayout;
-    const xpGain = Math.floor((3 + Math.floor(spinResult.totalPayout / 10)) * validatedMultiplier);
+    
+    let xpGain = Math.floor((3 + Math.floor(spinResult.totalPayout / 10)) * validatedMultiplier);
+    
+    // Apply Star Aura (Experience)
+    if (dominantAura && dominantAura.type === 'experienceGain') {
+      xpGain = Math.floor(xpGain * (1 + dominantAura.value));
+    }
+    
     const spiritRewards = spinResult.spiritsWon;
 
     await updateChallengeProgress(player.id, 'spins', 1);
@@ -271,7 +274,13 @@ export async function POST(request: NextRequest) {
         await Promise.all(spiritsToUpdate.map(spirit => {
           const isWinner = winningElements.includes((spirit.spiritType as any)?.element || '');
           const finalXpGain = isWinner ? Math.floor(baseSpiritXp * 2) : baseSpiritXp;
-          let newSpExp = spirit.experience + finalXpGain;
+          
+          let adjustedXpGain = finalXpGain;
+          if (dominantAura && dominantAura.type === 'experienceGain') {
+            adjustedXpGain = Math.floor(adjustedXpGain * (1 + dominantAura.value));
+          }
+          
+          let newSpExp = spirit.experience + adjustedXpGain;
           let newSpLevel = spirit.level;
           const XP_BASE: Record<string, number> = { common: 50, uncommon: 100, rare: 250, epic: 600, legendary: 1500 };
           const rarity = spirit.spiritType?.rarity || 'common';

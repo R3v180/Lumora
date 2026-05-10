@@ -461,7 +461,7 @@ export function WorldTreeWidget() {
 
   if (error) {
     return (
-      <div className="relative z-10 flex flex-col items-center mb-8">
+      <div className="relative flex flex-col items-center mb-8">
         <TreePine className="h-16 w-16 text-lumora-emerald/30 mb-4" />
         <p className="text-sm text-destructive mb-2">{error}</p>
         <Button variant="outline" onClick={() => { setIsLoading(true); fetchTreeData(); }} className="rounded-xl">
@@ -473,7 +473,7 @@ export function WorldTreeWidget() {
 
   if (isLoading || !treeData) {
     return (
-      <div className="relative z-10 flex flex-col items-center mb-8 animate-pulse">
+      <div className="relative flex flex-col items-center mb-8 animate-pulse">
         <div className="w-48 h-48 rounded-full bg-muted/20 flex items-center justify-center">
           <TreePine className="h-24 w-24 text-lumora-emerald/30" />
         </div>
@@ -487,7 +487,7 @@ export function WorldTreeWidget() {
   const dominant = treeData.dominantElement;
 
   return (
-    <div className="relative z-10 flex flex-col items-center mb-8">
+    <div className="relative flex flex-col items-center mb-8">
       {/* Tree Visual Container - CLICKABLE */}
       <motion.div
         className="relative flex items-center justify-center cursor-pointer group"
@@ -711,10 +711,13 @@ export function WorldTreeWidget() {
               {buff.type === 'energyRegen' && <ChevronUp className="h-2.5 w-2.5" />}
               {buff.type === 'rareSpiritBonus' && <Sparkles className="h-2.5 w-2.5" />}
               {buff.type === 'bonusChance' && <Gift className="h-2.5 w-2.5" />}
-              {buff.type === 'lumensBonus' && t('lumensBonus', { percent: buff.value })}
-              {buff.type === 'energyRegen' && t('energyRegen', { amount: buff.value })}
-              {buff.type === 'rareSpiritBonus' && t('rareSpiritBonus', { percent: buff.value })}
-              {buff.type === 'bonusChance' && t('bonusChance', { percent: buff.value })}
+              {['combatDamage', 'rareSymbolChance', 'sanctuaryProduction', 'chestTimeReduction', 'experienceGain'].includes(buff.type) && <Star className="h-2.5 w-2.5 text-lumora-gold" />}
+              
+              {buff.type === 'lumensBonus' ? t('lumensBonus', { percent: buff.value }) :
+               buff.type === 'energyRegen' ? t('energyRegen', { amount: buff.value }) :
+               buff.type === 'rareSpiritBonus' ? t('rareSpiritBonus', { percent: buff.value }) :
+               buff.type === 'bonusChance' ? t('bonusChance', { percent: buff.value }) :
+               buff.label}
             </Badge>
           ))}
         </div>
@@ -959,7 +962,7 @@ export function WorldTreeWidget() {
               <div className="space-y-1">
                 <h4 className="text-sm font-bold text-white">¿Qué es el Árbol del Mundo?</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Es un ser vivo colectivo. Su salud y crecimiento dependen de la actividad de todos los Viajeros Estelares. Al crecer, otorga bendiciones pasivas a toda la comunidad.
+                  Es un ser vivo colectivo que une a <strong>todos los Viajeros de Lumora</strong>. Su salud y crecimiento dependen de la actividad global de toda la comunidad.
                 </p>
               </div>
             </div>
@@ -969,9 +972,9 @@ export function WorldTreeWidget() {
                 <Target className="h-5 w-5 text-lumora-blue" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-white">¿Cómo sube de nivel?</h4>
+                <h4 className="text-sm font-bold text-white">¿Cómo evoluciona?</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Cada giro que se realiza en el <strong>Giro Onírico</strong> contribuye al progreso global. Cuantos más giros hagamos entre todos, más rápido evolucionará el árbol.
+                  Cada giro en el <strong>Giro Onírico</strong> suma progreso global. Al subir de nivel, las <strong>Auras Globales</strong> se vuelven más poderosas.
                 </p>
               </div>
             </div>
@@ -981,10 +984,17 @@ export function WorldTreeWidget() {
                 <Flame className="h-5 w-5 text-lumora-fire" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-sm font-bold text-white">Elementos Dominantes</h4>
+                <h4 className="text-sm font-bold text-white">Auras Globales (Bonos de +5% base)</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Al donar puntos en el <strong>Altar de Ofrendas</strong>, influyes en la esencia del árbol. El elemento con más donaciones totales se vuelve el dominante, cambiando el aspecto del árbol y sus bonus futuros.
+                  El elemento dominante en el <strong>Altar</strong> activa un efecto para todos. Los bonos escalan con el nivel del árbol (<strong>+0.5% por nivel</strong>):
                 </p>
+                <ul className="text-[10px] text-muted-foreground space-y-1 mt-2 list-disc list-inside">
+                  <li><strong className="text-lumora-fire">🔥 Fuego:</strong> Aumenta el Poder de Combate total.</li>
+                  <li><strong className="text-lumora-water">💧 Agua:</strong> +Suerte en Giros y Bonus Games.</li>
+                  <li><strong className="text-lumora-nature">🌿 Naturaleza:</strong> +Producción de Lumens en Santuario.</li>
+                  <li><strong className="text-lumora-dream">🌙 Sueño:</strong> Reduce el tiempo de los Cofres.</li>
+                  <li><strong className="text-lumora-star">⭐ Estrella:</strong> +Experiencia para Jugador y Espíritus.</li>
+                </ul>
               </div>
             </div>
 

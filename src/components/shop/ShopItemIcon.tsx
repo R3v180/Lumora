@@ -9,40 +9,44 @@ interface ShopItemIconProps {
 }
 
 export function ShopItemIcon({ type, category, className = "h-12 w-12" }: ShopItemIconProps) {
+  const cat = category.trim().toLowerCase();
+  
   // --- ENERGY POTIONS ---
-  if (category === 'energy') {
-    const isMinor = type.includes('minor');
+  if (cat === 'energy' || type.includes('energy')) {
+    const isSmall = type.includes('small');
     const isMedium = type.includes('medium');
-    const color = isMinor ? '#60A5FA' : isMedium ? '#8B5CF6' : '#F59E0B'; // Blue -> Purple -> Gold
+    const color = isSmall ? '#60A5FA' : isMedium ? '#8B5CF6' : '#F59E0B'; // Blue -> Purple -> Gold
     
     return (
-      <svg viewBox="0 0 100 100" className={className}>
-        <defs>
-          <linearGradient id={`grad_pot_${type}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.8 }} />
-            <stop offset="100%" style={{ stopColor: '#000', stopOpacity: 0.9 }} />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        {/* Bottle Body */}
-        <path d="M30 40 Q30 30 50 30 Q70 30 70 40 L75 80 Q75 90 50 90 Q25 90 25 80 Z" fill={`url(#grad_pot_${type})`} stroke={color} strokeWidth="2" />
-        {/* Liquid inner glow */}
-        <path d="M35 50 Q35 45 50 45 Q65 45 65 50 L68 80 Q68 85 50 85 Q32 85 32 80 Z" fill={color} opacity="0.3" filter="url(#glow)" />
-        {/* Bolt Icon */}
-        <path d="M50 45 L58 60 L50 60 L55 75 L42 55 L50 55 Z" fill="white" filter="url(#glow)">
-          <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
-        </path>
-        {/* Bottle Neck */}
-        <rect x="42" y="20" width="16" height="12" rx="4" fill="#333" stroke={color} strokeWidth="1" />
-        <rect x="40" y="15" width="20" height="6" rx="2" fill={color} />
-      </svg>
+      <div className={`relative flex items-center justify-center ${className}`}>
+        {/* Glow behind */}
+        <div 
+          className="absolute inset-0 rounded-full blur-md opacity-20"
+          style={{ backgroundColor: color }}
+        />
+        <svg viewBox="0 0 100 100" className="w-full h-full relative z-10">
+          <defs>
+            <linearGradient id={`grad_pot_${type}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.9 }} />
+              <stop offset="100%" style={{ stopColor: '#000', stopOpacity: 0.8 }} />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          {/* Bottle / Orb Shape */}
+          <circle cx="50" cy="55" r="35" fill={`url(#grad_pot_${type})`} stroke={color} strokeWidth="2" />
+          <path d="M50 30 L58 50 L50 50 L55 70 L42 45 L50 45 Z" fill="white" filter="url(#glow)">
+            <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+          </path>
+          {/* Bottle Top */}
+          <rect x="42" y="15" width="16" height="8" rx="2" fill="#333" stroke={color} strokeWidth="1" />
+        </svg>
+      </div>
     );
   }
+
 
   // --- SHIELDS ---
   if (category === 'shields') {

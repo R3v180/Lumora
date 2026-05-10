@@ -22,7 +22,21 @@ export async function POST(req: NextRequest) {
     }
 
     const now = new Date();
-    const unlocksAt = new Date(now.getTime() + chest.durationMs);
+    
+    // Get World Tree Dominant Aura (Dream reduces chest time)
+    let finalDurationMs = chest.durationMs;
+    const worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
+    if (worldState) {
+      const { getDominantElement, getDominantAura } = await import('@/lib/worldTree');
+      const dominant = getDominantElement(worldState);
+      const dominantAura = getDominantAura(dominant, worldState.treeLevel);
+      
+      if (dominantAura && dominantAura.type === 'chestTimeReduction') {
+        finalDurationMs = Math.floor(finalDurationMs * (1 - dominantAura.value));
+      }
+    }
+
+    const unlocksAt = new Date(now.getTime() + finalDurationMs);
 
     await db.playerChest.update({
       where: { id: chest.id },

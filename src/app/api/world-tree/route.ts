@@ -2,86 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
-
-// Tree level formula: each level requires level * 1000 total spins (REALISTIC MODE)
-function spinsForLevel(level: number): number {
-  return level * 1000;
-}
-
-// Calculate total spins needed to reach a given level from level 1
-function totalSpinsForLevel(level: number): number {
-  let total = 0;
-  for (let i = 1; i < level; i++) {
-    total += spinsForLevel(i);
-  }
-  return total;
-}
-
-// Get buffs based on tree level
-interface TreeBuff {
-  lumensMultiplier: number;
-  energyRegenBonus: number;
-  rareSpiritBonus: number;
-  bonusGameChance: number;
-}
-
-function getBuffsForLevel(level: number): TreeBuff {
-  if (level >= 21) {
-    return {
-      lumensMultiplier: 1.2,
-      energyRegenBonus: 3,
-      rareSpiritBonus: 0.1,
-      bonusGameChance: 0.05,
-    };
-  } else if (level >= 16) {
-    return {
-      lumensMultiplier: 1.15,
-      energyRegenBonus: 2,
-      rareSpiritBonus: 0.05,
-      bonusGameChance: 0,
-    };
-  } else if (level >= 11) {
-    return {
-      lumensMultiplier: 1.1,
-      energyRegenBonus: 1,
-      rareSpiritBonus: 0,
-      bonusGameChance: 0,
-    };
-  } else if (level >= 6) {
-    return {
-      lumensMultiplier: 1.05,
-      energyRegenBonus: 0,
-      rareSpiritBonus: 0,
-      bonusGameChance: 0,
-    };
-  }
-  return {
-    lumensMultiplier: 1,
-    energyRegenBonus: 0,
-    rareSpiritBonus: 0,
-    bonusGameChance: 0,
-  };
-}
-
-type ElementKey = 'fire' | 'water' | 'dream' | 'nature' | 'star';
-
-function getDominantElement(state: {
-  totalFire: number;
-  totalWater: number;
-  totalDream: number;
-  totalNature: number;
-  totalStar: number;
-}): ElementKey {
-  const elements: { key: ElementKey; value: number }[] = [
-    { key: 'fire', value: state.totalFire },
-    { key: 'water', value: state.totalWater },
-    { key: 'dream', value: state.totalDream },
-    { key: 'nature', value: state.totalNature },
-    { key: 'star', value: state.totalStar },
-  ];
-  elements.sort((a, b) => b.value - a.value);
-  return elements[0].key;
-}
+import { 
+  getBuffsForLevel, 
+  getDominantElement, 
+  getDominantAura,
+  spinsForLevel, 
+  totalSpinsForLevel,
+  ElementKey
+} from '@/lib/worldTree';
 
 // GET - Returns detailed world tree info
 export async function GET() {
@@ -101,8 +29,6 @@ export async function GET() {
     const dominantElement = getDominantElement(worldState);
 
     // Calculate XP progress
-    // XP = total spins accumulated toward tree progression
-    // Each level requires level * 10000 spins
     const currentLevelSpins = totalSpinsForLevel(level);
     const nextLevelSpins = totalSpinsForLevel(level + 1);
     const spinsInCurrentLevel = worldState.totalSpins - currentLevelSpins;
@@ -116,7 +42,6 @@ export async function GET() {
     // Check for level up
     let updatedLevel = level;
     if (worldState.totalSpins >= nextLevelSpins) {
-      // Recalculate proper level
       let testLevel = level;
       while (worldState.totalSpins >= totalSpinsForLevel(testLevel + 1)) {
         testLevel++;
@@ -132,6 +57,7 @@ export async function GET() {
 
     const finalLevel = updatedLevel > level ? updatedLevel : level;
     const finalBuffs = getBuffsForLevel(finalLevel);
+    const finalDominant = dominantElement;
 
     // Recalculate with updated level
     const finalCurrentLevelSpins = totalSpinsForLevel(finalLevel);
@@ -143,18 +69,12 @@ export async function GET() {
     );
     const finalSpinsRemaining = Math.max(0, finalSpinsNeededForNext - finalSpinsInCurrentLevel);
 
-    // Build milestones (calculate milestone levels that have been reached)
     const milestones: { level: number; reached: boolean }[] = [];
     const milestoneLevels = [5, 6, 10, 11, 15, 16, 20, 21];
     for (const ml of milestoneLevels) {
-      if (ml <= finalLevel) {
-        milestones.push({ level: ml, reached: true });
-      } else {
-        milestones.push({ level: ml, reached: false });
-      }
+      milestones.push({ level: ml, reached: ml <= finalLevel });
     }
 
-    // Build active buff descriptions
     const activeBuffs: { type: string; value: number; label: string }[] = [];
     if (finalBuffs.lumensMultiplier > 1) {
       activeBuffs.push({
@@ -183,6 +103,12 @@ export async function GET() {
         value: Math.round(finalBuffs.bonusGameChance * 100),
         label: `+${Math.round(finalBuffs.bonusGameChance * 100)}% Bonus Game`,
       });
+    }
+
+    // Add Dominant Aura Buff
+    const dominantAura = getDominantAura(finalDominant, finalLevel);
+    if (dominantAura) {
+      activeBuffs.push(dominantAura);
     }
 
     return NextResponse.json({

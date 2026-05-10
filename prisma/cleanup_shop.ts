@@ -8,8 +8,8 @@ async function main() {
   const result = await prisma.shopItem.updateMany({
     where: {
       category: { in: ['energy', 'boost'] },
-      id: { notIn: officialIds },
-      content: { path: ['energy'], not: null }
+      id: { notIn: officialIds }
+
     },
     data: { isActive: false }
   });

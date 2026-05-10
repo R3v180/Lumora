@@ -52,7 +52,7 @@ async function generateWeeklyChallenges(week: number, year: number) {
     }
   ];
 
-  const created = [];
+  const created: any[] = [];
   for (const ch of challenges) {
     const c = await db.weeklyChallenge.create({
       data: {

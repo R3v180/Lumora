@@ -122,7 +122,7 @@ export function TreeEvolutionModal({ isOpen, onClose, currentLevel, dominantElem
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -135,7 +135,7 @@ export function TreeEvolutionModal({ isOpen, onClose, currentLevel, dominantElem
             initial={{ scale: 0.9, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,1)] overflow-hidden flex flex-col max-h-[85vh] z-[210]"
+            className="relative w-full max-w-lg bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,1)] overflow-hidden flex flex-col max-h-[85vh] z-[10000]"
           >
             {/* Header */}
             <div className="p-6 pb-2 flex items-center justify-between">
@@ -225,8 +225,15 @@ export function TreeEvolutionModal({ isOpen, onClose, currentLevel, dominantElem
                      </p>
                   </div>
                </div>
-               <Button onClick={onClose} className="w-full py-6 rounded-2xl bg-white text-black font-black uppercase tracking-widest hover:bg-white/90 active:scale-95 transition-all">
-                  Volver al Árbol
+               <Button 
+                 onClick={onClose} 
+                 className="w-full py-7 rounded-3xl bg-gradient-to-r from-lumora-emerald to-lumora-gold text-black font-black uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(234,179,8,0.4)] hover:scale-[1.02] active:scale-95 transition-all duration-300 border-none relative group overflow-hidden"
+               >
+                  <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[20deg]" />
+                  <span className="relative flex items-center justify-center gap-2">
+                    <TreePine className="h-4 w-4" />
+                    Volver al Árbol
+                  </span>
                </Button>
             </div>
           </motion.div>

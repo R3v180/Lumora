@@ -165,6 +165,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Objetivo no encontrado' }, { status: 404 });
     }
 
+    // Get World Tree Dominant Aura
+    const worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
+    let dominantAura: any = null;
+    if (worldState) {
+      const { getDominantElement, getDominantAura } = await import('@/lib/worldTree');
+      const dominant = getDominantElement(worldState);
+      dominantAura = getDominantAura(dominant, worldState.treeLevel);
+    }
+
     let isPiercing = false;
     // Check shield
     if (target.sanctuary.shieldUntil && target.sanctuary.shieldUntil > new Date()) {
@@ -240,6 +249,11 @@ export async function POST(request: NextRequest) {
 
     attackerPower = applySynergy(attackerPower, attackerSpirits);
     defenderPower = applySynergy(defenderPower, defenderSpirits);
+
+    // Apply Fire Aura (Combat Damage)
+    if (dominantAura && dominantAura.type === 'combatDamage') {
+      attackerPower = Math.round(attackerPower * (1 + dominantAura.value));
+    }
 
     // Success chance: base 50%, modified by power difference and precision
     const powerRatio = attackerPower / (defenderPower || 1);
