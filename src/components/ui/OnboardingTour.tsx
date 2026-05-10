@@ -52,11 +52,14 @@ export function OnboardingTour() {
   };
 
   const completeOnboarding = async () => {
+    // 1. Ocultamos el cartel y guardamos en local SIEMPRE para no bloquear al usuario
+    localStorage.setItem('lumora_onboarding_seen', 'true');
+    setIsVisible(false);
+
     try {
+      // 2. Intentamos guardar en la base de datos.
       const res = await fetch('/api/player/onboarding', { method: 'POST' });
       if (res.ok) {
-        localStorage.setItem('lumora_onboarding_seen', 'true');
-        setIsVisible(false);
         // Refresh stats to show the starter spirit if given
         const statsRes = await fetch('/api/player');
         if (statsRes.ok) {
@@ -65,8 +68,7 @@ export function OnboardingTour() {
         }
       }
     } catch (e) {
-      console.error(e);
-      setIsVisible(false);
+      console.error("Error silencioso en onboarding (posible falta de sesión):", e);
     }
   };
 
