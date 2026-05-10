@@ -4,6 +4,7 @@ import { usePathname } from '@/i18n/navigation';
 import { BottomNav } from './BottomNav';
 import { TopBar } from './TopBar';
 import { GlobalChat } from './GlobalChat';
+import { InstallPrompt } from './InstallPrompt';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       {!isAuthPage && <BottomNav />}
       {!isAuthPage && <GlobalChat />}
+      {!isAuthPage && <InstallPrompt />}
     </div>
   );
 }
