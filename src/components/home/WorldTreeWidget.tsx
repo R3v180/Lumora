@@ -60,7 +60,7 @@ const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass
     color: 'text-lumora-water',
     bgClass: 'bg-lumora-water/20',
     borderClass: 'border-lumora-water/40',
-    glowClass: 'shadow-[0_0_20px_rgba(52,152,219,0.4)]',
+    glowClass: 'shadow-[0_0_30px_rgba(52,152,219,0.6)]',
     icon: Droplets,
   },
   dream: {
@@ -68,7 +68,7 @@ const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass
     color: 'text-lumora-dream',
     bgClass: 'bg-lumora-dream/20',
     borderClass: 'border-lumora-dream/40',
-    glowClass: 'shadow-[0_0_20px_rgba(221,160,221,0.4)]',
+    glowClass: 'shadow-[0_0_30px_rgba(221,160,221,0.6)]',
     icon: Moon,
   },
   nature: {
@@ -84,7 +84,7 @@ const ELEMENT_CONFIG: Record<ElementKey, { emoji: string; color: string; bgClass
     color: 'text-lumora-star',
     bgClass: 'bg-lumora-star/20',
     borderClass: 'border-lumora-star/40',
-    glowClass: 'shadow-[0_0_20px_rgba(241,196,15,0.4)]',
+    glowClass: 'shadow-[0_0_30px_rgba(241,196,15,0.6)]',
     icon: Star,
   },
 };
@@ -280,7 +280,7 @@ function ElementOrb({
   radius: number;
 }) {
   const config = ELEMENT_CONFIG[element];
-  const size = Math.min(40, Math.max(24, 16 + Math.log10(Math.max(1, amount)) * 8));
+  const size = Math.min(48, Math.max(28, 20 + Math.log10(Math.max(1, amount)) * 10));
 
   const x = Math.cos(angle) * radius;
   const y = Math.sin(angle) * radius * 0.6; // Elliptical orbit
@@ -301,7 +301,7 @@ function ElementOrb({
       <motion.div
         className={`rounded-full flex items-center justify-center border-2 ${config.borderClass} ${config.bgClass} ${isDominant ? config.glowClass : ''}`}
         style={{ width: size, height: size }}
-        animate={isDominant ? { scale: [1, 1.2, 1] } : { scale: [1, 1.08, 1] }}
+        animate={isDominant ? { scale: [1, 1.3, 1] } : { scale: [1, 1.15, 1] }}
         transition={{ duration: isDominant ? 1.2 : 2, repeat: Infinity, ease: 'easeInOut' }}
       >
         <config.icon className={`h-3.5 w-3.5 ${config.color}`} />
@@ -452,11 +452,11 @@ export function WorldTreeWidget() {
   };
 
   const getGlowIntensity = (level: number) => {
-    if (level >= 21) return 'from-lumora-gold/30 via-lumora-purple/30 to-lumora-emerald/30';
-    if (level >= 16) return 'from-lumora-gold/25 via-lumora-purple/25 to-lumora-emerald/25';
-    if (level >= 11) return 'from-lumora-gold/20 via-lumora-purple/20 to-lumora-emerald/20';
-    if (level >= 6) return 'from-lumora-gold/15 via-lumora-purple/15 to-lumora-emerald/15';
-    return 'from-lumora-purple/10 via-lumora-gold/10 to-lumora-blue/10';
+    if (level >= 21) return 'from-lumora-gold/40 via-lumora-purple/40 to-lumora-emerald/40';
+    if (level >= 16) return 'from-lumora-gold/35 via-lumora-purple/35 to-lumora-emerald/35';
+    if (level >= 11) return 'from-lumora-gold/30 via-lumora-purple/30 to-lumora-emerald/30';
+    if (level >= 6) return 'from-lumora-gold/25 via-lumora-purple/25 to-lumora-emerald/25';
+    return 'from-lumora-purple/20 via-lumora-gold/20 to-lumora-blue/20';
   };
 
   if (error) {
@@ -587,12 +587,12 @@ export function WorldTreeWidget() {
 
         {/* Floating particles */}
         {level >= 3 &&
-          Array.from({ length: Math.min(level, 8) }).map((_, i) => (
+          Array.from({ length: Math.min(level * 2, 16) }).map((_, i) => (
             <TreeParticle
               key={i}
-              delay={i * 0.8}
-              x={20 + (i * 60) / Math.min(level, 8)}
-              duration={3 + Math.random() * 2}
+              delay={i * 0.5}
+              x={10 + (i * 80) / Math.min(level * 2, 16)}
+              duration={2 + Math.random() * 3}
             />
           ))}
       </motion.div>
@@ -730,17 +730,19 @@ export function WorldTreeWidget() {
 
       {/* Altar Button */}
       {player && (
-        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative group mt-2">
+          <div className="absolute -inset-1 rounded-full bg-lumora-emerald/40 blur-md group-hover:bg-lumora-emerald/60 transition-all opacity-70" />
           <Button
             onClick={() => {
               setShowContributeDialog(true);
               setContributeResult(null);
             }}
             variant="outline"
-            className="rounded-full gap-2 border-lumora-emerald/30 text-lumora-emerald hover:bg-lumora-emerald/10 hover:text-lumora-emerald text-xs px-4 py-2 bg-lumora-emerald/5"
+            className="relative rounded-full gap-2 border-lumora-emerald/50 text-lumora-emerald hover:bg-lumora-emerald/20 hover:text-lumora-emerald-light font-black text-xs px-6 py-4 bg-black/40 backdrop-blur-md shadow-[0_0_15px_rgba(46,204,113,0.3)] overflow-hidden"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            ALTAR DE OFRENDAS
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:-100%_0,0_0] group-hover:animate-shimmer" />
+            <Sparkles className="h-4 w-4 relative z-10" />
+            <span className="relative z-10 tracking-widest">ALTAR DE OFRENDAS</span>
           </Button>
         </motion.div>
       )}

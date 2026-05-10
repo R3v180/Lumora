@@ -99,10 +99,10 @@ export function LeaderboardPanel() {
             <button
               key={cat.key}
               onClick={() => setCategory(cat.key)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 isActive
-                  ? `${cat.color} bg-card/60 border border-current/20`
-                  : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
+                  ? `${cat.color} bg-black/80 border border-current/30 shadow-lg`
+                  : 'text-white/50 bg-black/40 border border-white/5 hover:bg-black/60 hover:text-white/80'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -114,7 +114,7 @@ export function LeaderboardPanel() {
 
       {/* My rank */}
       {myRank && (
-        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-gradient-to-r from-lumora-purple/10 to-lumora-blue/10 border border-lumora-purple/20">
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-lumora-purple/20 to-lumora-blue/20 border border-lumora-purple/40 shadow-lg">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-lumora-gold" />
             <span className="text-sm font-semibold">{t('yourRank')}</span>
@@ -150,9 +150,9 @@ export function LeaderboardPanel() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: entry.rank * 0.02 }}
-                className={`flex items-center justify-between px-3 py-2 rounded-xl border ${
-                  rankDisplay.bg
-                } ${entry.isMe ? 'ring-1 ring-lumora-blue/40' : ''}`}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${
+                  rankDisplay.bg === 'glass-card-subtle' ? 'bg-black/40 border-white/5 hover:bg-black/60 transition-colors' : rankDisplay.bg
+                } ${entry.isMe ? 'ring-2 ring-lumora-blue shadow-[0_0_15px_rgba(52,152,219,0.3)]' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   {/* Rank */}

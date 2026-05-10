@@ -146,10 +146,11 @@ export function SlotMachine() {
           setTimeout(() => setIsShaking(false), 600);
           audioService.playWin();
           confetti({ 
-            particleCount: summary.isMegaWin ? 150 : 80, 
-            spread: 70, 
+            particleCount: summary.isMegaWin ? 400 : summary.isBigWin ? 200 : 100, 
+            spread: summary.isMegaWin ? 120 : 80, 
             origin: { y: 0.6 },
-            colors: ['#FFD700', '#FF69B4', '#8A2BE2', '#00BFFF']
+            colors: summary.isMegaWin ? ['#FFD700', '#FFFFFF', '#FFA500'] : ['#FFD700', '#FF69B4', '#8A2BE2', '#00BFFF'],
+            gravity: 0.8
           });
           vibrate(summary.isMegaWin ? [100, 50, 100, 50, 100] : [100, 50, 100]);
         } else if (summary.totalPayout > 0) {
@@ -260,8 +261,8 @@ export function SlotMachine() {
     <motion.div className="relative flex flex-col items-center w-full max-w-lg mx-auto pb-4" animate={isShaking ? { x: [-5, 5, -5, 5, 0] } : {}}>
       <div className="w-full mb-2 flex items-center justify-between px-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-black bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent font-fantasy">GIRO ONÍRICO</h2>
-          <button onClick={() => setShowHelp(true)} className="p-1 rounded-full bg-white/5 border border-white/5"><HelpCircle className="h-4 w-4 text-muted-foreground" /></button>
+          <h2 className="text-2xl font-black bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple bg-clip-text text-transparent font-fantasy drop-shadow-[0_0_15px_rgba(255,215,0,0.5)]">GIRO ONÍRICO</h2>
+          <button onClick={() => setShowHelp(true)} className="p-1 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"><HelpCircle className="h-5 w-5 text-lumora-gold" /></button>
         </div>
       </div>
 
@@ -297,8 +298,28 @@ export function SlotMachine() {
       </div>
 
       <div className="flex items-center gap-3 mb-2">
-        <Button onClick={doSpin} disabled={isSpinning} className="rounded-2xl h-14 px-8 bg-gradient-to-r from-lumora-pink to-lumora-gold text-white font-black">GIRAR</Button>
-        <Button variant={autoSpin ? 'default' : 'outline'} onClick={() => setAutoSpin(!autoSpin)} disabled={isSpinning && !autoSpin} className="rounded-2xl h-14 w-14 p-0">{autoSpin ? <Square /> : <RotateCcw />}</Button>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="relative group">
+          <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-lumora-pink to-lumora-gold opacity-50 blur-lg group-hover:opacity-80 transition-all duration-300" />
+          <Button 
+            onClick={doSpin} 
+            disabled={isSpinning} 
+            className="relative rounded-2xl h-14 px-10 bg-gradient-to-r from-lumora-pink to-lumora-gold text-white font-black text-xl shadow-[0_5px_15px_rgba(255,105,180,0.4)] overflow-hidden border border-white/20"
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:-100%_0,0_0] group-hover:animate-shimmer" />
+            <span className="relative z-10 tracking-widest drop-shadow-md">GIRAR</span>
+          </Button>
+        </motion.div>
+        
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button 
+            variant={autoSpin ? 'default' : 'outline'} 
+            onClick={() => setAutoSpin(!autoSpin)} 
+            disabled={isSpinning && !autoSpin} 
+            className={`rounded-2xl h-14 w-14 p-0 border transition-all ${autoSpin ? 'bg-lumora-blue border-lumora-blue shadow-[0_0_15px_rgba(52,152,219,0.5)]' : 'bg-black/40 border-white/20 hover:bg-white/10'}`}
+          >
+            {autoSpin ? <Square className="animate-pulse" /> : <RotateCcw />}
+          </Button>
+        </motion.div>
       </div>
       <p className="text-[10px] text-muted-foreground">Coste: {5 * multiplier} energía por giro</p>
 
@@ -454,10 +475,24 @@ export function SlotMachine() {
 
       <AnimatePresence>
         {showBonusGame && (
-          <BonusGame 
-            bonusCount={bonusCount} 
-            onComplete={onBonusComplete} 
-          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 1.2 }}
+            className="fixed inset-0 z-[300]"
+          >
+            {/* Explosive Flash */}
+            <motion.div 
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="absolute inset-0 bg-white z-[301] pointer-events-none"
+            />
+            <BonusGame 
+              bonusCount={bonusCount} 
+              onComplete={onBonusComplete} 
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </motion.div>

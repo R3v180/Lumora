@@ -237,7 +237,9 @@ export function SanctuaryView({
         `}
         style={{
           ...terrainStyle,
-          backgroundColor: isOccupied && spiritInfo ? 'rgba(0,0,0,0.4)' : 'transparent'
+          backgroundColor: isOccupied && spiritInfo ? 'rgba(0,0,0,0.5)' : 'transparent',
+          backdropFilter: isOccupied && spiritInfo ? 'blur(4px)' : 'none',
+          boxShadow: isOccupied && spiritInfo ? `inset 0 0 15px ${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}30` : 'none'
         }}
         onMouseEnter={() => setHoveredTile({ x, y })}
         onMouseLeave={() => setHoveredTile(null)}
@@ -264,8 +266,9 @@ export function SanctuaryView({
             animate={{ scale: 1, y: 0 }}
             className="absolute inset-0 flex items-center justify-center p-1"
             style={{ 
-              transform: 'rotateZ(45deg) rotateX(-45deg) translateY(-25%)', 
-              transformStyle: 'preserve-3d' 
+              transform: 'rotateZ(45deg) rotateX(-45deg) translateY(-35%) scale(1.25)', 
+              transformStyle: 'preserve-3d',
+              filter: 'drop-shadow(0 15px 10px rgba(0,0,0,0.6))'
             }}
           >
             {/* Rarity Border/Frame */}
@@ -276,16 +279,16 @@ export function SanctuaryView({
             `}>
               {/* Element Glow */}
               <div 
-                className="absolute inset-0 blur-md opacity-30 rounded-lg"
+                className="absolute inset-0 blur-lg opacity-60 rounded-lg animate-pulse"
                 style={{ backgroundColor: ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS] }}
               />
               
               <motion.img 
-                animate={{ y: [0, -2, 0] }}
+                animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
                 alt={spiritInfo.spiritType.name} 
-                className="w-[85%] h-[85%] object-contain relative z-10" 
+                className="w-[90%] h-[90%] object-contain relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]" 
               />
 
               {/* Level Badge - Tactical Style */}
@@ -477,7 +480,7 @@ export function SanctuaryView({
                    Espíritus en Armonía
                 </h3>
              </div>
-             <div className="flex items-center gap-1 text-[10px] font-black text-lumora-gold">
+             <div className={`flex items-center gap-1 font-black ${sanctuary?.currentPlacedCount === sanctuary?.maxPlacedSpirits ? 'text-sm text-lumora-gold drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] scale-110 transition-transform' : 'text-[10px] text-white/80'}`}>
                 <span>{sanctuary?.currentPlacedCount ?? 0}</span>
                 <span className="text-white/20">/</span>
                 <span>{sanctuary?.maxPlacedSpirits ?? 5}</span>

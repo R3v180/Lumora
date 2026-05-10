@@ -149,16 +149,20 @@ export default function HomePage() {
 
           {/* Spin Dream Button */}
           <motion.button
-            onClick={() => router.push('/play')}
+            onClick={() => {
+              audioService.playClick();
+              router.push('/play');
+            }}
             className="relative z-10 group mb-8"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple opacity-60 blur-lg group-hover:opacity-80 transition-opacity" />
-            <div className="relative flex items-center gap-3 rounded-full bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple px-10 py-5 text-white font-fantasy font-bold text-xl shadow-2xl">
-              <Sparkles className="h-6 w-6" />
-              {t('spinDream')}
-              <Sparkles className="h-6 w-6" />
+            <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple opacity-60 blur-xl group-hover:opacity-100 group-hover:blur-2xl transition-all duration-500" />
+            <div className="relative flex items-center gap-3 rounded-full bg-gradient-to-r from-lumora-gold via-lumora-pink to-lumora-purple px-10 py-5 text-white font-fantasy font-bold text-xl shadow-[0_10px_30px_rgba(236,72,153,0.5)] border border-white/20 overflow-hidden">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.3)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:-100%_0,0_0] group-hover:animate-shimmer" />
+              <Sparkles className="h-6 w-6 relative z-10" />
+              <span className="relative z-10 tracking-widest drop-shadow-md">{t('spinDream')}</span>
+              <Sparkles className="h-6 w-6 relative z-10" />
             </div>
           </motion.button>
         </>
