@@ -19,6 +19,7 @@ export interface ElementalSurge {
   element: Element;
   count: number;
   bonusLumens: number;
+  positions: [number, number][];
 }
 
 export interface ReelResult {
@@ -33,6 +34,9 @@ export interface ReelResult {
   bonusTriggered: boolean;
   bonusCount: number;
   isLucky: boolean;
+  availableNudges: number;
+  canHold: boolean;
+  holdPositions: boolean[];
 }
 
 export interface SpiritReward {
@@ -144,6 +148,37 @@ export function generateReelGrid(): GameSymbol[][] {
     grid.push(column);
   }
   return grid;
+}
+
+export function generateReelGridWithHolds(currentGrid: GameSymbol[][] | null, holds: boolean[]): GameSymbol[][] {
+  const grid: GameSymbol[][] = [];
+  for (let col = 0; col < REELS; col++) {
+    if (holds[col] && currentGrid && currentGrid[col]) {
+      grid.push([...currentGrid[col]]);
+    } else {
+      const column: GameSymbol[] = [];
+      for (let row = 0; row < ROWS; row++) {
+        column.push(weightedRandomSymbol());
+      }
+      grid.push(column);
+    }
+  }
+  return grid;
+}
+
+// Apply a nudge to a specific reel (shift symbols down and add a new one at top)
+export function applyNudge(grid: GameSymbol[][], reelIndex: number): GameSymbol[][] {
+  const newGrid = grid.map(col => [...col]); // deep copy
+  const column = newGrid[reelIndex];
+  
+  // Shift symbols down
+  for (let i = ROWS - 1; i > 0; i--) {
+    column[i] = column[i-1];
+  }
+  // Add new random symbol at top
+  column[0] = weightedRandomSymbol();
+  
+  return newGrid;
 }
 
 // === WIN DETECTION ===
@@ -283,6 +318,7 @@ export function countElements(grid: GameSymbol[][]): Record<Element, number> {
 
 // If 6+ symbols of the same element (counting wilds), award Elemental Surge bonus
 export function detectElementalSurges(
+  grid: GameSymbol[][],
   elementCounts: Record<Element, number>
 ): ElementalSurge[] {
   const surges: ElementalSurge[] = [];
@@ -299,10 +335,21 @@ export function detectElementalSurges(
         bonusLumens = 10;
       }
 
+      // Find positions of this element (including wilds)
+      const positions: [number, number][] = [];
+      grid.forEach((col, x) => {
+        col.forEach((sym, y) => {
+          if (sym.element === element || sym.symbolType === 'wild') {
+            positions.push([x, y]);
+          }
+        });
+      });
+
       surges.push({
         element: element as Element,
         count,
         bonusLumens,
+        positions,
       });
     }
   }
@@ -426,17 +473,16 @@ function mapRarity(symbolRarity: string): string {
 // === MAIN SPIN FUNCTION ===
 
 export function executeSpin(): ReelResult {
-  // Roll for Lucky Spin
   const isLucky = rollLuckySpin();
-
-  // Generate the reel grid
   let grid = generateReelGrid();
-
-  // If Lucky Spin, force a guaranteed minimum 3+ match win
   if (isLucky) {
     grid = forceLuckyWin(grid);
   }
+  const result = evaluateSpinResult(grid);
+  return { ...result, isLucky };
+}
 
+export function evaluateSpinResult(grid: GameSymbol[][]): ReelResult {
   // Detect wins (includes wild multiplier in payouts)
   const wins = detectWins(grid);
 
@@ -447,7 +493,7 @@ export function executeSpin(): ReelResult {
   const elementContributions = countElements(grid);
 
   // Detect Elemental Surges and add bonus lumens
-  const elementalSurges = detectElementalSurges(elementContributions);
+  const elementalSurges = detectElementalSurges(grid, elementContributions);
   const surgeBonus = elementalSurges.reduce((sum, s) => sum + s.bonusLumens, 0);
   totalPayout += surgeBonus;
 
@@ -458,8 +504,31 @@ export function executeSpin(): ReelResult {
   const spiritsWon = determineSpiritRewards(elementContributions, totalPayout);
 
   // Determine win tier
-  const isBigWin = totalPayout >= 50;
-  const isMegaWin = totalPayout >= 100;
+  const isBigWin = totalPayout >= 250;
+  const isMegaWin = totalPayout >= 1000;
+
+  // --- ADVANCED FEATURES: HOLDS & NUDGES ---
+  let canHold = false;
+  let availableNudges = 0;
+
+  // 1. HOLD DETECTION: Trigger if 2 Bonus symbols or 2+ Epic/Legendary symbols
+  let highValueCount = 0;
+  grid.forEach(col => col.forEach(s => {
+    if (s.rarity === 'epic' || s.rarity === 'legendary') highValueCount++;
+  }));
+
+  if (bonusCount >= 2 || highValueCount >= 2) {
+    if (Math.random() < 0.6) { // Increased from 40% to 60%
+      canHold = true;
+    }
+  }
+
+  // 2. NUDGE DETECTION: Trigger on losing spins with a base chance
+  if (totalPayout === 0) {
+    if (Math.random() < 0.2) { // Increased from 10% to 20%
+      availableNudges = Math.random() > 0.7 ? 2 : 1;
+    }
+  }
 
   return {
     grid,
@@ -472,7 +541,10 @@ export function executeSpin(): ReelResult {
     elementalSurges,
     bonusTriggered,
     bonusCount,
-    isLucky,
+    isLucky: false,
+    availableNudges,
+    canHold,
+    holdPositions: [false, false, false, false, false],
   };
 }
 

@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Swords, Zap, ArrowRightLeft, Trash2, Plus, Info, LayoutGrid, List } from 'lucide-react';
+import { X, Shield, Swords, Zap, ArrowRightLeft, Trash2, Plus, Info, LayoutGrid, List, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,7 +56,8 @@ export function SanctuaryManager({
   onPlace,
 }: SanctuaryManagerProps) {
   const [activeTab, setActiveTab] = useState<'placed' | 'unplaced'>('placed');
-  const [selectedToSwap, setSelectedToSwap] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'power' | 'level' | 'element'>('power');
+  const [filterElement, setFilterElement] = useState<string | null>(null);
 
   const handleRemove = async (id: string) => {
     const success = await onRemove(id);
@@ -64,144 +65,225 @@ export function SanctuaryManager({
   };
 
   const handlePlace = async (spiritId: string) => {
-    // If we have a swap target, we'd need a swap API, for now we place in first empty or manual
     await onPlace(spiritId);
   };
 
+  const calculateProduction = (spirit: any) => {
+    const rarityMult: Record<string, number> = { common: 1, uncommon: 1.2, rare: 1.5, epic: 2.2, legendary: 4 };
+    const base = spirit.spiritType.lumensPerHour;
+    const mult = rarityMult[spirit.spiritType.rarity] || 1;
+    const levelBonus = 1 + (spirit.level - 1) * 0.1;
+    return Math.floor(base * mult * levelBonus);
+  };
+
+  const groupedSpirits = useMemo(() => {
+    const list = activeTab === 'placed' ? [...placedSpirits] : [...unplacedSpirits];
+    
+    // Filtering
+    let filtered = filterElement 
+      ? list.filter(s => s.spiritType.element === filterElement)
+      : list;
+
+    // Grouping only for unplaced spirits
+    if (activeTab === 'unplaced') {
+      const groups: Record<string, any> = {};
+      filtered.forEach(s => {
+        const key = `${s.spiritType.id}-${s.level}`;
+        if (!groups[key]) {
+          groups[key] = { ...s, count: 1, ids: [s.id] };
+        } else {
+          groups[key].count++;
+          groups[key].ids.push(s.id);
+        }
+      });
+      filtered = Object.values(groups);
+    }
+
+    // Sorting
+    return filtered.sort((a, b) => {
+      if (sortBy === 'power') return calculateProduction(b) - calculateProduction(a);
+      if (sortBy === 'level') return b.level - a.level;
+      if (sortBy === 'element') return a.spiritType.element.localeCompare(b.spiritType.element);
+      return 0;
+    });
+  }, [activeTab, placedSpirits, unplacedSpirits, sortBy, filterElement]);
+
+  const elements = ['fire', 'water', 'dream', 'nature', 'star'];
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="bottom" className="h-[85vh] sm:h-[90vh] p-0 bg-background/95 backdrop-blur-xl border-t border-white/10 rounded-t-[2.5rem]">
-        <div className="mx-auto w-12 h-1.5 bg-muted/30 rounded-full mt-3 mb-2" />
+      <SheetContent side="bottom" className="h-[85vh] sm:h-[90vh] p-0 bg-[#0a0a0c]/95 backdrop-blur-2xl border-t border-white/10 rounded-t-[3rem] overflow-hidden flex flex-col">
+        <div className="mx-auto w-12 h-1.5 bg-white/10 rounded-full mt-3 mb-2 shrink-0" />
         
-        <Tabs defaultValue="placed" className="w-full h-full flex flex-col" onValueChange={(v) => setActiveTab(v as any)}>
-          <div className="px-6 pt-2 pb-4 space-y-4">
+        <Tabs defaultValue="placed" className="w-full h-full flex flex-col overflow-hidden" onValueChange={(v) => setActiveTab(v as any)}>
+          <div className="px-6 pt-2 pb-4 space-y-4 shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
-                  Gestión de Espíritus
-                </h2>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                  {placedSpirits.length} / {maxSlots} Espacios Ocupados
-                </p>
+                <SheetTitle className="text-xl font-black text-white uppercase italic tracking-tighter">
+                  Gestión de Isla
+                </SheetTitle>
+                <SheetDescription className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-lumora-emerald font-black uppercase tracking-widest">
+                    {placedSpirits.length} / {maxSlots} OCUPADOS
+                  </span>
+                </SheetDescription>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/5">
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full bg-white/5 border border-white/10 h-10 w-10">
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
-            <TabsList className="grid w-full grid-cols-2 bg-white/5 p-1 rounded-xl h-11">
-              <TabsTrigger value="placed" className="rounded-lg data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all gap-2">
-                <LayoutGrid className="h-4 w-4" />
-                Equipados
-              </TabsTrigger>
-              <TabsTrigger value="unplaced" className="rounded-lg data-[state=active]:bg-white/10 data-[state=active]:text-white transition-all gap-2">
-                <List className="h-4 w-4" />
-                Reserva ({unplacedSpirits.length})
-              </TabsTrigger>
-            </TabsList>
+            {/* Sorting & Filtering HUD */}
+            <div className="space-y-3">
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setFilterElement(null)}
+                  className={`h-7 px-3 rounded-full text-[8px] font-black uppercase border transition-all ${!filterElement ? 'bg-white text-black border-white' : 'bg-white/5 border-white/10 text-white/40'}`}
+                >
+                  TODOS
+                </Button>
+                {elements.map(el => (
+                  <Button 
+                    key={el}
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setFilterElement(el)}
+                    className={`h-7 px-3 rounded-full text-[8px] font-black uppercase border transition-all ${filterElement === el ? 'bg-lumora-blue text-white border-lumora-blue' : 'bg-white/5 border-white/10 text-white/40'}`}
+                  >
+                    {el}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between bg-white/5 p-1 rounded-xl">
+                <TabsList className="grid w-full grid-cols-2 bg-transparent">
+                  <TabsTrigger value="placed" className="rounded-lg text-[10px] font-black uppercase data-[state=active]:bg-white/10">EQUIPADOS</TabsTrigger>
+                  <TabsTrigger value="unplaced" className="rounded-lg text-[10px] font-black uppercase data-[state=active]:bg-white/10">RESERVA</TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">ORDENAR POR:</span>
+                <div className="flex gap-2">
+                  {['power', 'level', 'element'].map((s: any) => (
+                    <button 
+                      key={s}
+                      onClick={() => setSortBy(s)}
+                      className={`text-[8px] font-black uppercase tracking-tight ${sortBy === s ? 'text-lumora-gold underline underline-offset-4' : 'text-white/40'}`}
+                    >
+                      {s === 'power' ? 'Poder' : s === 'level' ? 'Nivel' : 'Elemento'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <ScrollArea className="flex-1 px-6 pb-20">
-            <TabsContent value="placed" className="mt-0 space-y-3 outline-none">
-              {placedSpirits.length === 0 ? (
-                <div className="py-20 text-center space-y-4">
-                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
-                    <Shield className="h-8 w-8 text-muted-foreground/30" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">No tienes espíritus en la isla</p>
-                  <Button onClick={() => setActiveTab('unplaced')} variant="outline" className="rounded-xl border-white/10">
-                    Ir a Reserva
-                  </Button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-3">
-                  {placedSpirits.map((spirit) => (
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full px-6">
+              <div className="grid grid-cols-1 gap-3 pb-32">
+              <AnimatePresence mode="popLayout">
+                {groupedSpirits.map((spirit: any) => {
+                  const production = calculateProduction(spirit);
+                  return (
                     <motion.div
                       layout
                       key={spirit.id}
-                      className="glass-card-subtle p-3 rounded-2xl border border-white/5 flex items-center gap-4 group"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      onClick={() => activeTab === 'unplaced' && handlePlace(spirit.id)}
+                      className={`
+                        relative glass-card-subtle p-3 rounded-2xl border border-white/5 flex items-center gap-4 group cursor-pointer overflow-hidden
+                        ${activeTab === 'unplaced' ? 'hover:border-lumora-emerald/40 shadow-lg' : ''}
+                      `}
                     >
-                      <div className="relative">
-                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center border border-white/10`}>
+                      {activeTab === 'unplaced' && (
+                        <div className="absolute inset-0 bg-lumora-emerald/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                      )}
+
+                      <div className="relative shrink-0">
+                        <div className={`
+                          w-16 h-16 rounded-2xl bg-black/60 flex items-center justify-center border-2 shadow-2xl relative overflow-hidden
+                          ${spirit.spiritType.rarity === 'legendary' ? 'border-lumora-gold/50 shadow-lumora-gold/10' : 
+                            spirit.spiritType.rarity === 'epic' ? 'border-lumora-purple/50 shadow-lumora-purple/10' : 
+                            spirit.spiritType.rarity === 'rare' ? 'border-lumora-blue/50 shadow-lumora-blue/10' : 'border-white/10'}
+                        `}>
+                           {/* Glow background based on rarity */}
+                           <div className={`absolute inset-0 bg-gradient-to-br opacity-20
+                              ${spirit.spiritType.rarity === 'legendary' ? 'from-lumora-gold' : 
+                                spirit.spiritType.rarity === 'epic' ? 'from-lumora-purple' : 
+                                spirit.spiritType.rarity === 'rare' ? 'from-lumora-blue' : 'from-white/20'}
+                           `} />
+                          
                           <img 
                             src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} 
-                            className="w-10 h-10 object-contain"
+                            className="w-12 h-12 object-contain relative z-10 drop-shadow-lg"
                             alt={spirit.spiritType.name}
                           />
-                        </div>
-                        <div className="absolute -top-1 -right-1 bg-lumora-purple text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-white/20 shadow-lg">
-                          {spirit.level}
+
+                          {/* Level Badge Over Image */}
+                          <div className="absolute top-1 right-1 bg-black/80 backdrop-blur-sm border border-white/20 text-[8px] font-black px-1.5 py-0.5 rounded-md text-white z-20 italic">
+                            L.{spirit.level}
+                          </div>
+                          
+                          {/* Count Badge Over Image */}
+                          {spirit.count > 1 && (
+                            <div className="absolute bottom-1 left-1 bg-lumora-blue border border-white/20 text-[8px] font-black px-1.5 py-0.5 rounded-md text-white z-20 shadow-lg">
+                              x{spirit.count}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold truncate">{spirit.spiritType.name}</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-[9px] uppercase border-white/5 bg-white/5 px-1.5 py-0">
-                            {spirit.spiritType.element}
-                          </Badge>
-                          <span className="text-[10px] text-lumora-gold font-bold">
-                            ✨ +{spirit.spiritType.lumensPerHour}/h
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white uppercase italic tracking-tighter truncate">{spirit.spiritType.name}</h4>
+                          <span className="text-[8px] font-black text-white/20 uppercase">{spirit.spiritType.rarity}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-1.5">
+                            <Coins className="h-3 w-3 text-lumora-gold" />
+                            <span className="text-xs font-black text-lumora-gold">+{production} L/H</span>
+                          </div>
+                          <span className="text-[9px] text-white/30 font-black uppercase tracking-widest">{spirit.spiritType.element}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {activeTab === 'placed' && (
                         <Button 
-                          onClick={() => handleRemove(spirit.id)}
+                          onClick={(e) => { e.stopPropagation(); handleRemove(spirit.id); }}
                           variant="ghost" 
                           size="icon" 
-                          className="h-9 w-9 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          className="h-10 w-10 rounded-xl text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="unplaced" className="mt-0 space-y-3 outline-none">
-              {unplacedSpirits.length === 0 ? (
-                <div className="py-20 text-center space-y-4">
-                  <p className="text-sm text-muted-foreground">No tienes espíritus en reserva</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 pb-10">
-                  {unplacedSpirits.map((spirit) => (
-                    <motion.div
-                      layout
-                      key={spirit.id}
-                      whileTap={{ scale: 0.98 }}
-                      className="glass-card-subtle p-3 rounded-2xl border border-white/5 flex flex-col items-center gap-2 relative group cursor-pointer"
-                      onClick={() => handlePlace(spirit.id)}
-                    >
-                      <div className={`w-full aspect-square rounded-xl bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center border border-white/10`}>
-                        <img 
-                          src={`/assets/symbols/sym_${spirit.spiritType.element}_${spirit.spiritType.rarity}.png`} 
-                          className="w-14 h-14 object-contain"
-                          alt={spirit.spiritType.name}
-                        />
-                      </div>
-                      <div className="absolute top-2 right-2 bg-lumora-purple text-[10px] font-bold px-1.5 py-0.5 rounded-lg border border-white/20">
-                        {spirit.level}
-                      </div>
+                      )}
                       
-                      <div className="text-center w-full">
-                        <h4 className="text-[11px] font-bold truncate">{spirit.spiritType.name}</h4>
-                        <p className="text-[9px] text-lumora-gold font-bold">+{spirit.spiritType.lumensPerHour}/h</p>
-                      </div>
-
-                      <div className="absolute inset-0 bg-lumora-emerald/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-center justify-center border-2 border-lumora-emerald/40">
-                         <Plus className="h-6 w-6 text-lumora-emerald" />
-                      </div>
+                      {activeTab === 'unplaced' && (
+                        <div className="h-10 w-10 rounded-xl flex items-center justify-center text-lumora-emerald bg-white/5 opacity-0 group-hover:opacity-100 transition-all">
+                          <Plus className="h-5 w-5" />
+                        </div>
+                      )}
                     </motion.div>
-                  ))}
+                  );
+                })}
+              </AnimatePresence>
+              
+              {groupedSpirits.length === 0 && (
+                <div className="py-20 text-center flex flex-col items-center gap-4">
+                   <div className="w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center">
+                      <LayoutGrid className="h-8 w-8 text-white/10" />
+                   </div>
+                   <p className="text-xs font-black text-white/20 uppercase tracking-widest">No hay espíritus que coincidan</p>
                 </div>
               )}
-            </TabsContent>
+            </div>
           </ScrollArea>
+        </div>
         </Tabs>
       </SheetContent>
     </Sheet>

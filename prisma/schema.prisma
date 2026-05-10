@@ -79,6 +79,7 @@ model PlayerProfile {
   energyRefillAt   DateTime                @default(now())
   sanctuaryLevel   Int                     @default(1)
   language         String                  @default("es")
+  avatar           String?
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
   lastLoginAt      DateTime                @default(now())

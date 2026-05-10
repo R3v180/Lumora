@@ -57,35 +57,36 @@ export async function GET() {
       excludeIds.push(...guildMembers.map((m) => m.playerId));
     }
 
-    const targets = await db.playerProfile.findMany({
-      where: {
-        id: { notIn: excludeIds },
-        sanctuary: {
-          OR: [
-            { shieldUntil: null },
-            { shieldUntil: { lt: now } },
-          ],
-          lastCollectAt: { lt: new Date(now.getTime() - 15 * 60 * 1000) },
-        },
-      },
-      include: {
-        sanctuary: { select: { lumensPerHour: true, lastCollectAt: true, name: true } },
-      },
-      take: 3,
-      orderBy: { sanctuaryLevel: 'desc' },
-    });
+    // Find vulnerable players - raw SQL for resilience
+    const targets = await db.$queryRawUnsafe(`
+      SELECT 
+        pp.id, pp."displayName", pp.level, pp.avatar,
+        s."lumensPerHour", s."lastCollectAt", s.name as "sanctuaryName"
+      FROM player_profiles pp
+      JOIN sanctuaries s ON pp.id = s."playerId"
+      WHERE pp.id NOT IN (${excludeIds.map((_, i) => `$${i + 1}`).join(', ')})
+      AND (s."shieldUntil" IS NULL OR s."shieldUntil" < $${excludeIds.length + 1})
+      AND s."lastCollectAt" < $${excludeIds.length + 2}
+      ORDER BY RANDOM()
+      LIMIT 3
+    `, ...[
+      ...excludeIds, 
+      now, 
+      new Date(now.getTime() - 15 * 60 * 1000)
+    ]);
 
-    const raidTargets = targets.map((t) => {
+    const raidTargets = (targets as any[]).map((t) => {
       const hoursSinceCollect = Math.min(8,
-        (now.getTime() - (t.sanctuary?.lastCollectAt?.getTime() || now.getTime())) / 3600000
+        (now.getTime() - (new Date(t.lastCollectAt).getTime())) / 3600000
       );
-      const idleLumens = Math.floor((t.sanctuary?.lumensPerHour || 0) * hoursSinceCollect);
+      const idleLumens = Math.floor((t.lumensPerHour || 0) * hoursSinceCollect);
 
       return {
         id: t.id,
         displayName: t.displayName,
         level: t.level,
-        sanctuaryName: t.sanctuary?.name || 'Sanctuary',
+        avatar: t.avatar,
+        sanctuaryName: t.sanctuaryName || 'Sanctuary',
         idleLumens,
         stealable: Math.floor(idleLumens * STEAL_PERCENTAGE),
       };
@@ -215,11 +216,38 @@ export async function POST(request: NextRequest) {
 
       // REMOVED: No more auto-shield for attacking. 
 
-      // Reset target's lastCollectAt so their idle resets
+      // reset target's lastCollectAt
       await tx.sanctuary.update({
         where: { id: target.sanctuary!.id },
         data: { lastCollectAt: now },
       });
+      
+      // Roll for chest drop (15% chance)
+      let droppedChest: any = null;
+      if (Math.random() < 0.15) {
+        const rarityRoll = Math.random();
+        let rarity = 'common';
+        let durationMs = 3 * 3600000; // 3h
+        
+        if (rarityRoll > 0.95) {
+          rarity = 'epic';
+          durationMs = 12 * 3600000; // 12h
+        } else if (rarityRoll > 0.75) {
+          rarity = 'rare';
+          durationMs = 6 * 3600000; // 6h
+        }
+        
+        droppedChest = await tx.playerChest.create({
+          data: {
+            playerId: player.id,
+            type: 'raid',
+            rarity,
+            durationMs,
+            unlocksAt: now, // Will need to be started manually
+            status: 'locked'
+          }
+        });
+      }
 
       // Log raid
       await tx.raidLog.create({
@@ -234,7 +262,11 @@ export async function POST(request: NextRequest) {
         lumensStolen: stolenLumens,
         newLumens: player.lumens + stolenLumens,
         newEnergy: player.energy - RAID_ENERGY_COST,
-        shieldUntil: new Date(now.getTime() + AUTO_SHIELD_HOURS * 60 * 60 * 1000).toISOString(),
+        droppedChest: droppedChest ? {
+          id: droppedChest.id,
+          rarity: droppedChest.rarity,
+          type: droppedChest.type
+        } : null
       };
     });
 

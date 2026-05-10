@@ -54,80 +54,75 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const where: any = {
-        guildId: player.guild.guildId,
-        messageType: 'user',
-      };
-
+      // Fix parameter indexing for raw SQL
+      const params: any[] = [player.guild.guildId];
+      let query = `
+        SELECT 
+          cm.id, cm.content, cm."messageType", cm."createdAt", cm."guildId",
+          pp.id as "senderId", pp."displayName", pp.level, pp.avatar
+        FROM chat_messages cm
+        JOIN player_profiles pp ON cm."senderId" = pp.id
+        WHERE cm."guildId" = $1 AND cm."messageType" = 'user'
+      `;
+      
       if (before) {
-        where.createdAt = { lt: new Date(before) };
+        params.push(new Date(before));
+        query += ` AND cm."createdAt" < $${params.length}`;
       }
+      
+      params.push(limit);
+      query += ` ORDER BY cm."createdAt" DESC LIMIT $${params.length}`;
 
-      const messages = await db.chatMessage.findMany({
-        where,
-        include: {
-          sender: {
-            select: {
-              id: true,
-              displayName: true,
-              level: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-      });
+      const messages = await db.$queryRawUnsafe(query, ...params);
 
       return NextResponse.json({
-        messages: messages.reverse().map((m) => ({
+        messages: (messages as any[]).reverse().map((m: any) => ({
           id: m.id,
           content: m.content,
           messageType: m.messageType,
-          createdAt: m.createdAt.toISOString(),
+          createdAt: m.createdAt.toISOString ? m.createdAt.toISOString() : new Date(m.createdAt).toISOString(),
           sender: {
-            id: m.sender.id,
-            displayName: m.sender.displayName,
-            level: m.sender.level,
+            id: m.senderId,
+            displayName: m.displayName,
+            level: m.level,
+            avatar: m.avatar,
           },
         })),
       });
     }
 
-    // World chat - no guild filter
-    const where: any = {
-      guildId: null,
-      messageType: 'user',
-    };
+    // World chat - fix parameter indexing
+    const params: any[] = [];
+    let query = `
+      SELECT 
+        cm.id, cm.content, cm."messageType", cm."createdAt", cm."guildId",
+        pp.id as "senderId", pp."displayName", pp.level, pp.avatar
+      FROM chat_messages cm
+      JOIN player_profiles pp ON cm."senderId" = pp.id
+      WHERE cm."guildId" IS NULL AND cm."messageType" = 'user'
+    `;
 
     if (before) {
-      where.createdAt = { lt: new Date(before) };
+      params.push(new Date(before));
+      query += ` AND cm."createdAt" < $${params.length}`;
     }
 
-    const messages = await db.chatMessage.findMany({
-      where,
-      include: {
-        sender: {
-          select: {
-            id: true,
-            displayName: true,
-            level: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+    params.push(limit);
+    query += ` ORDER BY cm."createdAt" DESC LIMIT $${params.length}`;
+
+    const messages = await db.$queryRawUnsafe(query, ...params);
 
     return NextResponse.json({
-      messages: messages.reverse().map((m) => ({
+      messages: (messages as any[]).reverse().map((m: any) => ({
         id: m.id,
         content: m.content,
         messageType: m.messageType,
-        createdAt: m.createdAt.toISOString(),
+        createdAt: m.createdAt.toISOString ? m.createdAt.toISOString() : new Date(m.createdAt).toISOString(),
         sender: {
-          id: m.sender.id,
-          displayName: m.sender.displayName,
-          level: m.sender.level,
+          id: m.senderId,
+          displayName: m.displayName,
+          level: m.level,
+          avatar: m.avatar,
         },
       })),
     });
@@ -207,7 +202,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the message
-    const message = await db.chatMessage.create({
+    const message = await (db.chatMessage as any).create({
       data: {
         senderId: player.id,
         guildId,
@@ -220,6 +215,7 @@ export async function POST(request: NextRequest) {
             id: true,
             displayName: true,
             level: true,
+            avatar: true,
           },
         },
       },
@@ -236,6 +232,7 @@ export async function POST(request: NextRequest) {
         id: message.sender.id,
         displayName: message.sender.displayName,
         level: message.sender.level,
+        avatar: message.sender.avatar,
       },
     };
 

@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useSession } from 'next-auth/react';
 import { useChat, ChatMessage } from '@/hooks/useChat';
 import { usePlayer } from '@/hooks/usePlayer';
+import { PlayerAvatar } from '@/components/progression/PlayerAvatar';
 
 const MAX_MESSAGE_LENGTH = 500;
 const CHAR_COUNTER_THRESHOLD = 400;
@@ -279,17 +280,12 @@ function ChatBubble({
       animate={{ opacity: 1, y: 0 }}
       className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : ''}`}
     >
-      <Avatar className="h-6 w-6 mt-0.5 border border-border/30 shrink-0">
-        <AvatarFallback
-          className={`text-[8px] ${
-            isOwn
-              ? 'bg-lumora-gold/20 text-lumora-gold'
-              : 'bg-lumora-purple/20 text-lumora-purple'
-          }`}
-        >
-          {message.sender.displayName.slice(0, 2).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+      <PlayerAvatar 
+        avatarId={message.sender.avatar} 
+        displayName={message.sender.displayName} 
+        size="xs"
+        className={isOwn ? 'border-lumora-gold/30' : 'border-lumora-purple/30'}
+      />
       <div
         className={`max-w-[80%] rounded-2xl px-3 py-2 ${
           isOwn

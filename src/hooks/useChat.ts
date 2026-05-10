@@ -15,6 +15,7 @@ export interface ChatMessage {
     id: string;
     displayName: string;
     level: number;
+    avatar?: string | null;
   };
 }
 
@@ -31,7 +32,7 @@ interface UseChatReturn {
   error: string | null;
 }
 
-const POLL_INTERVAL = 5000;
+const POLL_INTERVAL = 15000;
 
 export function useChat({ channel, guildId }: UseChatOptions): UseChatReturn {
   const { data: session } = useSession();
@@ -98,7 +99,7 @@ export function useChat({ channel, guildId }: UseChatOptions): UseChatReturn {
     return () => { cancelled = true; };
   }, [session, channel, guildId, fetchMessages]);
 
-  // Polling every 3 seconds
+  // Polling every 15 seconds
   useEffect(() => {
     if (!session?.user) return;
     if (channel === 'guild' && !guildId) return;

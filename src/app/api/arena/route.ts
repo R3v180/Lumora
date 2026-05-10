@@ -47,27 +47,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
     }
 
-    // Find 3 opponents near ELO
-    const opponents = await db.playerProfile.findMany({
-      where: {
-        id: { not: player.id },
-        arenaDefenseTeam: { not: '[]' },
-        arenaRating: {
-          gte: player.arenaRating - 200,
-          lte: player.arenaRating + 200,
-        },
-      },
-      select: {
-        id: true,
-        displayName: true,
-        level: true,
-        arenaRating: true,
-        arenaDefenseTeam: true,
-      },
-      take: 3,
-      orderBy: { arenaRating: 'desc' },
-    });
-
     // Get defense team spirit details
     const defenseIds = (player.arenaDefenseTeam as string[]) || [];
     const defenseSpirits = player.spirits
@@ -81,34 +60,42 @@ export async function GET() {
         power: s.spiritType.basePower * s.level,
       }));
 
-    // Top 10 arena ranking
-    const ranking = await db.playerProfile.findMany({
-      select: {
-        id: true,
-        displayName: true,
-        level: true,
-        arenaRating: true,
-      },
-      orderBy: { arenaRating: 'desc' },
-      take: 10,
-    });
+    // Find 3 opponents near ELO - raw SQL for resilience
+    const opponents = await db.$queryRawUnsafe(`
+      SELECT id, "displayName", level, "arenaRating", "arenaDefenseTeam", avatar
+      FROM player_profiles
+      WHERE id != $1 AND "arenaDefenseTeam" != '[]'
+      AND "arenaRating" BETWEEN $2 AND $3
+      ORDER BY "arenaRating" DESC
+      LIMIT 3
+    `, ...[player.id, player.arenaRating - 200, player.arenaRating + 200]);
+
+    // Top 10 arena ranking - raw SQL
+    const ranking = await db.$queryRawUnsafe(`
+      SELECT id, "displayName", level, "arenaRating", avatar
+      FROM player_profiles
+      ORDER BY "arenaRating" DESC
+      LIMIT 10
+    `);
 
     return NextResponse.json({
       rating: player.arenaRating,
       defenseTeam: defenseSpirits,
       defenseIds,
-      opponents: opponents.map((o) => ({
+      opponents: (opponents as any[]).map((o) => ({
         id: o.id,
         displayName: o.displayName,
         level: o.level,
         rating: o.arenaRating,
+        avatar: o.avatar,
       })),
-      ranking: ranking.map((r, i) => ({
+      ranking: (ranking as any[]).map((r, i) => ({
         rank: i + 1,
         id: r.id,
         displayName: r.displayName,
         level: r.level,
         rating: r.arenaRating,
+        avatar: r.avatar,
         isYou: r.id === player.id,
       })),
       spirits: player.spirits.map((s) => ({

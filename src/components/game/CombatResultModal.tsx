@@ -155,12 +155,23 @@ export function CombatResultModal({
                       transition={{ delay: 0.2 + i * 0.1 }}
                       className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10"
                     >
-                      <div className="p-2 rounded-lg bg-background/50 text-lumora-gold">
-                        {reward.type === 'lumens' ? <Sparkles className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                      <div className={`p-2 rounded-lg bg-background/50 ${
+                        reward.type === 'chest' ? 'text-lumora-pink' : 
+                        reward.type === 'exp' ? 'text-lumora-blue' : 
+                        'text-lumora-gold'
+                      }`}>
+                        {reward.type === 'lumens' && <Sparkles className="h-4 w-4" />}
+                        {reward.type === 'exp' && <TrendingUp className="h-4 w-4" />}
+                        {reward.type === 'chest' && <Trophy className="h-4 w-4" />}
+                        {reward.type === 'spirit' && <Sparkles className="h-4 w-4" />}
                       </div>
                       <div className="text-left">
-                        <p className="text-xs text-muted-foreground leading-none mb-1 capitalize">{reward.type}</p>
-                        <p className="font-bold text-white text-sm">+{reward.amount}</p>
+                        <p className="text-[10px] text-muted-foreground leading-none mb-1 uppercase font-black tracking-tighter">
+                          {reward.type === 'exp' ? 'EXPERIENCIA' : reward.type === 'chest' ? `COFRE ${reward.rarity}` : reward.type}
+                        </p>
+                        <p className="font-bold text-white text-sm">
+                          {reward.type === 'chest' ? '¡NUEVO!' : `+${reward.amount}`}
+                        </p>
                       </div>
                     </motion.div>
                   ))}

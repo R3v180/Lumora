@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Swords, Trophy, Crown, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -10,7 +10,9 @@ import { useGameStore } from '@/lib/store';
 import { audioService } from '@/lib/audioService';
 import { EnergyRefillDialog } from '@/components/game/EnergyRefillDialog';
 import { CombatResultModal } from '@/components/game/CombatResultModal';
-import { HelpCircle, X } from 'lucide-react';
+import { SquadManagerModal } from '@/components/game/SquadManagerModal';
+import { HelpCircle, X, Settings } from 'lucide-react';
+import { PlayerAvatar } from '@/components/progression/PlayerAvatar';
 
 interface Spirit {
   id: string;
@@ -53,8 +55,11 @@ export function ArenaPanel() {
   const [spinResults, setSpinResults] = useState<string[]>([]);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showEnergyRefill, setShowEnergyRefill] = useState(false);
+  const [filterElement, setFilterElement] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'power' | 'rarity'>('power');
   
   const [showResultModal, setShowResultModal] = useState(false);
+  const [showSquadModal, setShowSquadModal] = useState(false);
   
   const energy = useGameStore(s => s.energy);
   const ARENA_COST = 15;
@@ -82,31 +87,45 @@ export function ArenaPanel() {
   }, [fetchArena]);
 
   const toggleSpirit = (id: string) => {
-    setSelectedSpirits((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : prev.length < 3 ? [...prev, id] : prev
-    );
+    setSelectedSpirits((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((s) => s !== id);
+      }
+      if (prev.length < 3) {
+        return [...prev, id];
+      }
+      // Smart Swap: Replace the first one if we already have 3
+      return [prev[1], prev[2], id];
+    });
   };
 
-  const handleSetDefense = async () => {
-    if (selectedSpirits.length !== 3) {
-      toast.error(t('selectAttackTeam'));
-      return;
+  const getSynergy = () => {
+    if (selectedSpirits.length < 3) return { label: null, bonus: 0 };
+    const selected = selectedSpirits.map(id => spirits.find(s => s.id === id)).filter(Boolean);
+    const elements = selected.map(s => s!.element);
+    const unique = new Set(elements);
+    
+    if (unique.size === 1) return { label: `TRIPLE ${elements[0].toUpperCase()}`, bonus: 0.25 };
+    if (unique.size === 2) {
+      const counts: any = {};
+      elements.forEach(e => counts[e] = (counts[e] || 0) + 1);
+      const duo = Object.keys(counts).find(k => counts[k] === 2);
+      return { label: `DUO ${duo?.toUpperCase()}`, bonus: 0.10 };
     }
-    try {
-      const res = await fetch('/api/arena', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'setDefense', spiritIds: selectedSpirits }),
-      });
-      if (res.ok) {
-        audioService.playClaimReward();
-        toast.success(t('defenseSet'));
-        setDefenseIds(selectedSpirits);
-        setSelectedSpirits([]);
-        setMode('overview');
-      }
-    } catch (err) {
-      toast.error('Error');
+    return { label: 'VERSATILIDAD', bonus: 0.05 };
+  };
+
+  const handleSaveSquad = async (spiritIds: string[]) => {
+    const res = await fetch('/api/arena', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'setDefense', spiritIds }),
+    });
+    if (res.ok) {
+      setDefenseIds(spiritIds);
+      fetchArena();
+    } else {
+      throw new Error('Failed to save');
     }
   };
 
@@ -159,6 +178,26 @@ export function ArenaPanel() {
   };
 
 
+  const synergy = getSynergy();
+  const RARITY_MULTIPLIERS: any = { legendary: 1.6, epic: 1.3, rare: 1.15, common: 1.0 };
+  const selectedObjects = selectedSpirits.map(id => spirits.find(x => x.id === id)).filter(Boolean);
+  
+  const baseSum = selectedObjects.reduce((acc, s) => acc + (s?.power || 0), 0);
+  const rarityBonus = Math.round(selectedObjects.reduce((acc, s) => {
+    const mult = RARITY_MULTIPLIERS[s!.rarity] || 1.0;
+    return acc + (s!.power * mult - s!.power);
+  }, 0));
+  
+  const totalPower = Math.round((baseSum + rarityBonus) * (1 + synergy.bonus));
+
+  const filteredSpirits = spirits
+    .filter(s => !filterElement || s.element === filterElement)
+    .sort((a, b) => {
+      if (sortBy === 'power') return b.power - a.power;
+      const rarities: any = { legendary: 4, epic: 3, rare: 2, common: 1 };
+      return (rarities[b.rarity] || 0) - (rarities[a.rarity] || 0);
+    });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -169,232 +208,196 @@ export function ArenaPanel() {
     );
   }
 
-  // DEFENSE MODE
-  if (mode === 'defense') {
-    return (
-      <div className="space-y-3 relative z-10">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold">{t('setDefense')}</h3>
-          <Button variant="ghost" size="sm" onClick={() => { setMode('overview'); setSelectedSpirits([]); }}>←</Button>
-        </div>
-        <p className="text-xs text-muted-foreground">{t('selectAttackTeam')} ({selectedSpirits.length}/3)</p>
-        <div className="grid grid-cols-4 gap-1.5 max-h-40 overflow-y-auto">
-          {spirits.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => toggleSpirit(s.id)}
-              className={`p-1.5 rounded-xl border text-center transition-all ${
-                selectedSpirits.includes(s.id)
-                  ? 'border-lumora-gold/60 bg-lumora-gold/10 ring-1 ring-lumora-gold/30'
-                  : 'border-border/20 bg-background/30 hover:bg-card/60'
-              }`}
-            >
-              <img src={`/assets/symbols/sym_${s.element}_${s.rarity}.png`} className="w-6 h-6 mx-auto object-contain" alt={s.name} />
-              <span className="text-[8px] text-muted-foreground block">⚔{s.power}</span>
-            </button>
-          ))}
-        </div>
-        <Button onClick={handleSetDefense} disabled={selectedSpirits.length !== 3} className="w-full rounded-xl bg-gradient-to-r from-lumora-blue to-lumora-purple text-white font-bold" size="sm">
-          <Shield className="h-4 w-4 mr-1.5" />{t('setDefense')}
-        </Button>
-      </div>
-    );
-  }
-
-  // ATTACK MODE
-  if (mode === 'attack' && attackTarget) {
-    return (
-      <div className="space-y-3 relative z-10">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold">vs {attackTarget.displayName}</h3>
-          <Button variant="ghost" size="sm" onClick={() => { setMode('overview'); setSpinResults([]); setAttackTarget(null); }}>←</Button>
-        </div>
-        <div className="rounded-2xl border border-border/20 bg-card/40 p-4">
-          <div className="flex justify-between items-center mb-4">
-            <p className="text-sm font-semibold text-muted-foreground">Tus 3 Giros de Combate</p>
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border ${energy < ARENA_COST ? 'bg-destructive/10 border-destructive/30 text-destructive' : 'bg-lumora-blue/10 border-lumora-blue/30 text-lumora-blue'}`}>
-              <Zap className={`h-3 w-3 ${energy < ARENA_COST ? 'animate-pulse' : ''}`} />
-              <span className="text-[10px] font-bold">COSTE: {ARENA_COST}</span>
-            </div>
-          </div>
-          
-          {/* Slot Machine Visualization - Bandeja de Invocación */}
-          <div className="flex justify-center gap-3 mb-6 h-20 bg-black/60 border-2 border-lumora-gold/40 rounded-xl items-center shadow-[inset_0_0_20px_rgba(255,215,0,0.15)] relative mt-2">
-            <div className="absolute -top-3 px-2 bg-black text-[10px] text-lumora-gold font-bold rounded-full border border-lumora-gold/40 uppercase tracking-wider">
-              Bandeja de Invocación
-            </div>
-            {spinResults.length > 0 ? (
-              spinResults.map((element, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ y: -50, opacity: 0, scale: 0.5 }}
-                  animate={{ y: 0, opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.2, type: 'spring', bounce: 0.5 }}
-                  className="w-14 h-14 rounded-xl border-2 bg-card/80 flex items-center justify-center shadow-lg border-lumora-gold/50 shadow-lumora-gold/20"
-                >
-                  <img src={`/assets/symbols/sym_${element}_rare.png`} alt={element} className="w-10 h-10 object-contain" />
-                </motion.div>
-              ))
-            ) : (
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="w-14 h-14 rounded-xl border-2 border-border/20 bg-background/30 flex items-center justify-center opacity-50">
-                  <span className="text-xl text-muted-foreground/30">?</span>
-                </div>
-              ))
-            )}
-          </div>
-
-          <Button onClick={handleAttack} disabled={isFighting} className="w-full rounded-xl bg-gradient-to-r from-red-500 to-lumora-pink text-white font-bold h-12 text-lg shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-            <Swords className="h-5 w-5 mr-2" />{isFighting && spinResults.length === 0 ? t('fighting') : t('fight')}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // OVERVIEW
   return (
-    <div className="space-y-4 relative overflow-hidden rounded-2xl p-4">
-      {/* Background Arena Image */}
-      <div className="absolute inset-0 z-0">
-        <img src="/assets/backgrounds/bg_arena.png" alt="Arena Background" className="w-full h-full object-cover opacity-20 mix-blend-screen" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-transparent" />
+    <div className="space-y-4 relative overflow-hidden rounded-2xl p-4 min-h-[600px]">
+      {/* Shared Background */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <motion.img 
+          initial={{ scale: 1.1 }}
+          animate={{ scale: [1.1, 1.15, 1.1] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          src="/assets/backgrounds/bg_arena.png" 
+          alt="Arena Background" 
+          className="w-full h-full object-cover opacity-50 mix-blend-soft-light" 
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
       </div>
 
-      <div className="relative z-10 flex justify-end">
-        <Button variant="ghost" size="icon" onClick={() => setShowHelpDialog(true)} className="h-8 w-8 rounded-full bg-card/50 border border-border/30 text-muted-foreground hover:text-foreground">
-          <span className="font-bold font-serif">?</span>
-        </Button>
-      </div>
-      {/* Rating Card */}
-      <div className="rounded-2xl border border-lumora-gold/30 bg-card/60 backdrop-blur-sm p-4 text-center relative z-10 shadow-[0_0_20px_rgba(250,204,21,0.1)]">
-        <Crown className="h-6 w-6 text-lumora-gold mx-auto mb-1" />
-        <p className="text-2xl font-bold font-fantasy text-lumora-gold">{rating}</p>
-        <p className="text-[10px] text-muted-foreground">{t('arenaPoints')}</p>
-      </div>
-
-      {/* Last Result */}
-      {lastResult && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`relative z-10 rounded-xl p-3 text-center text-sm font-bold ${
-            lastResult.victory ? 'bg-lumora-emerald/10 text-lumora-emerald border border-lumora-emerald/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'
-          }`}
-        >
-          {lastResult.victory ? t('victory') : t('defeat')} ({lastResult.ratingChange > 0 ? '+' : ''}{lastResult.ratingChange} ELO)
-        </motion.div>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 relative z-10">
-        <Button onClick={() => { setMode('defense'); setSelectedSpirits(defenseIds); }} variant="outline" size="sm" className="flex-1 rounded-xl border-lumora-blue/30">
-          <Shield className="h-4 w-4 mr-1" />{t('setDefense')}
-        </Button>
-      </div>
-
-      {/* Opponents */}
-      <div className="rounded-2xl border border-border/20 bg-card/80 backdrop-blur-md p-3 relative z-10">
-        <p className="text-xs font-semibold mb-2">{t('opponents')}</p>
-        {opponents.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">{t('noOpponents')}</p>
+      {/* Main Content Switcher */}
+      <div className="relative z-10">
+        {mode === 'attack' && attackTarget ? (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-black text-white italic uppercase tracking-tighter">vs {attackTarget.displayName}</h3>
+              <Button variant="ghost" size="icon" onClick={() => { setMode('overview'); setSpinResults([]); setAttackTarget(null); }} className="rounded-full bg-white/5 border border-white/10 h-10 w-10"><X className="h-5 w-5" /></Button>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-6">
+              <div className="flex justify-center gap-4 mb-8 h-24 bg-black/60 border-2 border-white/10 rounded-2xl items-center relative">
+                {spinResults.length > 0 ? spinResults.map((element, idx) => (
+                  <motion.div key={idx} initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.2 }} className="w-16 h-16 rounded-2xl border-2 border-lumora-gold/50 bg-card/80 flex items-center justify-center">
+                    <img src={`/assets/symbols/sym_${element}_rare.png`} className="w-12 h-12" />
+                  </motion.div>
+                )) : Array.from({ length: 3 }).map((_, idx) => <div key={idx} className="w-16 h-16 rounded-2xl border-2 border-white/5 bg-white/5 flex items-center justify-center opacity-30">?</div>)}
+              </div>
+              <Button onClick={handleAttack} disabled={isFighting} className="w-full h-14 rounded-3xl bg-gradient-to-r from-red-500 to-lumora-pink text-white font-black text-xl"><Swords className="h-6 w-6 mr-2" />{isFighting ? 'COMBATIENDO...' : '¡A LA CARGA!'}</Button>
+            </div>
+          </div>
         ) : (
-          <div className="space-y-1.5">
-            {opponents.map((o) => (
-              <button
-                key={o.id}
-                onClick={() => { setAttackTarget(o); setMode('attack'); setSelectedSpirits([]); }}
-                className="w-full flex items-center justify-between p-3 min-h-[60px] rounded-xl border border-border/20 bg-background/20 hover:bg-card/60 transition-colors"
-              >
-                <div className="text-left">
-                  <span className="text-xs font-semibold">{o.displayName}</span>
-                  <span className="text-[10px] text-muted-foreground ml-2">Nv.{o.level}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-lumora-gold font-bold">ELO {o.rating}</span>
-                  <Swords className="h-3.5 w-3.5 text-red-400" />
-                </div>
-              </button>
-            ))}
+          <div className="space-y-4 animate-in fade-in duration-700">
+            <Button variant="ghost" size="icon" onClick={() => setShowHelpDialog(true)} className="absolute top-0 right-0 h-8 w-8 rounded-full bg-black/40 border border-white/10 text-white/60"><HelpCircle className="h-4 w-4" /></Button>
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="rounded-3xl border-2 border-lumora-gold/40 bg-gradient-to-b from-lumora-gold/20 to-black/60 p-6 text-center mt-4">
+              <p className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-lumora-gold">{rating}</p>
+              <p className="text-xs text-lumora-gold/60 font-black uppercase mt-1">Nivel Competitivo</p>
+            </motion.div>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowSquadModal(true)} variant="outline" size="sm" className="flex-1 h-12 rounded-2xl border-white/10 bg-white/5 font-black text-xs text-lumora-blue"><Shield className="h-4 w-4 mr-2" />{t('setDefense')}</Button>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-black/40 p-4">
+              <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-2"><Swords className="h-4 w-4 text-red-500" /><p className="text-xs font-black text-white/60 uppercase">{t('opponents')}</p></div>
+              <div className="space-y-3">
+                {opponents.map((o) => (
+                  <button key={o.id} onClick={() => { setAttackTarget(o); setMode('attack'); setSelectedSpirits([]); }} className="w-full flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all">
+                    <div className="flex items-center gap-3">
+                      <PlayerAvatar avatarId={(o as any).avatar} displayName={o.displayName} size="sm" />
+                      <div className="flex flex-col items-start">
+                        <span className="text-sm font-black text-white">{o.displayName}</span>
+                        <span className="text-[10px] text-white/40 font-bold">NV.{o.level}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm font-black text-lumora-gold">{o.rating}</span>
+                      <div className="px-2 py-0.5 rounded-md bg-red-500/20 text-[8px] font-black text-red-400 uppercase">Retar</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Ranking */}
-      {ranking.length > 0 && (
-        <div className="rounded-2xl border border-border/20 bg-card/80 backdrop-blur-md p-3 relative z-10">
-          <div className="flex items-center gap-1.5 mb-2">
-            <Trophy className="h-4 w-4 text-lumora-gold" />
-            <span className="text-xs font-semibold">{t('ranking')}</span>
-          </div>
-          <div className="space-y-1">
-            {ranking.map((r) => (
-              <div key={r.id} className={`flex items-center justify-between px-2 py-1 rounded-lg ${r.isYou ? 'bg-lumora-gold/10 border border-lumora-gold/20' : 'bg-background/20'}`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-lumora-gold w-4">#{r.rank}</span>
-                  <span className="text-xs">{r.displayName} {r.isYou ? '⭐' : ''}</span>
-                </div>
-                <span className="text-[10px] text-muted-foreground">{r.rating} ELO</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Combat Result Modal */}
+      {/* Global Modals */}
       <CombatResultModal
         isOpen={showResultModal}
         onClose={() => setShowResultModal(false)}
         type={lastResult?.victory ? 'victory' : 'defeat'}
         title={lastResult?.victory ? '¡VICTORIA ESTELAR!' : 'DERROTA'}
         subtitle={lastResult?.victory ? `Has vencido a ${lastResult.opponentName}` : 'Tu equipo ha caído en combate'}
-        rewards={lastResult?.victory ? [
-          { type: 'lumens', amount: lastResult.lumensReward || 0 },
-          { type: 'exp', amount: 25 }
-        ] : []}
-        stats={[
-          { label: 'PUNTOS ELO', value: `${lastResult?.ratingChange > 0 ? '+' : ''}${lastResult?.ratingChange || 0}` },
-          { label: 'TU RATING', value: rating }
-        ]}
+        rewards={lastResult?.victory ? [{ type: 'lumens', amount: lastResult.lumensReward || 0 }, { type: 'exp', amount: 25 }] : []}
+        stats={[{ label: 'PUNTOS ELO', value: `${lastResult?.ratingChange > 0 ? '+' : ''}${lastResult?.ratingChange || 0}` }, { label: 'TU RATING', value: rating }]}
       />
 
-      {/* Help Dialog */}
-      {showHelpDialog && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="bg-card border border-border/30 p-6 rounded-3xl max-w-sm w-full shadow-2xl">
-            <div className="flex items-center gap-2 mb-4">
-              <HelpCircle className="h-5 w-5 text-lumora-blue" />
-              <h3 className="font-fantasy font-bold text-lg">Arena Estelar</h3>
-            </div>
-            
-            <div className="space-y-4 text-sm">
-              <p className="text-muted-foreground leading-relaxed">
-                El combate PvP se decide por <strong className="text-white">3 Giros de Combate</strong>. Gana quien obtenga mejores combinaciones elementales.
-              </p>
+      <SquadManagerModal
+        isOpen={showSquadModal}
+        onClose={() => setShowSquadModal(false)}
+        spirits={spirits}
+        initialSelectedIds={defenseIds}
+        onSave={handleSaveSquad}
+      />
 
-              <div className="bg-white/5 rounded-xl p-3 border border-white/5">
-                <p className="text-[10px] font-black uppercase text-lumora-gold mb-2">Sistema ELO</p>
-                <ul className="space-y-1 text-[10px] text-muted-foreground">
-                  <li>• Gana para subir en el Ranking.</li>
-                  <li>• Pierde y tu Rating bajará.</li>
-                  <li>• Los 10 mejores reciben cofres semanales.</li>
-                </ul>
+      {showHelpDialog && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+            animate={{ scale: 1, opacity: 1, y: 0 }} 
+            className="bg-[#0a0a0c] border border-white/10 rounded-[2.5rem] max-w-sm w-full shadow-[0_0_50px_rgba(0,0,0,1)] overflow-hidden"
+          >
+            <div className="bg-gradient-to-b from-white/5 to-transparent p-6 pb-0">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-full bg-lumora-gold/20 flex items-center justify-center border border-lumora-gold/40">
+                  <Shield className="h-5 w-5 text-lumora-gold" />
+                </div>
+                <div>
+                  <h3 className="font-black text-xl text-white uppercase italic tracking-tighter">Guía del Coliseo</h3>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Domina la Arena Estelar</p>
+                </div>
               </div>
             </div>
 
-            <Button onClick={() => setShowHelpDialog(false)} className="w-full mt-6 rounded-xl bg-lumora-blue text-white font-bold">
-              ¡ENTENDIDO!
-            </Button>
-          </div>
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {/* Sección 1: La Guardia */}
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-lumora-gold">
+                  <Crown className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-wider">La Guardia Táctica</span>
+                </div>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  Tu guardia defiende tu posición en el ranking. El **Poder Total** se calcula sumando el poder base de tus 3 espíritus y aplicando bonos por su **Nivel** y **Rareza**.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                    <span className="text-[9px] font-black text-lumora-gold uppercase block mb-1">Multiplicador Rango</span>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[8px] font-bold text-white/40"><span>LEGENDARIO</span><span className="text-lumora-gold">x1.6</span></div>
+                      <div className="flex justify-between text-[8px] font-bold text-white/40"><span>ÉPICO</span><span className="text-lumora-purple">x1.3</span></div>
+                      <div className="flex justify-between text-[8px] font-bold text-white/40"><span>RARO</span><span className="text-lumora-blue">x1.1</span></div>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col justify-center">
+                    <span className="text-[9px] font-black text-lumora-blue uppercase block mb-1">Nivel (LV)</span>
+                    <p className="text-[8px] text-white/40 font-bold leading-tight">Cada nivel aumenta permanentemente las estadísticas base del espíritu.</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Sección 2: Sinergias */}
+              <section className="space-y-3">
+                <div className="flex items-center gap-2 text-lumora-blue">
+                  <Zap className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-wider">Sinergias Elementales</span>
+                </div>
+                <div className="bg-gradient-to-br from-lumora-blue/10 to-transparent p-4 rounded-2xl border border-lumora-blue/20">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-lumora-gold" />
+                        <span className="text-[10px] font-black text-white uppercase">Triple Elemento</span>
+                      </div>
+                      <span className="text-xs font-black text-lumora-gold">+25% PODER</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-lumora-blue" />
+                        <span className="text-[10px] font-black text-white uppercase">Dúo Elemental</span>
+                      </div>
+                      <span className="text-xs font-black text-lumora-blue">+10% PODER</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-white/40" />
+                        <span className="text-[10px] font-black text-white uppercase">Versatilidad</span>
+                      </div>
+                      <span className="text-xs font-black text-white/40">+5% PODER</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Sección 3: Recompensas */}
+              <section className="space-y-2">
+                <div className="flex items-center gap-2 text-lumora-pink">
+                  <Trophy className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-wider">Gloria y Botín</span>
+                </div>
+                <p className="text-[10px] text-white/40 font-bold leading-relaxed italic">
+                  "Los campeones con mayor ELO reciben cofres estelares cada semana y Lumens extra en cada victoria."
+                </p>
+              </section>
+            </div>
+
+            <div className="p-6 pt-0">
+              <Button 
+                onClick={() => setShowHelpDialog(false)} 
+                className="w-full h-14 rounded-3xl bg-gradient-to-r from-lumora-blue to-lumora-purple text-white font-black text-lg shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:scale-[1.02] transition-all"
+              >
+                ¡ENTENDIDO, COMANDANTE!
+              </Button>
+            </div>
+          </motion.div>
         </div>
       )}
 
-      {/* Energy Refill Dialog */}
-      <EnergyRefillDialog 
-        isOpen={showEnergyRefill} 
-        onClose={() => setShowEnergyRefill(false)}
-        onSuccess={() => fetchArena()}
-      />
+      <EnergyRefillDialog isOpen={showEnergyRefill} onClose={() => setShowEnergyRefill(false)} onSuccess={() => fetchArena()} />
     </div>
   );
 }

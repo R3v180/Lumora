@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Timer, Trophy, Zap } from 'lucide-react';
 
 interface RaceRankEntry {
@@ -20,6 +20,7 @@ export function RaceWidget() {
   const [myPosition, setMyPosition] = useState<number | null>(null);
   const [ranking, setRanking] = useState<RaceRankEntry[]>([]);
   const [isActive, setIsActive] = useState(false);
+  const [missionElement, setMissionElement] = useState('dream');
   const [expanded, setExpanded] = useState(false);
 
   const fetchRace = useCallback(async () => {
@@ -33,6 +34,7 @@ export function RaceWidget() {
           setMyScore(data.myScore);
           setMyPosition(data.myPosition);
           setRanking(data.ranking);
+          setMissionElement(data.race.missionElement || 'dream');
         } else {
           setIsActive(false);
         }
@@ -44,7 +46,7 @@ export function RaceWidget() {
 
   useEffect(() => {
     fetchRace();
-    const interval = setInterval(fetchRace, 5000);
+    const interval = setInterval(fetchRace, 15000);
     return () => clearInterval(interval);
   }, [fetchRace]);
 
@@ -69,63 +71,120 @@ export function RaceWidget() {
   const seconds = Math.floor((timeLeft % 60000) / 1000);
   const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
+  const ELEMENT_ICONS: Record<string, string> = {
+    fire: '🔥',
+    water: '💧',
+    nature: '🌿',
+    dream: '🌀',
+    star: '⭐'
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-sm mb-4"
+      className="w-full max-w-sm mb-4 cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
     >
-      <button
-        onClick={() => setExpanded(!expanded)}
+      <div
         className="w-full rounded-2xl border border-lumora-pink/30 bg-gradient-to-r from-lumora-pink/10 to-lumora-purple/10 backdrop-blur-sm p-3 transition-all hover:border-lumora-pink/50"
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-lumora-pink" />
-            <span className="text-xs font-bold text-lumora-pink">{t('active')}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            {myPosition && (
-              <span className="text-[10px] font-bold text-lumora-gold">
-                #{myPosition} · {myScore.toLocaleString()} pts
-              </span>
-            )}
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-lumora-pink/20">
-              <Timer className="h-3 w-3 text-lumora-pink" />
-              <span className="text-[10px] font-mono font-bold text-lumora-pink">{timeStr}</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-lumora-pink animate-pulse" />
+              <span className="text-xs font-bold text-lumora-pink">{t('active')}</span>
+              <div className="px-1.5 py-0.5 rounded-md bg-white/5 border border-white/10 flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Misión:</span>
+                <span className="text-xs">{ELEMENT_ICONS[missionElement] || '🌀'}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {myPosition && (
+                <span className="text-[10px] font-bold text-lumora-gold bg-lumora-gold/10 px-2 py-0.5 rounded-full border border-lumora-gold/20">
+                  #{myPosition} · {myScore.toLocaleString()} pts
+                </span>
+              )}
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-lumora-pink/20">
+                <Timer className="h-3 w-3 text-lumora-pink" />
+                <span className="text-[10px] font-mono font-bold text-lumora-pink">{timeStr}</span>
+              </div>
             </div>
           </div>
+          <p className="text-[8px] text-muted-foreground text-left mt-1 animate-pulse">
+            {expanded ? 'Toca para contraer' : 'Toca para ver ranking y premios'}
+          </p>
         </div>
 
         {/* Expanded ranking */}
-        {expanded && ranking.length > 0 && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            className="mt-2 pt-2 border-t border-lumora-pink/20 space-y-1"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {ranking.slice(0, 5).map((r) => (
-              <div
-                key={r.rank}
-                className={`flex items-center justify-between px-2 py-1 rounded-lg text-xs ${
-                  r.isYou ? 'bg-lumora-gold/10 font-bold' : ''
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {r.rank <= 3 ? (
-                    <Trophy className={`h-3 w-3 ${r.rank === 1 ? 'text-lumora-gold' : r.rank === 2 ? 'text-gray-300' : 'text-amber-600'}`} />
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground w-3">#{r.rank}</span>
-                  )}
-                  <span>{r.displayName} {r.isYou ? '⭐' : ''}</span>
-                </div>
-                <span className="text-[10px] text-lumora-gold">{r.score.toLocaleString()} pts</span>
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-3 pt-3 border-t border-lumora-pink/20 space-y-2 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-[10px] font-bold text-lumora-pink text-left uppercase tracking-widest">🏆 Ranking Top 5</p>
+              <div className="space-y-1">
+                {ranking.length > 0 ? (
+                  ranking.slice(0, 5).map((r) => (
+                    <div
+                      key={r.rank}
+                      className={`flex items-center justify-between px-2 py-1.5 rounded-lg text-xs ${
+                        r.isYou ? 'bg-lumora-gold/20 border border-lumora-gold/30 font-bold' : 'bg-black/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {r.rank <= 3 ? (
+                          <Trophy className={`h-3 w-3 ${r.rank === 1 ? 'text-lumora-gold' : r.rank === 2 ? 'text-gray-300' : 'text-amber-600'}`} />
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground w-3">#{r.rank}</span>
+                        )}
+                        <span>{r.displayName} {r.isYou ? '⭐' : ''}</span>
+                      </div>
+                      <span className="text-[10px] text-lumora-gold font-mono">{r.score.toLocaleString()} pts</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-4 text-center">
+                    <p className="text-[10px] text-muted-foreground italic">¡Aún no hay puntuaciones en esta carrera!</p>
+                    <p className="text-[9px] text-lumora-gold/60 mt-1">Gira en la máquina para puntuar con el elemento 🌀</p>
+                  </div>
+                )}
               </div>
-            ))}
-          </motion.div>
-        )}
-      </button>
+
+              {/* REWARDS SECTION */}
+              <div className="mt-4 p-3 rounded-xl bg-lumora-gold/5 border border-lumora-gold/10 text-left">
+                <p className="text-[10px] font-bold text-lumora-gold mb-3 uppercase flex items-center gap-2">
+                  🎁 Premios por Clasificación
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1">
+                    <span className="text-muted-foreground">1º Puesto</span>
+                    <span className="font-bold text-white">1.000 Lumens ✨ + Cofre Legendario 📦</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] border-b border-white/5 pb-1">
+                    <span className="text-muted-foreground">Top 3</span>
+                    <span className="font-bold text-white">500 Lumens ✨ + Cofre Épico 📦</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-muted-foreground">Top 10</span>
+                    <span className="font-bold text-white">200 Lumens ✨</span>
+                  </div>
+                </div>
+                
+                <div className="mt-3 pt-2 border-t border-white/5">
+                  <p className="text-[9px] text-muted-foreground italic leading-tight">
+                    * Los **Lumens** sirven para comprar cofres de Espíritus en la Tienda. Cada Espíritu que consigues aumenta tu **Bono de Ganancia** fijo en la máquina.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }

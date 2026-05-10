@@ -169,7 +169,12 @@ export function ChestPanel() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className={`relative group p-4 rounded-2xl border-2 bg-card/40 backdrop-blur-md flex flex-col items-center gap-3 transition-all hover:bg-card/60 shadow-lg ${RARITY_SHADOWS[chest.rarity]} ${isReady ? 'border-lumora-emerald/50 animate-pulse-subtle' : 'border-border/20'}`}
+                className={`relative group p-4 rounded-2xl border-2 bg-card/40 backdrop-blur-md flex flex-col items-center gap-3 transition-all hover:bg-card/60 shadow-lg cursor-pointer ${RARITY_SHADOWS[chest.rarity]} ${isReady ? 'border-lumora-emerald/50 animate-pulse-subtle' : 'border-border/20'}`}
+                onClick={() => {
+                  if (chest.status === 'locked') handleStartUnlock(chest.id);
+                  else if (isReady) handleOpen(chest, false);
+                  else if (chest.status === 'unlocking') handleOpen(chest, true);
+                }}
               >
                 {/* Rarity Tag */}
                 <div className="absolute -top-2 px-2 py-0.5 rounded-full bg-background border border-border/50 text-[8px] font-bold uppercase tracking-widest">
@@ -203,64 +208,38 @@ export function ChestPanel() {
                     />
                   )}
                 </div>
-                
-                {/* Status & Progress */}
-                <div className="w-full space-y-2">
+
+                {/* Footer Action Area */}
+                <div className="w-full mt-auto pt-3 border-t border-white/5">
+                  {chest.status === 'locked' && (
+                    <div className="flex flex-col items-center gap-1.5 group-hover:scale-105 transition-transform">
+                      <span className="text-[8px] text-muted-foreground uppercase tracking-widest">Esperando</span>
+                      <Unlock className="h-4 w-4 text-lumora-blue" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-lumora-blue">Desbloquear</span>
+                    </div>
+                  )}
+
                   {chest.status === 'unlocking' && !isReady && (
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono">
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {timeStr}</span>
-                        <span>{Math.floor(progress)}%</span>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[8px] text-muted-foreground font-mono">
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {timeStr}</span>
+                          <span>{Math.floor(progress)}%</span>
+                        </div>
+                        <Progress value={progress} className="h-1 bg-white/5" />
                       </div>
-                      <Progress value={progress} className="h-1.5 bg-background/50" />
-                    </div>
-                  )}
-
-                  {chest.status === 'locked' && (
-                    <div className="text-center py-1">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Esperando</span>
+                      <div className="flex flex-col items-center gap-1 group-hover:scale-105 transition-transform">
+                        <Zap className="h-4 w-4 text-lumora-gold fill-current" />
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-lumora-gold">Abrir: {currentCost}</span>
+                      </div>
                     </div>
                   )}
 
                   {isReady && (
-                    <div className="text-center py-1 flex items-center justify-center gap-1 text-lumora-emerald">
-                      <Sparkles className="h-3 w-3 animate-bounce" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">¡Listo!</span>
+                    <div className="flex flex-col items-center gap-1.5 py-1 animate-pulse group-hover:scale-105 transition-transform">
+                      <Sparkles className="h-4 w-4 text-lumora-emerald" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest text-lumora-emerald italic">¡RECLAMAR!</span>
                     </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="w-full mt-1">
-                  {chest.status === 'locked' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStartUnlock(chest.id)}
-                      className="w-full h-8 text-[10px] font-bold rounded-xl bg-lumora-blue text-white shadow-md hover:scale-105 active:scale-95 transition-all"
-                    >
-                      <Unlock className="h-3 w-3 mr-1.5" /> Desbloquear
-                    </Button>
-                  )}
-
-                  {chest.status === 'unlocking' && !isReady && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpen(chest, true)}
-                      className="w-full h-8 text-[10px] font-bold rounded-xl border-lumora-gold/30 text-lumora-gold hover:bg-lumora-gold/10 hover:scale-105 active:scale-95 transition-all"
-                    >
-                      <Zap className="h-3 w-3 mr-1.5" /> Abrir {currentCost}
-                    </Button>
-                  )}
-
-                  {isReady && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleOpen(chest, false)}
-                      className="w-full h-8 text-[10px] font-bold rounded-xl bg-gradient-to-r from-lumora-emerald to-emerald-600 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 transition-all"
-                    >
-                      Reclamar Recompensa
-                    </Button>
                   )}
                 </div>
               </motion.div>

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
   Sparkles, TreePine, Coins, Settings, Pencil, ArrowUp,
-  Plus, ArrowRight, Info, ChevronUp, Check, X,
+  Plus, ArrowRight, Info, ChevronUp, Check, X, Wand2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { SanctuaryView } from '@/components/sanctuary/SanctuaryView';
 import { SanctuaryManager } from '@/components/sanctuary/SanctuaryManager';
 import { audioService } from '@/lib/audioService';
 import { LumensCollector } from '@/components/sanctuary/LumensCollector';
+import { OptimizationModal } from '@/components/sanctuary/OptimizationModal';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
@@ -109,6 +110,10 @@ export default function SanctuaryPage() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
 
+  // Optimization feedback state
+  const [showOptimizationModal, setShowOptimizationModal] = useState(false);
+  const [oldLPH, setOldLPH] = useState(0);
+
   // Fetch sanctuary data
   const fetchSanctuary = useCallback(async () => {
     try {
@@ -193,8 +198,22 @@ export default function SanctuaryPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        toast.success(`¡${data.placedCount} espíritus colocados automáticamente!`);
-        fetchSanctuary();
+        const currentLPH = sanctuary?.lumensPerHour || 0;
+        
+        // Refresh first to get the actual NEW data
+        await fetchSanctuary();
+        
+        // We set the stats for the modal
+        setOldLPH(currentLPH);
+        setShowOptimizationModal(true);
+        
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.8 },
+          colors: ['#FFD700', '#FFFFFF', '#9B59B6']
+        });
+
         useGameStore.getState().triggerRefresh();
         setShowManager(false);
       } else {
@@ -354,60 +373,54 @@ export default function SanctuaryPage() {
         className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 mix-blend-screen pointer-events-none"
         style={{ backgroundImage: "url('/assets/sanctuary/bg_sanctuary.png')" }} 
       />
-      {/* Title with rename */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-3 flex flex-col items-center"
-      >
-        <div className="flex items-center justify-center gap-2">
-          <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-lumora-emerald to-lumora-blue bg-clip-text text-transparent">
-            {t('title')}
-          </h1>
-          {sanctuary && !isRenaming && (
-            <button
-              onClick={() => {
-                setIsRenaming(true);
-                setRenameValue(sanctuary.name);
-              }}
-              className="p-1 rounded-lg hover:bg-card/60 transition-colors"
-            >
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-          )}
+      {/* Title Header - Tactical Style */}
+      <div className="w-full flex items-center justify-between mb-6">
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-black text-white uppercase italic tracking-tighter">Santuario</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-lumora-emerald font-black uppercase tracking-widest">Nivel {sanctuary?.sanctuaryLevel || 1}</span>
+            <span className="text-[10px] text-white/40 font-black">•</span>
+            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{sanctuary?.name || 'Tu Isla Flotante'}</span>
+            {sanctuary && !isRenaming && (
+              <button
+                onClick={() => {
+                  setIsRenaming(true);
+                  setRenameValue(sanctuary.name);
+                }}
+                className="ml-1 p-1 hover:text-white transition-colors"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+          </div>
         </div>
-        {isRenaming ? (
-          <div className="flex items-center gap-2 mt-1 justify-center">
-            <Input
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-              placeholder="Nombre del santuario"
-              className="h-7 w-40 text-xs text-center rounded-lg border-lumora-emerald/30"
-              autoFocus
-            />
-            <button
-              onClick={handleRename}
-              className="p-1 rounded-lg bg-lumora-emerald/20 text-lumora-emerald hover:bg-lumora-emerald/30"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setIsRenaming(false)}
-              className="p-1 rounded-lg bg-muted/20 text-muted-foreground hover:bg-muted/30"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center mt-1">
-            <p className="text-xs text-muted-foreground mb-2">
-              {sanctuary?.name || 'Tu isla flotante'} · Nivel {sanctuary?.sanctuaryLevel || 1}
-            </p>
-            <SanctuaryHelpDialog />
-          </div>
-        )}
-      </motion.div>
+        <div className="flex items-center gap-2">
+          <SanctuaryHelpDialog />
+        </div>
+      </div>
+
+      {isRenaming && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full flex items-center gap-2 mb-4 bg-white/5 p-3 rounded-2xl border border-white/10"
+        >
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+            placeholder="Nombre del santuario"
+            className="flex-1 h-10 bg-transparent border-white/10 text-white"
+            autoFocus
+          />
+          <Button onClick={handleRename} size="sm" className="bg-lumora-emerald text-white font-bold h-10">
+            <Check className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => setIsRenaming(false)} size="sm" variant="ghost" className="h-10">
+            <X className="h-4 w-4" />
+          </Button>
+        </motion.div>
+      )}
 
       {/* Action message */}
       {actionMessage && (
@@ -483,6 +496,14 @@ export default function SanctuaryPage() {
           setShowManager(false);
           toast.info('Toca una casilla para colocar al espíritu');
         }}
+      />
+
+      {/* Optimization Result Modal (Big Feedback) */}
+      <OptimizationModal 
+        isOpen={showOptimizationModal}
+        onClose={() => setShowOptimizationModal(false)}
+        oldLPH={oldLPH}
+        newLPH={sanctuary?.lumensPerHour || 0}
       />
     </div>
   );

@@ -40,20 +40,26 @@ export interface SpiritReward {
 
 export interface SpinResult {
   grid: GridSymbol[][];
-  wins: WinInfo[];
+  wins: { symbolId: string; positions: [number, number][]; payout: number }[];
+  elementalSurges: { element: string; positions: [number, number][] }[];
+  missionHighlights: { element: string; positions: [number, number][]; points: number };
   totalPayout: number;
   isBigWin: boolean;
   isMegaWin: boolean;
   spiritsWon: SpiritReward[];
-  elementContributions: Record<string, number>;
-  bonusTriggered?: boolean;
-  bonusCount?: number;
+  availableNudges: number;
+  canHold: boolean;
+  holdPositions: boolean[];
+  bonusTriggered: boolean;
+  bonusCount: number;
   player: {
     lumens: number;
     energy: number;
     maxEnergy: number;
     level: number;
     experience: number;
+    totalPower?: number;
+    collectionMultiplier?: number;
   };
 }
 
@@ -104,10 +110,19 @@ export function useSlotMachine() {
   const [maxEnergy, setMaxEnergy] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [winPositions, setWinPositions] = useState<Set<string>>(new Set());
+  const [surgePositions, setSurgePositions] = useState<Set<string>>(new Set());
+  const [missionPositions, setMissionPositions] = useState<Set<string>>(new Set());
   const [reelsStopped, setReelsStopped] = useState<boolean[]>([true, true, true, true, true]);
   const [showEnergyDialog, setShowEnergyDialog] = useState(false);
 
   const [multiplier, setMultiplier] = useState(1);
+  const [availableNudges, setAvailableNudges] = useState(0);
+  const [canHold, setCanHold] = useState(false);
+  const [holdPositions, setHoldPositions] = useState<boolean[]>([false, false, false, false, false]);
+  
+  const [showBonusGame, setShowBonusGame] = useState(false);
+  const [bonusCount, setBonusCount] = useState(0);
+
   const autoSpinRef = useRef(false);
   useEffect(() => { autoSpinRef.current = autoSpin; }, [autoSpin]);
 
@@ -123,6 +138,16 @@ export function useSlotMachine() {
           setMaxEnergy(data.maxEnergy);
           syncPlayerStats(data);
         }
+
+        // Fetch initial session state if exists
+        const sessionRes = await fetch('/api/spin/session');
+        if (sessionRes.ok) {
+          const sData = await sessionRes.json();
+          if (sData.grid) setGrid(sData.grid);
+          setAvailableNudges(sData.availableNudges || 0);
+          setCanHold(sData.canHold || false);
+          setHoldPositions(sData.holds || [false, false, false, false, false]);
+        }
       } catch {
         toast.error('Error al cargar datos del jugador');
       } finally {
@@ -131,6 +156,55 @@ export function useSlotMachine() {
     };
     if (session?.user) fetchPlayer();
   }, [session, syncPlayerStats]);
+
+  const toggleHold = useCallback((index: number) => {
+    if (!canHold || isSpinning) return;
+    audioService.playClick();
+    setHoldPositions(prev => {
+      const next = [...prev];
+      next[index] = !next[index];
+      return next;
+    });
+  }, [canHold, isSpinning]);
+
+  const doNudge = useCallback(async (reelIndex: number) => {
+    if (isSpinning || availableNudges <= 0) return;
+    setIsSpinning(true);
+    audioService.playClick();
+    
+    try {
+      const res = await fetch('/api/spin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'nudge', reelIndex }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGrid(data.grid);
+        setResult(data);
+        setAvailableNudges(data.availableNudges);
+        // Simple animation for nudge
+        setReelsStopped([true, true, true, true, true]);
+        // Evaluate wins
+        const wins = new Set<string>();
+        const surges = new Set<string>();
+        const mission = new Set<string>();
+        data.wins.forEach((w: any) => w.positions.forEach((p: any) => wins.add(`${p[0]},${p[1]}`)));
+        data.elementalSurges.forEach((s: any) => s.positions.forEach((p: any) => surges.add(`${p[0]},${p[1]}`)));
+        data.missionHighlights.positions.forEach((p: any) => mission.add(`${p[0]},${p[1]}`));
+        
+        setWinPositions(wins);
+        setSurgePositions(surges);
+        setMissionPositions(mission);
+
+        if (wins.size > 0 || surges.size > 0) audioService.playWin();
+      }
+    } catch {
+      toast.error('Error al realizar avance');
+    } finally {
+      setIsSpinning(false);
+    }
+  }, [isSpinning, availableNudges]);
 
   const doSpin = useCallback(async () => {
     if (isSpinning) return;
@@ -141,14 +215,17 @@ export function useSlotMachine() {
     setError(null);
     setResult(null);
     setWinPositions(new Set());
-    // NO setGrid(null) here — keep previous symbols until they start "moving"
     setReelsStopped([false, false, false, false, false]);
 
     try {
+      const hasHolds = holdPositions.some(h => h);
       const res = await fetch('/api/spin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ multiplier }),
+        body: JSON.stringify({ 
+          multiplier, 
+          action: hasHolds ? 'spin_with_holds' : 'spin' 
+        }),
       });
       const data = await res.json();
 
@@ -165,62 +242,58 @@ export function useSlotMachine() {
       }
 
       const spinResult: SpinResult = data;
-      // Grid is updated immediately, but symbols only show when reelStopped[col] is true
       setGrid(spinResult.grid);
 
-      // Animation: Stop reels with snappier timing
+      // Animation
       for (let col = 0; col < 5; col++) {
+        // If reel was held, stop it faster or don't animate as much
+        const delay = holdPositions[col] ? 100 : (300 + col * 250);
         setTimeout(() => {
-          audioService.playReelStop();
+          if (!holdPositions[col]) audioService.playReelStop();
           setReelsStopped(prev => {
             const next = [...prev];
             next[col] = true;
             return next;
           });
-        }, 300 + col * 250); // Reduced from 450ms to 250ms
+        }, delay);
       }
 
       const totalDelay = 300 + 5 * 250 + 150;
       setTimeout(() => {
         setResult(spinResult);
-        
-        const positions = new Set<string>();
-        // Wins positions
-        spinResult.wins.forEach(w => w.positions.forEach(p => positions.add(`${p.col},${p.row}`)));
-        // Spirit rewards highlights
-        if (spinResult.spiritsWon.length > 0) {
-          const wonElements = new Set(spinResult.spiritsWon.map(s => s.element));
-          spinResult.grid.forEach((col, cIdx) => col.forEach((sym, rIdx) => {
-            if (wonElements.has(sym.element)) positions.add(`${cIdx},${rIdx}`);
-          }));
-        }
-        // Surge highlights (6+ same element)
-        const elementCounts: Record<string, number> = {};
-        spinResult.grid.forEach(col => col.forEach(s => elementCounts[s.element] = (elementCounts[s.element] || 0) + 1));
-        Object.entries(elementCounts).forEach(([element, count]) => {
-          if (count >= 6) spinResult.grid.forEach((col, cIdx) => col.forEach((sym, rIdx) => {
-            if (sym.element === element) positions.add(`${cIdx},${rIdx}`);
-          }));
-        });
+        setAvailableNudges(spinResult.availableNudges);
+        setCanHold(spinResult.canHold);
+        setHoldPositions([false, false, false, false, false]); // Reset for next
 
-        setWinPositions(positions);
+        const wins = new Set<string>();
+        const surges = new Set<string>();
+        const mission = new Set<string>();
+        spinResult.wins.forEach((w: any) => w.positions.forEach((p: any) => wins.add(`${p[0]},${p[1]}`)));
+        spinResult.elementalSurges.forEach((s: any) => s.positions.forEach((p: any) => surges.add(`${p[0]},${p[1]}`)));
+        spinResult.missionHighlights.positions.forEach((p: any) => mission.add(`${p[0]},${p[1]}`));
         
-        if (positions.size > 0) {
-          if (Object.values(elementCounts).some(c => c >= 6)) audioService.playSurge();
-          else audioService.playWin();
-        }
+        setWinPositions(wins);
+        setSurgePositions(surges);
+        setMissionPositions(mission);
 
-        // Update local and global state
+        if (wins.size > 0 || surges.size > 0) audioService.playWin();
+
         setLumens(spinResult.player.lumens);
         setEnergy(spinResult.player.energy);
         setMaxEnergy(spinResult.player.maxEnergy);
+        
+        // Handle Bonus Trigger
+        if (spinResult.bonusTriggered) {
+          setBonusCount(3); // or use spinResult.bonusCount if available
+          setTimeout(() => {
+            setShowBonusGame(true);
+            setAutoSpin(false); // Pause auto-spin during bonus
+          }, 4000); // Give time for regular win feedback
+        }
+
         setIsSpinning(false);
 
-        syncPlayerStats({
-          ...spinResult.player,
-          totalPower: (spinResult.player as any).totalPower,
-          collectionMultiplier: (spinResult.player as any).collectionMultiplier,
-        });
+        syncPlayerStats(spinResult.player);
         triggerRefresh();
 
       }, totalDelay);
@@ -231,7 +304,7 @@ export function useSlotMachine() {
       setAutoSpin(false);
       autoSpinRef.current = false;
     }
-  }, [isSpinning, session, router, syncPlayerStats, triggerRefresh, multiplier]);
+  }, [isSpinning, session, router, syncPlayerStats, triggerRefresh, multiplier, holdPositions]);
 
   return {
     isSpinning,
@@ -244,14 +317,32 @@ export function useSlotMachine() {
     energy,
     maxEnergy,
     error,
+    setError,
     winPositions,
+    surgePositions,
+    missionPositions,
     reelsStopped,
     showEnergyDialog,
     setShowEnergyDialog,
     doSpin,
+    doNudge,
+    toggleHold,
+    availableNudges,
+    canHold,
+    holdPositions,
     setEnergy,
     setLumens,
     multiplier,
-    setMultiplier
+    setMultiplier,
+    showBonusGame,
+    setShowBonusGame,
+    bonusCount,
+    onBonusComplete: (data: any) => {
+      setShowBonusGame(false);
+      setLumens(data.player.lumens);
+      setEnergy(data.player.energy);
+      syncPlayerStats(data.player);
+      triggerRefresh();
+    }
   };
 }

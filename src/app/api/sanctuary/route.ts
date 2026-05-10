@@ -386,75 +386,91 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // === AUTO-PLACE ===
+    // === AUTO-PLACE (Smart Optimization) ===
     if (action === 'auto_place') {
       const maxPlacedSpirits = player.sanctuaryLevel * 3 + 2;
-      const decorations = await db.sanctuaryDecoration.findMany({
-        where: { sanctuaryId: player.sanctuary.id },
-      });
-      const currentPlacedCount = decorations.filter(d => d.type === 'spirit').length;
-
-      if (currentPlacedCount >= maxPlacedSpirits) {
-        return NextResponse.json({ error: 'Santuario lleno' }, { status: 400 });
-      }
-
-      const placedSpiritIds = new Set(decorations.filter(d => d.spiritId).map(d => d.spiritId!));
-      let unplacedSpirits = player.spirits
-        .filter(s => !placedSpiritIds.has(s.id))
-        .sort((a, b) => b.spiritType.lumensPerHour - a.spiritType.lumensPerHour);
-
-      if (unplacedSpirits.length === 0) {
-        return NextResponse.json({ error: 'No tienes espíritus para colocar' }, { status: 400 });
-      }
-
-      // Build grid occupancy map
-      const occupied = new Set<string>();
-      decorations.forEach(d => occupied.add(`${d.positionX},${d.positionY}`));
-
-      // Function to get terrain (same as client)
-      const getTerrain = (x: number, y: number, level: number) => {
-        const distFromCenter = Math.sqrt(Math.pow(x - 3.5, 2) + Math.pow(y - 3.5, 2));
-        if (distFromCenter > 4.5 - Math.min(level * 0.2, 1.5)) return 'water';
-        return 'grass';
+      
+      // Multipliers for sorting
+      const rarityMult: Record<string, number> = { common: 1, uncommon: 1.2, rare: 1.5, epic: 2.2, legendary: 4 };
+      const getPower = (s: any) => {
+        const base = s.spiritType.lumensPerHour;
+        const mult = rarityMult[s.spiritType.rarity] || 1;
+        const levelBonus = 1 + (s.level - 1) * 0.1;
+        return base * mult * levelBonus;
       };
 
-      const spots: {x: number, y: number}[] = [];
-      for (let y = 0; y < 8; y++) {
-        for (let x = 0; x < 8; x++) {
-          if (!occupied.has(`${x},${y}`) && getTerrain(x, y, player.sanctuaryLevel) !== 'water') {
-            spots.push({x, y});
+      // 1. Get ALL spirits and sort them by power
+      const allSpirits = [...player.spirits].sort((a, b) => getPower(b) - getPower(a));
+      const topSpirits = allSpirits.slice(0, maxPlacedSpirits);
+      const topSpiritIds = new Set(topSpirits.map(s => s.id));
+
+      // 2. Identify spirits to remove and spirits to add
+      const decorations = await db.sanctuaryDecoration.findMany({
+        where: { sanctuaryId: player.sanctuary.id, type: 'spirit' },
+      });
+
+      const currentSpiritIds = new Set(decorations.filter(d => d.spiritId).map(d => d.spiritId!));
+      
+      // Determine if we actually need to change anything
+      const spiritsToRemove = decorations.filter(d => d.spiritId && !topSpiritIds.has(d.spiritId));
+      const spiritsToAdd = topSpirits.filter(s => !currentSpiritIds.has(s.id));
+
+      if (spiritsToRemove.length === 0 && spiritsToAdd.length === 0 && decorations.length >= maxPlacedSpirits) {
+        return NextResponse.json({ message: 'Tu santuario ya está optimizado con tus mejores espíritus' });
+      }
+
+      // 3. Clear current placements for spirits that are being replaced
+      await db.$transaction(async (tx) => {
+        // Remove those not in top list
+        if (spiritsToRemove.length > 0) {
+          await tx.sanctuaryDecoration.deleteMany({
+            where: { id: { in: spiritsToRemove.map(d => d.id) } }
+          });
+          await tx.playerSpirit.updateMany({
+            where: { id: { in: spiritsToRemove.map(d => d.spiritId!) } },
+            data: { isPlaced: false, placedX: null, placedY: null }
+          });
+        }
+
+        // Find available spots
+        const remainingDecorations = await tx.sanctuaryDecoration.findMany({
+          where: { sanctuaryId: player.sanctuary!.id },
+        });
+        const occupied = new Set<string>();
+        remainingDecorations.forEach(d => occupied.add(`${d.positionX},${d.positionY}`));
+
+        const getTerrain = (x: number, y: number, level: number) => {
+          const distFromCenter = Math.sqrt(Math.pow(x - 3.5, 2) + Math.pow(y - 3.5, 2));
+          if (distFromCenter > 4.5 - Math.min(level * 0.2, 1.5)) return 'water';
+          return 'grass';
+        };
+
+        const spots: {x: number, y: number}[] = [];
+        for (let y = 0; y < 8; y++) {
+          for (let x = 0; x < 8; x++) {
+            if (!occupied.has(`${x},${y}`) && getTerrain(x, y, player.sanctuaryLevel) !== 'water') {
+              spots.push({x, y});
+            }
           }
         }
-      }
 
-      let placedCount = 0;
+        // Place new top spirits in available spots
+        let placedCount = 0;
+        for (const spirit of spiritsToAdd) {
+          if (spots.length === 0) break;
+          const spot = spots.shift()!;
+          await tx.sanctuaryDecoration.create({
+            data: { sanctuaryId: player.sanctuary!.id, type: 'spirit', spiritId: spirit.id, positionX: spot.x, positionY: spot.y, level: 1 }
+          });
+          await tx.playerSpirit.update({
+            where: { id: spirit.id },
+            data: { isPlaced: true, placedX: spot.x, placedY: spot.y }
+          });
+          placedCount++;
+        }
+      });
 
-      // Collect placements to execute
-      const placements: { spiritId: string; x: number; y: number }[] = [];
-      for (const spirit of unplacedSpirits) {
-        if (currentPlacedCount + placedCount >= maxPlacedSpirits) break;
-        if (spots.length === 0) break;
-
-        const spot = spots.shift()!;
-        placements.push({ spiritId: spirit.id, x: spot.x, y: spot.y });
-        placedCount++;
-      }
-
-      if (placedCount > 0) {
-        await db.$transaction(async (tx) => {
-          for (const p of placements) {
-            await tx.sanctuaryDecoration.create({
-              data: { sanctuaryId: player.sanctuary!.id, type: 'spirit', spiritId: p.spiritId, positionX: p.x, positionY: p.y, level: 1 }
-            });
-            await tx.playerSpirit.update({
-              where: { id: p.spiritId },
-              data: { isPlaced: true, placedX: p.x, placedY: p.y }
-            });
-          }
-        });
-      }
-
-      return NextResponse.json({ success: true, placedCount });
+      return NextResponse.json({ success: true, message: 'Santuario optimizado con los espíritus más poderosos' });
     }
 
     return NextResponse.json({ error: 'Acción no válida' }, { status: 400 });

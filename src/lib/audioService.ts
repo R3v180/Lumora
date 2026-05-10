@@ -21,7 +21,7 @@ class AudioService {
           this.musicVolume = settings.music ?? 0.5;
           this.sfxVolume = settings.sfx ?? 0.7;
           this.isMuted = settings.muted ?? false;
-        } catch (e) { console.warn("Failed to load audio settings", e); }
+        } catch (e) { /* Ignore load errors */ }
       }
 
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -147,8 +147,8 @@ class AudioService {
     this.updateBGMVolume();
     
     if (!this.isMuted) {
-      this.bgmAudio.play().catch((e) => {
-        console.warn('Audio auto-play prevented.', e);
+      this.bgmAudio.play().catch(() => {
+        // Silently catch autoplay prevention
       });
     }
   }

@@ -19,24 +19,7 @@ export default function SpinsPage() {
   const [showCollection, setShowCollection] = useState(false);
 
   return (
-    <div className="flex flex-col items-center px-4 pt-4 pb-8 min-h-[70vh]">
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-4 flex flex-col items-center"
-      >
-        <h1 className="text-2xl font-fantasy font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent mb-1">
-          {t('title')}
-        </h1>
-        <div className="flex items-center justify-center gap-4 mb-2">
-          <SpinsHelpDialog />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Cada giro planta semillas en Lumora
-        </p>
-      </motion.div>
-
+    <div className="flex flex-col items-center px-4 pt-1 pb-8 min-h-[70vh]">
       {/* Spin Race Widget */}
       <RaceWidget />
 

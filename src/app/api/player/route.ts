@@ -96,9 +96,22 @@ export async function GET() {
       }
     }
 
+    // Resilience check for 'avatar' field if Prisma client is stale
+    let finalAvatar = (player as any).avatar;
+    if (finalAvatar === undefined) {
+      try {
+        const rawData: any[] = await db.$queryRawUnsafe(`SELECT "avatar" FROM "player_profiles" WHERE "userId" = $1`, userId);
+        if (rawData && rawData.length > 0) {
+          finalAvatar = rawData[0].avatar;
+        }
+      } catch (e) {
+        console.warn('Could not fetch avatar via raw SQL fallback');
+      }
+    }
+
     return NextResponse.json({
       ...player,
-      avatar: (player as any).user?.image || null,
+      avatar: finalAvatar || (player as any).user?.image || null,
       totalPower,
       collectionMultiplier,
       sanctuary: player.sanctuary ? {
@@ -126,16 +139,47 @@ export async function PATCH(request: NextRequest) {
 
     const userId = (session.user as any).id;
     const body = await request.json();
-    const { displayName, language } = body;
-
+    const { displayName, language, avatar } = body;
     const updateData: any = {};
     if (displayName) updateData.displayName = displayName;
     if (language) updateData.language = language;
+    if (avatar) updateData.avatar = avatar;
 
-    const player = await db.playerProfile.update({
-      where: { userId },
-      data: updateData,
-    });
+    let player;
+    try {
+      player = await db.playerProfile.update({
+        where: { userId },
+        data: updateData,
+      });
+    } catch (prismaError) {
+      // Fallback for Windows EPERM / Stale Client issues: use raw SQL
+      console.warn('Prisma update failed, attempting raw SQL fallback:', prismaError);
+      
+      const setClauses: string[] = [];
+      const values: any[] = [];
+      let i = 1;
+
+      if (displayName) {
+        setClauses.push(`"displayName" = $${i++}`);
+        values.push(displayName);
+      }
+      if (language) {
+        setClauses.push(`"language" = $${i++}`);
+        values.push(language);
+      }
+      if (avatar) {
+        setClauses.push(`"avatar" = $${i++}`);
+        values.push(avatar);
+      }
+      
+      if (setClauses.length > 0) {
+        values.push(userId);
+        const query = `UPDATE "player_profiles" SET ${setClauses.join(', ')} WHERE "userId" = $${i}`;
+        await db.$executeRawUnsafe(query, ...values);
+      }
+      
+      player = await db.playerProfile.findUnique({ where: { userId } });
+    }
 
     return NextResponse.json(player);
   } catch (error) {

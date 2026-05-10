@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
+import { PlayerAvatar } from '@/components/progression/PlayerAvatar';
 import { useTranslations } from 'next-intl';
 import { Sparkles, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -48,11 +49,21 @@ export function TopBar() {
         {/* Left: Profile Trigger */}
         <Sheet>
           <SheetTrigger asChild>
-            <button className="relative flex items-center gap-1.5 hover:opacity-80 transition-opacity shrink-0">
-              <Sparkles className="h-4 w-4 text-lumora-gold" />
-              <span className="font-fantasy text-xs font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent truncate max-w-[80px] sm:max-w-[120px]">
-                {isAuthenticated ? player?.displayName || t('welcome') : t('welcome')}
-              </span>
+            <button className="relative flex items-center gap-2 hover:opacity-80 transition-all active:scale-95 shrink-0 group">
+              <PlayerAvatar 
+                avatarId={player?.avatar} 
+                displayName={player?.displayName} 
+                size="xs"
+                className="border-lumora-gold/30 group-hover:border-lumora-gold/60"
+              />
+              <div className="flex flex-col items-start leading-none">
+                <span className="font-fantasy text-[10px] font-bold bg-gradient-to-r from-lumora-gold to-lumora-pink bg-clip-text text-transparent truncate max-w-[80px] sm:max-w-[120px]">
+                  {isAuthenticated ? player?.displayName || t('welcome') : t('welcome')}
+                </span>
+                <span className="text-[7px] text-white/30 font-black uppercase tracking-widest">
+                  LV.{player?.level || 1}
+                </span>
+              </div>
               {chestCount > 0 && (
                 <span className="absolute -top-1 -right-2 bg-red-500 rounded-full h-3 w-3 animate-pulse border border-background" />
               )}

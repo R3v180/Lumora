@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf, ArrowUp, Trash2, Plus } from 'lucide-react';
+import { Sparkles, Coins, TreePine, Flower2, Mountain, Waves, Star, Flame, Droplets, Moon, Leaf, ArrowUp, Trash2, Plus, Wand2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/store';
 import { toast } from 'sonner';
@@ -231,15 +231,13 @@ export function SanctuaryView({
         className={`
           relative aspect-square w-10 sm:w-12 md:w-14 cursor-pointer
           transition-all duration-300 select-none group/tile
-          ${terrain === 'water' ? 'cursor-not-allowed opacity-30' : 'border border-white/10'}
-          ${isSelected && isHovered ? 'ring-2 ring-lumora-gold/70 scale-110 z-30' : ''}
-          ${isSelected && !isHovered ? 'ring-2 ring-lumora-gold/30 animate-pulse z-20' : ''}
+          ${terrain === 'water' ? 'cursor-not-allowed opacity-10' : 'border border-white/5'}
+          ${isSelected && isHovered ? 'bg-lumora-gold/20 z-30 scale-105' : ''}
           ${isOccupied ? 'z-10' : 'z-5'}
         `}
         style={{
           ...terrainStyle,
-          boxShadow: isOccupied && spiritInfo ? `0 0 25px ${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}40` : 'none',
-          backgroundColor: isOccupied && spiritInfo ? `${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}10` : 'transparent'
+          backgroundColor: isOccupied && spiritInfo ? 'rgba(0,0,0,0.4)' : 'transparent'
         }}
         onMouseEnter={() => setHoveredTile({ x, y })}
         onMouseLeave={() => setHoveredTile(null)}
@@ -252,45 +250,62 @@ export function SanctuaryView({
           }
         }}
       >
-        {/* Ground Glow for Spirits */}
-        {isOccupied && spiritInfo && (
-          <motion.div 
-            className="absolute inset-0 z-0 blur-xl opacity-40 rounded-full"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            style={{ backgroundColor: ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS] }}
-          />
+        {/* Selection Marker */}
+        {isSelected && (
+          <div className="absolute inset-0 border-2 border-lumora-gold/50 rounded-sm animate-pulse flex items-center justify-center">
+            <Plus className="h-4 w-4 text-lumora-gold" />
+          </div>
         )}
 
         {/* Placed spirit */}
         {isOccupied && spiritInfo && (
           <motion.div
-            initial={{ scale: 0, y: 20 }}
+            initial={{ scale: 0, y: 10 }}
             animate={{ scale: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            style={{ transform: 'rotateZ(45deg) rotateX(-60deg) scale(1.8) translateY(-35%)', transformOrigin: 'bottom center' }}
+            className="absolute inset-0 flex items-center justify-center p-1"
+            style={{ 
+              transform: 'rotateZ(45deg) rotateX(-45deg) translateY(-25%)', 
+              transformStyle: 'preserve-3d' 
+            }}
           >
-             <motion.div
-               animate={{ y: [0, -4, 0] }}
-               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-             >
-                <img 
-                  src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
-                  alt={spiritInfo.spiritType.name} 
-                  className="w-full h-full object-contain" 
-                  style={{ 
-                    filter: `drop-shadow(0px 10px 8px rgba(0,0,0,0.8)) drop-shadow(0px 0px 12px ${ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS]}40)` 
-                  }} 
-                />
-             </motion.div>
-            
-            {/* Level badge */}
-            <div className="absolute -top-1 -right-1 flex items-center justify-center">
-              <div className="absolute inset-0 bg-white blur-[2px] opacity-20 rounded-full animate-ping" />
-              <span className="relative text-[8px] font-black bg-gradient-to-br from-lumora-purple to-lumora-blue text-white rounded-full w-4 h-4 flex items-center justify-center border border-white/30 shadow-lg">
-                {spiritInfo.level}
-              </span>
+            {/* Rarity Border/Frame */}
+            <div className={`
+              relative w-full h-full rounded-xl border-2 flex items-center justify-center bg-black/40 backdrop-blur-sm
+              ${RARITY_COLORS[spiritInfo.spiritType.rarity]}
+              ${RARITY_GLOW[spiritInfo.spiritType.rarity]}
+            `}>
+              {/* Element Glow */}
+              <div 
+                className="absolute inset-0 blur-md opacity-30 rounded-lg"
+                style={{ backgroundColor: ELEMENT_COLORS[spiritInfo.spiritType.element as keyof typeof ELEMENT_COLORS] }}
+              />
+              
+              <motion.img 
+                animate={{ y: [0, -2, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                src={`/assets/symbols/sym_${spiritInfo.spiritType.element}_${spiritInfo.spiritType.rarity}.png`} 
+                alt={spiritInfo.spiritType.name} 
+                className="w-[85%] h-[85%] object-contain relative z-10" 
+              />
+
+              {/* Level Badge - Tactical Style */}
+              <div className="absolute -bottom-1 -right-1 z-20">
+                <div className="bg-black/80 border border-white/20 px-1.5 py-0.5 rounded-md shadow-lg">
+                  <span className="text-[7px] font-black text-white italic">L.{spiritInfo.level}</span>
+                </div>
+              </div>
+              
+              {/* Element Icon Badge */}
+              <div className="absolute -top-1 -left-1 z-20">
+                <div className="bg-black/80 border border-white/20 p-1 rounded-md shadow-lg">
+                  {(() => {
+                    const ElementIcon = ELEMENT_ICONS[spiritInfo.spiritType.element]?.icon;
+                    return ElementIcon ? (
+                      <ElementIcon className={`h-2 w-2 ${ELEMENT_ICONS[spiritInfo.spiritType.element].color}`} />
+                    ) : null;
+                  })()}
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -351,24 +366,42 @@ export function SanctuaryView({
             </Button>
          </div>
 
-         <div className="flex justify-center gap-2 overflow-x-auto py-2 no-scrollbar">
+         <div className="flex items-center gap-2 overflow-x-auto py-2 no-scrollbar px-4">
             {sanctuary && Object.entries(sanctuary.elements).map(([element, count]) => {
               const IconData = ELEMENT_ICONS[element];
               const Icon = IconData?.icon;
+              const hasResonance = count >= 3;
+              const hasMastery = count >= 5;
+
               return (
                 <motion.div 
                   key={element} 
                   whileHover={{ scale: 1.1 }}
-                  className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/10 shadow-inner"
+                  className={`
+                    flex items-center gap-2 backdrop-blur-md px-3 py-1.5 rounded-xl border transition-all duration-500
+                    ${hasMastery ? 'bg-lumora-gold/20 border-lumora-gold/50 shadow-[0_0_15px_rgba(255,215,0,0.3)]' : 
+                      hasResonance ? 'bg-white/10 border-white/30 shadow-[0_0_10px_rgba(255,255,255,0.1)]' : 
+                      'bg-black/40 border-white/5 shadow-lg'}
+                  `}
                 >
-                  <div className="p-1 rounded-lg bg-black/40 border border-white/5 shadow-lg">
+                  <div className={`
+                    p-1 rounded-lg border transition-colors
+                    ${hasResonance ? 'bg-white/10 border-white/20' : 'bg-white/5 border-white/10'}
+                  `}>
                     {Icon ? (
-                      <Icon className={`h-3 w-3 ${IconData.color}`} />
+                      <Icon className={`h-3 w-3 ${IconData.color} ${hasResonance ? 'animate-pulse' : ''}`} />
                     ) : (
                       <span className="text-xs">{ELEMENT_EMOJIS[element]}</span>
                     )}
                   </div>
-                  <span className="text-xs font-black font-title text-white">{count}</span>
+                  <div className="flex flex-col leading-none">
+                    <span className="text-[10px] font-black text-white">{count}</span>
+                    {hasResonance && (
+                      <span className={`text-[6px] font-black uppercase tracking-tighter ${hasMastery ? 'text-lumora-gold' : 'text-white/40'}`}>
+                        {hasMastery ? 'Maestría' : 'Resonancia'}
+                      </span>
+                    )}
+                  </div>
                 </motion.div>
               );
             })}
@@ -417,7 +450,7 @@ export function SanctuaryView({
               <div 
                 className="grid grid-cols-8 gap-0 relative z-10"
                 style={{ 
-                  transform: 'rotateX(60deg) rotateZ(-45deg)', 
+                  transform: 'rotateX(45deg) rotateZ(-45deg)', 
                   transformStyle: 'preserve-3d',
                   width: 'fit-content'
                 }}
@@ -489,17 +522,19 @@ export function SanctuaryView({
           </div>
 
           {/* Action Row */}
-          <div className="mt-5 flex gap-2">
+          <div className="mt-5 flex gap-3">
              <Button 
                onClick={onAutoPlace}
-               className="flex-1 h-10 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase hover:bg-white/10 transition-all"
+               className="flex-1 h-12 rounded-2xl bg-gradient-to-br from-lumora-gold to-yellow-600 text-black text-[11px] font-black uppercase shadow-[0_4px_15px_rgba(200,150,0,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all border-none flex items-center justify-center gap-2"
              >
-               Auto-Colocar
+               <Wand2 className="h-4 w-4" />
+               Auto-Optimizar
              </Button>
              <Button 
                onClick={onStartPlacing}
-               className="flex-1 h-10 rounded-xl bg-lumora-blue text-white text-[10px] font-black uppercase shadow-lg shadow-lumora-blue/20"
+               className="flex-1 h-12 rounded-2xl bg-white/5 border border-white/10 text-white/70 text-[11px] font-black uppercase hover:bg-white/10 transition-all flex items-center justify-center gap-2"
              >
+               <Settings className="h-4 w-4" />
                Gestionar
              </Button>
           </div>

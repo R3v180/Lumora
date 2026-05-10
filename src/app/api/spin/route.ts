@@ -4,8 +4,16 @@ import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import {
   executeSpin,
+  evaluateSpinResult,
   ReelResult,
   ENERGY_COST,
+  applyNudge,
+  generateReelGridWithHolds,
+  detectWins,
+  countElements,
+  detectElementalSurges,
+  detectBonusTrigger,
+  determineSpiritRewards
 } from '@/game/engine/spinEngine';
 import { GameSymbol } from '@/game/engine/symbols';
 import { updateChallengeProgress, updateAchievementProgress } from '@/lib/challenges';
@@ -31,6 +39,12 @@ function getBuffsForLevel(level: number): TreeBuff {
   return { lumensMultiplier: 1, energyRegenBonus: 0, rareSpiritBonus: 0, bonusGameChance: 0 };
 }
 
+function getMissionElement(raceId: string): string {
+  const ELEMENTS = ['fire', 'water', 'nature', 'dream', 'star'];
+  const charCodeSum = raceId.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return ELEMENTS[charCodeSum % ELEMENTS.length];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,10 +54,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = (session.user as any).id;
-    const { multiplier = 1 } = await request.json();
+    const { multiplier = 1, action = 'spin', reelIndex = 0 } = await request.json();
     const validatedMultiplier = [1, 3, 5, 10].includes(multiplier) ? multiplier : 1;
-
-    console.log(`[SPIN DEBUG] Incoming Multiplier: ${multiplier}, Validated: ${validatedMultiplier}`);
 
     // Get player profile
     const player = await db.playerProfile.findUnique({
@@ -59,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 });
     }
 
-    // Calculate energy refill (Fixed Overfill Logic)
+    // Calculate energy refill
     const now = new Date();
     const refillAt = player.energyRefillAt;
     const minutesPassed = Math.floor((now.getTime() - refillAt.getTime()) / 60000);
@@ -73,7 +85,6 @@ export async function POST(request: NextRequest) {
     }
 
     const currentEnergy = player.energy + energyRegenerated;
-    console.log(`[SPIN DEBUG] Current Energy (with regen): ${currentEnergy}`);
 
     // Get World Tree level for buffs
     let worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
@@ -89,14 +100,11 @@ export async function POST(request: NextRequest) {
     const totalPower = player.spirits.reduce((sum, s) => sum + (POWER_MAP[s.spiritType.rarity] || 0), 0);
     const collectionMultiplier = 1.0 + (totalPower / 10000); 
 
-    // Check if enough energy with MULTIPLIER
-    const baseEnergyCost = ENERGY_COST; // Fix at 5 base
+    // Check if enough energy
+    const baseEnergyCost = ENERGY_COST; 
     const effectiveEnergyCost = baseEnergyCost * validatedMultiplier;
 
-    console.log(`[SPIN DEBUG] Base Cost: ${baseEnergyCost}, Effective Cost: ${effectiveEnergyCost}`);
-
     if (currentEnergy < effectiveEnergyCost) {
-      console.log(`[SPIN DEBUG] FAILED: Not enough energy. Needs ${effectiveEnergyCost}, has ${currentEnergy}`);
       return NextResponse.json(
         {
           error: 'Energía insuficiente',
@@ -109,15 +117,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const spinResult = executeSpin();
+    // 1. Get or Create GameSession
+    let gameSession = await db.gameSession.findFirst({
+      where: { playerId: player.id, type: 'dream_spin' }
+    });
 
-    // Final multiplier that affects EVERYTHING
+    if (!gameSession) {
+      gameSession = await db.gameSession.create({
+        data: {
+          playerId: player.id,
+          type: 'dream_spin',
+          data: { grid: null, availableNudges: 0, canHold: false, holds: [false, false, false, false, false] },
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        }
+      });
+    }
+
+    let sessionData = gameSession.data as any;
+    let spinResult;
+
+
+    if (action === 'nudge') {
+      if (sessionData.availableNudges <= 0) {
+        return NextResponse.json({ error: 'No tienes avances disponibles' }, { status: 400 });
+      }
+      const newGrid = applyNudge(sessionData.grid, reelIndex);
+      spinResult = evaluateSpinResult(newGrid);
+      sessionData.availableNudges--;
+      sessionData.grid = newGrid;
+      // After a nudge, we don't trigger NEW holds/nudges usually, 
+      // but evaluateSpinResult will return them. We preserve session state or update?
+      // Let's use the new ones from the engine.
+      sessionData.availableNudges = spinResult.availableNudges;
+      sessionData.canHold = spinResult.canHold;
+    } else {
+      const holds = action === 'spin_with_holds' ? sessionData.holds : [false, false, false, false, false];
+      const newGrid = generateReelGridWithHolds(sessionData.grid, holds);
+      spinResult = evaluateSpinResult(newGrid);
+      sessionData.availableNudges = spinResult.availableNudges;
+      sessionData.canHold = spinResult.canHold;
+      sessionData.holds = [false, false, false, false, false];
+      sessionData.grid = newGrid;
+    }
+
+    // Update Game Session
+    await db.gameSession.update({
+      where: { id: gameSession.id },
+      data: { data: sessionData }
+    });
+
     const totalMultiplier = collectionMultiplier * treeBuffs.lumensMultiplier * validatedMultiplier;
-
-    // Apply Multiplier to payout
     const buffedPayout = Math.floor(spinResult.totalPayout * totalMultiplier);
 
-    // 2. Rare spirit chance bonus...
+    // Rare spirit chance bonus
     if (treeBuffs.rareSpiritBonus > 0 && spinResult.spiritsWon.length > 0) {
       for (const reward of spinResult.spiritsWon) {
         if (Math.random() < treeBuffs.rareSpiritBonus) {
@@ -130,7 +182,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Bonus game chance bonus...
+    // Bonus game chance bonus
     if (treeBuffs.bonusGameChance > 0 && !spinResult.bonusTriggered) {
       if (Math.random() < treeBuffs.bonusGameChance) {
         spinResult.bonusTriggered = true;
@@ -138,31 +190,41 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Serialize grid for storage
-    const serializedGrid = spinResult.grid.map((col) => col.map((sym) => sym.id));
-
-    // Final Stats
     const energyCost = effectiveEnergyCost;
     const newEnergy = currentEnergy - energyCost;
     const newLumens = player.lumens + buffedPayout;
     const xpGain = Math.floor((3 + Math.floor(spinResult.totalPayout / 10)) * validatedMultiplier);
-
-    // Determine spirits to add to player collection
     const spiritRewards = spinResult.spiritsWon;
 
-    // Update challenge progress
     await updateChallengeProgress(player.id, 'spins', 1);
     if (spiritRewards.length > 0) {
       await updateChallengeProgress(player.id, 'spirits', spiritRewards.length);
     }
-    const elementalTotal = Object.values(spinResult.elementContributions).reduce((a, b) => a + b, 0);
+    const elementalTotal = Object.values(spinResult.elementContributions).reduce((acc: number, val) => acc + (Number(val) || 0), 0);
     if (elementalTotal > 0) {
       await updateChallengeProgress(player.id, 'world_contribution', Math.floor(elementalTotal * validatedMultiplier / 2));
     }
 
-    // Update player data in a transaction
+    // 🏁 RACE PROGRESSION
+    const activeRace = await db.spinRace.findFirst({
+      where: { status: 'active', endsAt: { gt: new Date() } }
+    });
+
+    if (activeRace) {
+      const missionElement = getMissionElement(activeRace.id);
+      
+      const points = (spinResult.elementContributions as any)[missionElement] || 0;
+      if (points > 0) {
+        const racePoints = Math.floor(points * validatedMultiplier);
+        await db.spinRaceEntry.upsert({
+          where: { raceId_playerId: { raceId: activeRace.id, playerId: player.id } },
+          update: { score: { increment: racePoints } },
+          create: { raceId: activeRace.id, playerId: player.id, score: racePoints }
+        });
+      }
+    }
+
     const updatedPlayer = await db.$transaction(async (tx) => {
-      // Update energy and lumens
       const updated = await tx.playerProfile.update({
         where: { id: player.id },
         data: {
@@ -174,15 +236,12 @@ export async function POST(request: NextRequest) {
           experience: player.experience + xpGain,
         },
       });
-      // ... (level up, spirits, etc.)
       
-      // Update won spirits to player collection
       for (const reward of spiritRewards) {
         const spiritType = await tx.spiritType.findFirst({
           where: { element: reward.element, rarity: reward.rarity },
           orderBy: { basePower: 'asc' },
         });
-
         if (spiritType) {
           await tx.playerSpirit.create({
             data: {
@@ -195,51 +254,34 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 4. Award XP to spirits
       if (buffedPayout >= 0) {
-        const winningElements = [...new Set(spinResult.wins.map(w => w.symbol.element))];
+        const winningElements = [...new Set(spinResult.wins.map((w: any) => w.symbol.element))];
         const baseSpiritXp = (1 + Math.floor(buffedPayout / 10)) * validatedMultiplier;
-
-        // Get spirits to award XP
-        // 1. All placed spirits get base XP
-        // 2. Winning element spirits get BONUS XP
         const spiritsToUpdate = await tx.playerSpirit.findMany({
           where: { 
             playerId: player.id,
             OR: [
-              { isPlaced: true }, // Placed spirits
+              { isPlaced: true },
               { spiritType: { element: { in: winningElements as any } } } 
             ]
           },
-          include: {
-            spiritType: true
-          }
+          include: { spiritType: true }
         });
 
         await Promise.all(spiritsToUpdate.map(spirit => {
           const isWinner = winningElements.includes((spirit.spiritType as any)?.element || '');
           const finalXpGain = isWinner ? Math.floor(baseSpiritXp * 2) : baseSpiritXp;
-
           let newSpExp = spirit.experience + finalXpGain;
           let newSpLevel = spirit.level;
-          
-          const XP_BASE: Record<string, number> = {
-            common: 50,
-            uncommon: 100,
-            rare: 250,
-            epic: 600,
-            legendary: 1500
-          };
+          const XP_BASE: Record<string, number> = { common: 50, uncommon: 100, rare: 250, epic: 600, legendary: 1500 };
           const rarity = spirit.spiritType?.rarity || 'common';
           const xpBaseForLevel = XP_BASE[rarity] || 50;
-
           let expNeeded = newSpLevel * xpBaseForLevel;
           while (newSpExp >= expNeeded && newSpLevel < 100) {
             newSpExp -= expNeeded;
             newSpLevel++;
             expNeeded = newSpLevel * xpBaseForLevel;
           }
-
           return tx.playerSpirit.update({
             where: { id: spirit.id },
             data: { experience: newSpExp, level: newSpLevel }
@@ -247,10 +289,10 @@ export async function POST(request: NextRequest) {
         }));
       }
 
-      // Sanctuary updates...
       if (player.sanctuary && buffedPayout > 0) {
         const elementUpdates: any = {};
-        for (const [element, count] of Object.entries(spinResult.elementContributions)) {
+        for (const [element, countValue] of Object.entries(spinResult.elementContributions)) {
+          const count = countValue as number;
           if (count > 0) {
             const field = `global${element.charAt(0).toUpperCase() + element.slice(1)}` as any;
             elementUpdates[field] = { increment: Math.floor(count * validatedMultiplier / 2) };
@@ -264,19 +306,26 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Update world state
       await tx.worldState.upsert({
         where: { id: 'lumora_world' },
         update: { totalSpins: { increment: validatedMultiplier } },
         create: { id: 'lumora_world', totalSpins: validatedMultiplier },
       });
 
-      // ... (world element updates, logging, etc.)
-
-      return { updated, chestDrop: null, totalPower, collectionMultiplier };
+      return { updated, totalPower, collectionMultiplier };
     });
 
-    // Return full spin result
+    // Return full spin result with separated visual layers
+    const missionElement = activeRace ? getMissionElement(activeRace.id) : 'dream';
+    const missionPositions: [number, number][] = [];
+    
+    // Find positions of the mission element
+    spinResult.grid.forEach((col, x) => {
+      col.forEach((sym, y) => {
+        if (sym.element === missionElement) missionPositions.push([x, y]);
+      });
+    });
+
     return NextResponse.json({
       grid: spinResult.grid.map((col) =>
         col.map((sym) => ({
@@ -292,23 +341,34 @@ export async function POST(request: NextRequest) {
       ),
       wins: spinResult.wins.map((w) => ({
         symbolId: w.symbol.id,
-        symbolName: w.symbol.name,
-        symbolEmoji: w.symbol.emoji,
-        element: w.symbol.element,
         positions: w.positions,
-        count: w.count,
-        payout: Math.floor(w.payout * totalMultiplier), // Multiplied payout per line
-        isWild: w.isWild,
+        payout: Math.floor(w.payout * totalMultiplier),
       })),
-      totalPayout: buffedPayout, // Multiplied total payout
-      isBigWin: buffedPayout >= 500 * validatedMultiplier,
-      isMegaWin: buffedPayout >= 2000 * validatedMultiplier,
+      elementalSurges: spinResult.elementalSurges.map((s) => ({
+        element: s.element,
+        count: s.count,
+        bonusLumens: s.bonusLumens,
+        positions: s.positions,
+      })),
+      missionHighlights: {
+        element: missionElement,
+        positions: missionPositions,
+        points: (spinResult.elementContributions as any)[missionElement] || 0
+      },
+      totalPayout: buffedPayout,
+      isBigWin: buffedPayout >= 50 * validatedMultiplier, // Adjusted thresholds
+      isMegaWin: buffedPayout >= 200 * validatedMultiplier,
       spiritsWon: spiritRewards,
-      elementContributions: spinResult.elementContributions,
-      bonusTriggered: spinResult.bonusTriggered,
-      bonusCount: spinResult.bonusCount,
-      player: { lumens: newLumens, energy: newEnergy, maxEnergy: player.maxEnergy, totalPower, collectionMultiplier, level: updatedPlayer.updated.level, experience: updatedPlayer.updated.experience, },
-      buffedPayout,
+      availableNudges: spinResult.availableNudges,
+      canHold: spinResult.canHold,
+      holdPositions: spinResult.holdPositions,
+      player: { 
+        lumens: newLumens, 
+        energy: newEnergy, 
+        maxEnergy: player.maxEnergy,
+        level: updatedPlayer.updated.level, 
+        experience: updatedPlayer.updated.experience 
+      },
     });
   } catch (error) {
     console.error('Spin error:', error);

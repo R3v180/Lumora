@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { PlayerAvatar } from '@/components/progression/PlayerAvatar';
 
 interface LeaderboardEntry {
   rank: number;
@@ -166,12 +167,12 @@ export function LeaderboardPanel() {
                   </div>
                   {/* Avatar + Name */}
                   <div className="flex items-center gap-2.5">
-                    <Avatar className="h-7 w-7 border border-border/30">
-                      <AvatarImage src={entry.avatar || undefined} seed={entry.displayName} />
-                      <AvatarFallback className="bg-lumora-purple/20 text-lumora-purple text-[10px]">
-                        {entry.displayName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <PlayerAvatar 
+                      avatarId={entry.avatar} 
+                      displayName={entry.displayName} 
+                      size="xs"
+                      className="border-border/30"
+                    />
                     <div>
                       <p className={`text-sm ${entry.isMe ? 'font-bold text-lumora-blue' : 'font-semibold'}`}>
                         {entry.displayName}
