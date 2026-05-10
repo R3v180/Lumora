@@ -99,10 +99,10 @@ export function LeaderboardPanel() {
             <button
               key={cat.key}
               onClick={() => setCategory(cat.key)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black whitespace-nowrap transition-all shadow-md ${
                 isActive
-                  ? `${cat.color} bg-black/80 border border-current/30 shadow-lg`
-                  : 'text-white/50 bg-black/40 border border-white/5 hover:bg-black/60 hover:text-white/80'
+                  ? `${cat.color} bg-white/20 border-2 border-current scale-105 z-10`
+                  : 'text-white/70 bg-black/40 border border-white/10 hover:bg-black/60 hover:text-white/90'
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
@@ -114,7 +114,7 @@ export function LeaderboardPanel() {
 
       {/* My rank */}
       {myRank && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-lumora-purple/20 to-lumora-blue/20 border border-lumora-purple/40 shadow-lg">
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-lumora-purple/30 to-lumora-blue/30 border border-white/20 shadow-xl backdrop-blur-xl">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-lumora-gold" />
             <span className="text-sm font-semibold">{t('yourRank')}</span>
@@ -150,9 +150,11 @@ export function LeaderboardPanel() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: entry.rank * 0.02 }}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-xl border ${
-                  rankDisplay.bg === 'glass-card-subtle' ? 'bg-black/40 border-white/5 hover:bg-black/60 transition-colors' : rankDisplay.bg
-                } ${entry.isMe ? 'ring-2 ring-lumora-blue shadow-[0_0_15px_rgba(52,152,219,0.3)]' : ''}`}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl border backdrop-blur-xl transition-all ${
+                  rankDisplay.bg === 'glass-card-subtle' 
+                    ? 'bg-white/5 border-white/10 hover:bg-white/10' 
+                    : rankDisplay.bg.replace('bg-black/60', 'bg-white/10')
+                } ${entry.isMe ? 'ring-2 ring-lumora-blue bg-white/10 shadow-[0_0_20px_rgba(52,152,219,0.2)]' : ''}`}
               >
                 <div className="flex items-center gap-3">
                   {/* Rank */}
@@ -160,7 +162,7 @@ export function LeaderboardPanel() {
                     {rankDisplay.emoji ? (
                       <span className="text-sm">{rankDisplay.emoji}</span>
                     ) : (
-                      <span className="text-xs font-bold text-muted-foreground">
+                      <span className="text-xs font-bold text-white/40">
                         {entry.rank}
                       </span>
                     )}
@@ -174,7 +176,7 @@ export function LeaderboardPanel() {
                       className="border-border/30"
                     />
                     <div>
-                      <p className={`text-sm ${entry.isMe ? 'font-bold text-lumora-blue' : 'font-semibold'}`}>
+                      <p className={`text-sm ${entry.isMe ? 'font-bold text-lumora-blue' : 'font-bold text-white'}`}>
                         {entry.displayName}
                         {entry.isMe && (
                           <span className="text-[10px] ml-1 text-lumora-blue/70">
@@ -201,19 +203,19 @@ export function LeaderboardPanel() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page <= 1}
-            className="p-1.5 rounded-lg hover:bg-card/60 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 text-white" />
           </button>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs font-black text-white px-3 py-1 bg-white/5 rounded-lg border border-white/5">
             {page} / {totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages}
-            className="p-1.5 rounded-lg hover:bg-card/60 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed transition-all"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 text-white" />
           </button>
         </div>
       )}

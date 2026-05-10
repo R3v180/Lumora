@@ -67,7 +67,8 @@ export default function CommunityPage() {
           alt="" 
           className="w-full h-full object-cover" 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
+        <div className="absolute inset-0 bg-black/40" />
       </div>
 
       {/* Header */}
@@ -84,10 +85,10 @@ export default function CommunityPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all shadow-lg ${
                 isActive
-                  ? `${tab.color} bg-card/60 border border-current/20 shadow-sm`
-                  : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
+                  ? `${tab.color} bg-white/20 border-2 border-current shadow-[0_0_20px_rgba(255,255,255,0.15)] scale-105 z-10`
+                  : 'text-white/70 bg-black/40 border border-white/10 hover:bg-black/60 hover:text-white/90'
               }`}
             >
               <Icon className="h-4 w-4" />

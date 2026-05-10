@@ -186,19 +186,19 @@ export function FriendsPanel() {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             placeholder={t('searchPlaceholder')}
-            className="pl-9 bg-card/40 border-border/30 rounded-xl"
+            className="pl-9 bg-white/10 border-white/20 rounded-xl text-white placeholder:text-white/40 focus:bg-white/20 transition-all"
           />
         </div>
-        <Button
-          onClick={() => {
-            handleSearch();
-            setShowSearch(true);
-          }}
-          variant="outline"
-          size="icon"
-          className="rounded-xl border-border/30"
-          disabled={isSearching}
-        >
+          <Button
+            onClick={() => {
+              handleSearch();
+              setShowSearch(true);
+            }}
+            variant="outline"
+            size="icon"
+            className="rounded-xl border-white/20 bg-white/5 h-10 w-10 text-white"
+            disabled={isSearching}
+          >
           <Search className="h-4 w-4" />
         </Button>
       </div>
@@ -240,7 +240,7 @@ export function FriendsPanel() {
               {searchResults.map((player) => (
                 <div
                   key={player.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-xl glass-card-subtle"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-8 w-8 border border-border/30">
@@ -250,7 +250,7 @@ export function FriendsPanel() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-semibold">{player.displayName}</p>
+                      <p className="text-sm font-bold text-white">{player.displayName}</p>
                       <p className="text-[10px] text-muted-foreground">
                         Nv. {player.level} · {player.spiritCount} {t('spirits')}
                       </p>
@@ -379,9 +379,9 @@ export function FriendsPanel() {
       </AnimatePresence>
 
       {/* Friends list */}
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-2 mt-4">
         <Users className="h-4 w-4 text-lumora-blue" />
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        <p className="text-xs font-black text-white uppercase tracking-wider">
           {t('friendsList')} ({friends.length})
         </p>
       </div>
@@ -408,7 +408,7 @@ export function FriendsPanel() {
               key={friend.friendshipId}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center justify-between px-3 py-2.5 rounded-xl glass-card-subtle hover:border-lumora-blue/20 transition-colors"
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -423,7 +423,7 @@ export function FriendsPanel() {
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">{friend.displayName}</p>
+                  <p className="text-sm font-bold text-white">{friend.displayName}</p>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                     <span>Nv. {friend.level}</span>
                     <span>·</span>

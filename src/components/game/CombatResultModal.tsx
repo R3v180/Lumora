@@ -40,21 +40,28 @@ export function CombatResultModal({
     if (isOpen) {
       if (type === 'victory') {
         audioService.playWin();
-        // Fire confetti
+        // Fire confetti - JUICE OVERLOAD
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#FFD700', '#FFA500', '#FFFFFF', '#00BFFF', '#FF69B4']
+        });
+
         const duration = 3 * 1000;
         const end = Date.now() + duration;
         const frame = () => {
           confetti({
-            particleCount: 5,
+            particleCount: 8,
             angle: 60,
-            spread: 55,
+            spread: 70,
             origin: { x: 0 },
             colors: ['#FFD700', '#FFA500', '#FFFFFF']
           });
           confetti({
-            particleCount: 5,
+            particleCount: 8,
             angle: 120,
-            spread: 55,
+            spread: 70,
             origin: { x: 1 },
             colors: ['#FFD700', '#FFA500', '#FFFFFF']
           });
@@ -195,11 +202,22 @@ export function CombatResultModal({
 
             {/* Action Button */}
             <Button
-              onClick={onClose}
+              onClick={() => {
+                if (type === 'victory') {
+                  audioService.playClick();
+                  confetti({
+                    particleCount: 100,
+                    spread: 80,
+                    origin: { y: 0.8 },
+                    colors: ['#FFD700', '#FFA500']
+                  });
+                }
+                onClose();
+              }}
               className={`w-full py-6 rounded-2xl font-black text-lg transition-all ${
                 type === 'victory' 
-                  ? 'bg-gradient-to-r from-lumora-gold to-lumora-orange text-black hover:scale-[1.02] shadow-lg shadow-lumora-gold/20' 
-                  : 'bg-white/10 text-white hover:bg-white/20'
+                  ? 'bg-gradient-to-r from-lumora-gold to-lumora-orange text-black hover:scale-[1.05] active:scale-[0.95] shadow-[0_0_20px_rgba(255,215,0,0.6)]' 
+                  : 'bg-white/10 text-white hover:bg-white/20 hover:scale-[1.02] active:scale-[0.98]'
               }`}
             >
               {type === 'victory' ? '¡RECLAMAR RECOMPENSAS!' : 'CERRAR'}

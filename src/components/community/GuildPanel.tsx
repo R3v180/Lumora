@@ -230,7 +230,7 @@ export function GuildPanel() {
     }
   };
 
-  const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '⚔️', '🐉', '💎', '🏆'];
+  const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '🐉', '💎', '🏆', '🔥', '🌀', '🌋'];
 
   const GUILD_SUBTABS: { key: GuildSubTab; icon: any; label: string; color: string }[] = [
     { key: 'info', icon: Info, label: 'Mi Gremio', color: 'text-lumora-purple' },
@@ -260,7 +260,7 @@ export function GuildPanel() {
     return (
       <div className="flex flex-col gap-4">
         {/* Guild Header (always visible) */}
-        <div className="glass-card p-4">
+        <div className="bg-white/5 border border-white/10 backdrop-blur-2xl p-4 rounded-2xl shadow-2xl">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-lumora-purple/20 flex items-center justify-center text-2xl border border-lumora-purple/30">
@@ -317,10 +317,10 @@ export function GuildPanel() {
               <button
                 key={tab.key}
                 onClick={() => setSubTab(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all shadow-md ${
                   isActive
-                    ? `${tab.color} bg-card/60 border border-current/20 shadow-sm`
-                    : 'text-muted-foreground bg-card/30 border border-border/20 hover:bg-card/50'
+                    ? `${tab.color} bg-white/20 border-2 border-current scale-105 z-10`
+                    : 'text-white/80 bg-black/40 border border-white/10 hover:bg-black/60 hover:text-white/100'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -359,14 +359,14 @@ export function GuildPanel() {
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="h-4 w-4 text-lumora-blue" />
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-black text-white/80 uppercase tracking-wider">
                     {t('members')} ({guild.members.length})
                   </p>
                 </div>
                 {guild.members.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between px-3 py-2 rounded-xl glass-card-subtle"
+                  className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 transition-all"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8 border border-border/30">
@@ -377,7 +377,7 @@ export function GuildPanel() {
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-semibold">{member.player.displayName}</p>
+                          <p className="text-sm font-bold text-white">{member.player.displayName}</p>
                           {getRoleIcon(member.role)}
                         </div>
                         <p className="text-[10px] text-muted-foreground">
@@ -655,16 +655,16 @@ function GuildCard({
   t: any;
   isExploring?: boolean;
 }) {
-  const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '🐉', '💎', '🏆', '🔥'];
+  const GUILD_EMOJIS = ['🏰', '⚔️', '🌟', '🛡️', '🔮', '🌙', '🐉', '💎', '🏆', '🔥', '🌀', '🌋'];
 
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl glass-card-subtle hover:border-lumora-purple/20 transition-colors">
+    <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl hover:bg-white/10 hover:border-lumora-purple/40 transition-all">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-lumora-purple/15 flex items-center justify-center text-xl border border-lumora-purple/20">
           {guild.emblem || GUILD_EMOJIS[Math.floor(Math.random() * GUILD_EMOJIS.length)]}
         </div>
         <div>
-          <p className="text-sm font-semibold">{guild.name}</p>
+          <p className="text-sm font-bold text-white">{guild.name}</p>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <Crown className="h-2.5 w-2.5 text-lumora-gold" />

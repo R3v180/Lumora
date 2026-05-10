@@ -453,11 +453,11 @@ export function SpinningSymbol({ size = 64 }: { size?: number }) {
 // Main export — 80% image size gives room for scale:1.15 pulse without clipping.
 export function SymbolIcon({ symbol, isWin = false, isBonus = false }: SymbolIconProps) {
   const rarityColors: Record<string, string> = {
-    common: '#94a3b8',
-    uncommon: '#10b981',
-    rare: '#3b82f6',
-    epic: '#a855f7',
-    legendary: '#eab308'
+    common: '#06b6d4', // Cyan
+    uncommon: '#10b981', // Green
+    rare: '#8b5cf6', // Purple
+    epic: '#f97316', // Orange
+    legendary: '#eab308' // Gold
   };
 
   const rarityColor = rarityColors[symbol.rarity] || '#fff';

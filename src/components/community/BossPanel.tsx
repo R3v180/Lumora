@@ -227,9 +227,17 @@ export function BossPanel() {
 
   if (!boss || boss.status !== 'active') {
     return (
-      <div className="text-center py-12">
-        <Skull className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">{t('noBoss')}</p>
+      <div className="text-center py-16 bg-black/40 rounded-3xl border border-white/5 backdrop-blur-xl">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 4, repeat: Infinity }}
+        >
+          <Trophy className="h-16 w-16 text-lumora-gold/20 mx-auto mb-4" />
+        </motion.div>
+        <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-2">Paz en el Reino</h3>
+        <p className="text-sm text-white/40 max-w-[200px] mx-auto font-medium leading-relaxed">
+          El jefe de hoy ha sido purificado. El próximo aparecerá cuando las estrellas vuelvan a alinearse.
+        </p>
       </div>
     );
   }
@@ -301,19 +309,35 @@ export function BossPanel() {
             </div>
             <div className="flex flex-col items-end">
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full bg-background/50 border border-border/30 ${ELEMENT_COLORS[boss.element]}`}>{boss.element.toUpperCase()}</span>
-              {/* Weakness Indicator */}
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-[8px] text-muted-foreground uppercase font-bold">Débil contra:</span>
-                <div className="flex items-center gap-0.5 bg-white/5 px-1.5 py-0.5 rounded-md border border-white/10">
-                   {/* Finding who is strong against the boss element */}
-                   {Object.entries(ELEMENT_ADVANTAGE).find(([k, v]) => v === boss.element)?.[0] && (
-                     <>
-                       <span className="text-[10px]">{ELEMENT_EMOJIS[Object.entries(ELEMENT_ADVANTAGE).find(([k, v]) => v === boss.element)![0]]}</span>
-                       <span className={`text-[9px] font-black uppercase ${ELEMENT_COLORS[Object.entries(ELEMENT_ADVANTAGE).find(([k, v]) => v === boss.element)![0]]}`}>
-                         {Object.entries(ELEMENT_ADVANTAGE).find(([k, v]) => v === boss.element)![0]}
-                       </span>
-                     </>
-                   )}
+              {/* Affinities Indicator */}
+              <div className="space-y-1.5 mt-1">
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-muted-foreground uppercase font-black">Débil:</span>
+                  <div className="flex items-center gap-0.5 bg-lumora-gold/10 px-1.5 py-0.5 rounded-md border border-lumora-gold/20">
+                    {(() => {
+                      const weakElement = Object.entries(ELEMENT_ADVANTAGE).find(([k, v]) => v === boss.element)?.[0];
+                      return weakElement ? (
+                        <>
+                          <span className="text-[10px]">{ELEMENT_EMOJIS[weakElement]}</span>
+                          <span className={`text-[8px] font-black uppercase ${ELEMENT_COLORS[weakElement]}`}>{weakElement}</span>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-muted-foreground uppercase font-black">Resiste:</span>
+                  <div className="flex items-center gap-0.5 bg-white/5 px-1.5 py-0.5 rounded-md border border-white/10">
+                    {(() => {
+                      const resElement = boss.element === 'fire' ? 'nature' : boss.element === 'water' ? 'fire' : boss.element === 'nature' ? 'water' : boss.element;
+                      return (
+                        <>
+                          <span className="text-[10px]">{ELEMENT_EMOJIS[resElement]}</span>
+                          <span className={`text-[8px] font-black uppercase ${ELEMENT_COLORS[resElement]}`}>{resElement}</span>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             </div>

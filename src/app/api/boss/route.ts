@@ -14,40 +14,62 @@ const ELEMENT_ADVANTAGE: Record<string, string> = {
   star: 'dream',
 };
 
+const ELEMENT_RESISTANCE: Record<string, string> = {
+  fire: 'water',
+  water: 'nature',
+  nature: 'fire',
+  dream: 'dream',
+  star: 'star',
+};
+
 const BOSS_TEMPLATES = [
   { id: 'void', name: 'Devorador del Vacío', nameEn: 'Void Devourer', element: 'fire', maxHp: 50000 },
   { id: 'leviathan', name: 'Leviatán Abisal', nameEn: 'Abyssal Leviathan', element: 'water', maxHp: 60000 },
   { id: 'nightmare', name: 'Pesadilla Eterna', nameEn: 'Eternal Nightmare', element: 'dream', maxHp: 55000 },
   { id: 'colossus', name: 'Coloso de Raíces', nameEn: 'Root Colossus', element: 'nature', maxHp: 45000 },
+  { id: 'sovereign', name: 'Soberano Astral', nameEn: 'Astral Sovereign', element: 'star', maxHp: 70000 },
 ];
 
 async function getOrCreateActiveBoss() {
+  const currentTime = new Date();
+
+  // 1. Expire any old bosses FIRST
+  await db.worldBoss.updateMany({
+    where: { status: 'active', endsAt: { lte: currentTime } },
+    data: { status: 'expired' },
+  });
+
+  // 2. Check for active boss
   let boss = await db.worldBoss.findFirst({
     where: { status: 'active' },
   });
 
   if (boss) return boss;
 
-  // Expire any old bosses
-  await db.worldBoss.updateMany({
-    where: { status: 'active', endsAt: { lte: new Date() } },
-    data: { status: 'expired' },
+  // 3. Create new boss (avoiding repetition)
+  const mostRecentBoss = await db.worldBoss.findFirst({
+    orderBy: { createdAt: 'desc' }
   });
 
-  // Get last boss to avoid repetition
-  const lastBoss = await db.worldBoss.findFirst({
+  if (mostRecentBoss) {
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000);
+    if (mostRecentBoss.createdAt > twentyFourHoursAgo && mostRecentBoss.status !== 'active') {
+      return null;
+    }
+  }
+
+  const lastBosses = await db.worldBoss.findMany({
     where: { status: { in: ['defeated', 'expired'] } },
     orderBy: { createdAt: 'desc' },
+    take: 2
   });
 
-  // Filter templates to get a different one
-  const availableTemplates = lastBoss 
-    ? BOSS_TEMPLATES.filter(t => t.name !== lastBoss.name)
-    : BOSS_TEMPLATES;
+  const lastBossNames = lastBosses.map(b => b.name);
+  const availableTemplates = BOSS_TEMPLATES.filter(t => !lastBossNames.includes(t.name));
+  const templatesToUse = availableTemplates.length > 0 ? availableTemplates : BOSS_TEMPLATES;
     
-  const template = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
-  const now = new Date();
-  const endsAt = new Date(now.getTime() + BOSS_DURATION_HOURS * 60 * 60 * 1000);
+  const template = templatesToUse[Math.floor(Math.random() * templatesToUse.length)];
+  const bossEndsAt = new Date(currentTime.getTime() + BOSS_DURATION_HOURS * 60 * 60 * 1000);
 
   const defeatedCount = await db.worldBoss.count({ where: { status: 'defeated' } });
   const hpMultiplier = 1 + (defeatedCount * 0.5);
@@ -58,11 +80,11 @@ async function getOrCreateActiveBoss() {
       name: template.name,
       nameEn: template.nameEn,
       element: template.element,
-      type: template.id, // Store the type for image matching
+      type: template.id,
       maxHp: scaledHp,
       currentHp: scaledHp,
-      startsAt: now,
-      endsAt,
+      startsAt: currentTime,
+      endsAt: bossEndsAt,
       status: 'active',
     },
   });
@@ -70,10 +92,17 @@ async function getOrCreateActiveBoss() {
   return boss;
 }
 
-// GET: Return active boss + ranking
 export async function GET() {
   try {
     const boss = await getOrCreateActiveBoss();
+
+    if (!boss) {
+      return NextResponse.json({ 
+        boss: null, 
+        ranking: [],
+        message: 'El jefe ha sido purificado. El próximo aparecerá pronto.' 
+      });
+    }
 
     const ranking = await db.bossDamageLog.findMany({
       where: { bossId: boss.id },
@@ -98,7 +127,7 @@ export async function GET() {
         name: boss.name,
         nameEn: boss.nameEn,
         element: boss.element,
-        type: (boss as any).type || boss.element, // Fallback to element
+        type: (boss as any).type || boss.element,
         maxHp: boss.maxHp,
         currentHp: boss.currentHp,
         status: boss.status,
@@ -113,7 +142,6 @@ export async function GET() {
   }
 }
 
-// POST: Attack boss
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -137,7 +165,6 @@ export async function POST(request: NextRequest) {
     const boss = await db.worldBoss.findFirst({ where: { status: 'active' } });
     if (!boss) return NextResponse.json({ error: 'No hay jefe activo' }, { status: 404 });
 
-    // Get World Tree Dominant Aura
     const worldState = await db.worldState.findUnique({ where: { id: 'lumora_world' } });
     let dominantAura: any = null;
     if (worldState) {
@@ -146,8 +173,7 @@ export async function POST(request: NextRequest) {
       dominantAura = getDominantAura(dominant, worldState.treeLevel);
     }
 
-    // Calculate base damage
-    const damageMultiplier = validatedMultiplier === 10 ? 1.1 : 1.0; // 10% bonus for x10
+    const damageMultiplier = validatedMultiplier === 10 ? 1.1 : 1.0;
     const baseDamagePerSpin = (player.level * 500 * validatedMultiplier * damageMultiplier) / 5;
     
     let totalDamage = 0;
@@ -158,22 +184,21 @@ export async function POST(request: NextRequest) {
       if (ELEMENT_ADVANTAGE[spinElement] === boss.element) {
         dmg *= 2;
         hasAdvantage = true;
+      } else if (ELEMENT_RESISTANCE[spinElement] === boss.element) {
+        dmg *= 0.5;
       } else if (spinElement === 'star') {
-        dmg *= 1.5;
+        dmg *= 1.25;
       }
-      // RNG variance ±15% (more stable)
       const rng = 0.85 + Math.random() * 0.3;
       totalDamage += Math.floor(dmg * rng);
     }
 
-    // Apply Fire Aura (Combat Damage)
     if (dominantAura && dominantAura.type === 'combatDamage') {
       totalDamage = Math.floor(totalDamage * (1 + dominantAura.value));
     }
 
     const result = await db.$transaction(async (tx) => {
       let baseExp = 100 * validatedMultiplier;
-      // Apply Star Aura (Experience)
       if (dominantAura && dominantAura.type === 'experienceGain') {
         baseExp = Math.floor(baseExp * (1 + dominantAura.value));
       }
@@ -233,8 +258,6 @@ export async function POST(request: NextRequest) {
         
         const rankIndex = allLogs.findIndex(l => l.playerId === player.id);
         playerRank = rankIndex !== -1 ? (rankIndex + 1).toString() : '-';
-
-        // Distribute chests... (simplified for now to keep focus)
       }
 
       return {
