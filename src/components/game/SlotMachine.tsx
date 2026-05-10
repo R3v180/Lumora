@@ -319,167 +319,134 @@ export function SlotMachine() {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 flex items-center justify-center z-[200] pointer-events-none overflow-hidden bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 flex items-center justify-center z-[200] pointer-events-auto overflow-hidden"
           >
-            {/* Background God Rays / Glow Effect */}
+            {/* Very Subtle Neutral Glow */}
             <motion.div 
               initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 3, opacity: 1 }}
-              className={`absolute w-96 h-96 rounded-full blur-[120px] opacity-20 ${
-                currentSummary.isMegaWin ? 'bg-lumora-gold' : 
-                currentSummary.isBigWin ? 'bg-lumora-pink' : 'bg-lumora-blue'
-              }`}
+              animate={{ scale: 4, opacity: 0.1 }}
+              className="absolute w-96 h-96 rounded-full blur-[100px] bg-white/10"
             />
             
-            {/* Spinning Rays Animation */}
             <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 flex items-center justify-center opacity-15"
-            >
-              {[...Array(12)].map((_, i) => (
-                <div 
-                  key={i} 
-                  className="absolute w-1 h-[2000px] bg-gradient-to-t from-white/40 to-transparent" 
-                  style={{ transform: `rotate(${i * 30}deg)` }} 
-                />
-              ))}
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.5, y: 100, rotateX: 45 }} 
-              animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }} 
-              exit={{ opacity: 0, scale: 1.2, y: -100 }} 
-              transition={{ type: 'spring', damping: 18 }}
-              className={`relative w-full max-w-[380px] p-8 rounded-[3rem] backdrop-blur-3xl border-2 glass-card shadow-[0_0_120px_rgba(0,0,0,0.9)] flex flex-col items-center gap-6 ${
-                currentSummary.isMegaWin ? 'border-lumora-gold shadow-[0_0_50px_rgba(255,215,0,0.3)]' : 
-                currentSummary.isBigWin ? 'border-lumora-pink shadow-[0_0_50px_rgba(255,105,180,0.3)]' : 'border-white/20'
+              initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 1.05, y: -10 }} 
+              className={`relative w-full max-w-[400px] rounded-[2.5rem] border border-white/20 bg-black/30 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden ${
+                currentSummary.isMegaWin || currentSummary.isBigWin ? 'border-lumora-gold/40' : ''
               }`}
+              style={{ maxHeight: '80vh' }}
             >
-              {/* Praise Text & Header */}
-              <div className="flex flex-col items-center text-center -space-y-1">
-                <motion.span 
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className={`text-sm font-black uppercase tracking-[0.6em] drop-shadow-lg ${
-                    currentSummary.isMegaWin ? 'text-lumora-gold' : 
-                    currentSummary.isBigWin ? 'text-lumora-pink' : 'text-lumora-blue'
-                  }`}
-                >
-                  {currentSummary.isMegaWin ? '¡GIRO DIVINO!' : currentSummary.isBigWin ? '¡GRAN HALLAZGO!' : '¡BOTÍN OBTENIDO!'}
-                </motion.span>
-                
-                <div className="relative pt-6">
-                  <motion.span 
-                    className="text-7xl font-black text-white italic tracking-tighter drop-shadow-[0_0_30px_rgba(255,255,255,0.7)] bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-white/40"
-                  >
-                    +{displayedPayout.toLocaleString()}
-                  </motion.span>
-                  <div className="absolute -right-10 top-1/2 -translate-y-1/2">
-                    <Zap className={`h-12 w-12 fill-current ${
-                      currentSummary.isMegaWin ? 'text-lumora-gold' : 
-                      currentSummary.isBigWin ? 'text-lumora-pink' : 'text-lumora-gold'
-                    } animate-bounce`} />
+              <div className="relative z-10 flex-1 flex flex-col items-center pt-6 px-6 overflow-hidden">
+                {/* Praise Text & Header */}
+                <div className="flex flex-col items-center text-center space-y-2 mb-5 shrink-0">
+                  <span className={`text-[8px] font-black uppercase tracking-[0.4em] drop-shadow-md ${
+                    currentSummary.isMegaWin || currentSummary.isBigWin ? 'text-lumora-gold' : 'text-white/60'
+                  }`}>
+                    {currentSummary.isMegaWin ? '¡GIRO DIVINO!' : currentSummary.isBigWin ? '¡GRAN HALLAZGO!' : '¡BOTÍN OBTENIDO!'}
+                  </span>
+                  
+                  <div className="flex items-center gap-4 bg-black/40 px-6 py-2 rounded-full border border-white/10 backdrop-blur-md">
+                    <span className="text-5xl font-black text-white italic tracking-tighter drop-shadow-lg">
+                      +{displayedPayout.toLocaleString()}
+                    </span>
+                    <motion.div 
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                    >
+                      <Zap className="h-8 w-8 text-lumora-gold fill-current drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Rewards Stack - Scrollable Area */}
+                <div className="w-full flex-1 overflow-y-auto custom-scrollbar pr-1 pointer-events-auto">
+                  <div className="space-y-2 pb-10">
+                    <div className={currentSummary.spirits.length > 2 ? "grid grid-cols-2 gap-2" : "space-y-2"}>
+                      {currentSummary.spirits.map((spirit: any, idx: number) => (
+                        <motion.div 
+                          key={`spirit-${idx}`}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 + (idx * 0.05) }}
+                          className="flex flex-col gap-2 p-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-sm shadow-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-black/60 p-1.5 flex items-center justify-center border border-white/10">
+                              <SymbolIcon 
+                                symbol={{ 
+                                  id: spirit.spiritTypeId, 
+                                  element: spirit.element, 
+                                  rarity: spirit.rarity, 
+                                  symbolType: 'spirit', 
+                                  glowColor: '#fff', 
+                                  name: spirit.name 
+                                }} 
+                                isWin={true}
+                                size={24}
+                              />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[11px] font-black text-white uppercase truncate tracking-tight">{spirit.name}</span>
+                              <span className={`text-[7px] font-bold tracking-[0.2em] uppercase ${
+                                spirit.rarity === 'legendary' ? 'text-lumora-gold' :
+                                spirit.rarity === 'epic' ? 'text-lumora-purple' : 'text-white/40'
+                              }`}>{spirit.rarity}</span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Secondary Rewards */}
+                    <div className="space-y-2">
+                      {currentSummary.missionPoints > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center justify-between p-3 px-4 rounded-2xl bg-black/40 border border-white/10"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Trophy className="h-4 w-4 text-lumora-pink" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-wider">Misión {currentSummary.missionElement}</span>
+                          </div>
+                          <span className="text-xs font-black text-lumora-pink">+{currentSummary.missionPoints} PTS</span>
+                        </motion.div>
+                      )}
+
+                      {currentSummary.surges.map((surge: any, idx: number) => (
+                        <motion.div 
+                          key={`surge-${idx}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex items-center justify-between p-3 px-4 rounded-2xl bg-black/40 border border-white/10"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Zap className="h-4 w-4 text-lumora-blue" />
+                            <span className="text-[10px] font-black text-white uppercase italic tracking-wider">Oleada x{surge.count}</span>
+                          </div>
+                          <span className="text-xs font-black text-lumora-blue">+{surge.bonus} ✨</span>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Rewards Stack - Scrollable if too many */}
-              <div className="w-full max-h-[45vh] overflow-y-auto custom-scrollbar pr-1 space-y-3 pointer-events-auto">
-                <div className={currentSummary.spirits.length > 2 ? "grid grid-cols-2 gap-2" : "space-y-3"}>
-                  {currentSummary.spirits.map((spirit: any, idx: number) => (
-                    <motion.div 
-                      key={`spirit-${idx}`}
-                      initial={{ x: idx % 2 === 0 ? -40 : 40, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 + (idx * 0.1) }}
-                      className={`flex flex-col gap-2 p-3 rounded-2xl bg-gradient-to-br border shadow-xl ${
-                        spirit.rarity === 'legendary' ? 'from-lumora-gold/30 to-black/60 border-lumora-gold' :
-                        spirit.rarity === 'epic' ? 'from-lumora-purple/30 to-black/60 border-lumora-purple' :
-                        'from-zinc-800 to-black border-white/10'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-black/80 p-1.5 flex items-center justify-center border border-white/10 shadow-inner">
-                          <SymbolIcon 
-                            symbol={{ 
-                              id: spirit.spiritTypeId, 
-                              element: spirit.element, 
-                              rarity: spirit.rarity, 
-                              symbolType: 'spirit', 
-                              glowColor: '#fff', 
-                              name: spirit.name 
-                            }} 
-                            isWin={true}
-                            size={24}
-                          />
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[11px] font-black text-white uppercase truncate">{spirit.name}</span>
-                          <span className={`text-[7px] font-bold tracking-[0.2em] uppercase ${
-                            spirit.rarity === 'legendary' ? 'text-lumora-gold' :
-                            spirit.rarity === 'epic' ? 'text-lumora-purple' : 'text-white/40'
-                          }`}>{spirit.rarity}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between border-t border-white/5 pt-2">
-                        <div className="px-2 py-0.5 rounded-full bg-white/5 text-[7px] font-black text-white/60">COMBO x{spirit.combo}</div>
-                        <Sparkles className="h-3 w-3 text-lumora-gold" />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Secondary Rewards */}
-                <div className="space-y-2 pt-2">
-                  {currentSummary.missionPoints > 0 && (
-                    <motion.div 
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.5 }}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-lumora-pink/20 to-black/60 border border-lumora-pink/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Trophy className="h-5 w-5 text-lumora-pink" />
-                        <span className="text-[10px] font-black text-white uppercase">Misión {currentSummary.missionElement}</span>
-                      </div>
-                      <span className="text-sm font-black text-lumora-pink">+{currentSummary.missionPoints} PTS</span>
-                    </motion.div>
-                  )}
-
-                  {currentSummary.surges.map((surge: any, idx: number) => (
-                    <motion.div 
-                      key={`surge-${idx}`}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.6 }}
-                      className="flex items-center justify-between p-4 rounded-2xl bg-lumora-blue/20 border border-lumora-blue/30"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Zap className="h-5 w-5 text-lumora-blue" />
-                        <span className="text-[10px] font-black text-white uppercase italic">Oleada x{surge.count}</span>
-                      </div>
-                      <span className="text-sm font-black text-lumora-blue">+{surge.bonus} ✨</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* New Balance Footer */}
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="w-full pt-4 border-t border-white/10 flex flex-col items-center gap-2"
-              >
-                <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.3em]">NUEVO SALDO</p>
-                <div className="flex items-center gap-3 px-6 py-2 rounded-2xl bg-white/5 border border-white/10">
-                  <span className="text-2xl font-black text-lumora-gold tracking-tight">{result?.player?.lumens.toLocaleString() || '---'}</span>
-                  <div className="w-6 h-6 rounded-full bg-lumora-gold/20 flex items-center justify-center">
-                    <Zap className="h-3 w-3 text-lumora-gold fill-current" />
+              {/* New Balance Footer Card */}
+              <div className="shrink-0 p-5 bg-black/60 border-t border-white/10 backdrop-blur-md">
+                <div className="flex flex-col items-center w-full">
+                  <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em] mb-3">CRISTALES TOTALES</span>
+                  <div className="w-full py-4 rounded-[2rem] bg-black/40 border border-white/20 flex items-center justify-center gap-4 shadow-inner">
+                    <span className="text-3xl font-black text-lumora-gold tracking-tighter">
+                      {result?.player?.lumens.toLocaleString() || '---'}
+                    </span>
+                    <div className="w-10 h-10 rounded-2xl bg-lumora-gold/20 flex items-center justify-center border border-lumora-gold/30">
+                      <Zap className="h-5 w-5 text-lumora-gold fill-current" />
+                    </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}

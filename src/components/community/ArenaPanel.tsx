@@ -209,20 +209,7 @@ export function ArenaPanel() {
   }
 
   return (
-    <div className="space-y-4 relative overflow-hidden rounded-2xl p-4 min-h-[600px]">
-      {/* Shared Background */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <motion.img 
-          initial={{ scale: 1.1 }}
-          animate={{ scale: [1.1, 1.15, 1.1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          src="/assets/backgrounds/bg_arena.png" 
-          alt="Arena Background" 
-          className="w-full h-full object-cover opacity-50 mix-blend-soft-light" 
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
-      </div>
-
+    <div className="space-y-4 relative z-10">
       {/* Main Content Switcher */}
       <div className="relative z-10">
         {mode === 'attack' && attackTarget ? (

@@ -237,23 +237,9 @@ export function BossPanel() {
   const hpPercent = Math.max(0, (boss.currentHp / boss.maxHp) * 100);
 
   return (
-    <div className="relative space-y-4 rounded-[2.5rem] overflow-hidden border border-white/10 bg-black/20 p-6 min-h-[600px]">
-      {/* Immersive Background Layer */}
-      <div className="absolute inset-0 z-0">
-        <motion.img 
-          initial={{ scale: 1.2, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.5 }}
-          transition={{ duration: 1.5 }}
-          src="/assets/backgrounds/bg_boss.png" 
-          alt="" 
-          className="w-full h-full object-cover" 
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c]/40 to-transparent" />
-      </div>
-
-      <div className="relative z-10 space-y-4">
-        {/* Boss Card with Image */}
-        <div className="rounded-2xl border border-lumora-purple/30 bg-card/60 backdrop-blur-sm overflow-hidden flex flex-col relative">
+    <div className="relative space-y-4 z-10">
+      {/* Boss Card with Image */}
+      <div className="rounded-2xl border border-lumora-purple/30 bg-card/60 backdrop-blur-sm overflow-hidden flex flex-col relative">
         {/* Absolute Help Button */}
         <Button 
           variant="ghost" 
@@ -530,7 +516,6 @@ export function BossPanel() {
         onClose={() => setShowEnergyRefill(false)}
         onSuccess={() => fetchBoss()}
       />
-      </div>
     </div>
   );
 }
